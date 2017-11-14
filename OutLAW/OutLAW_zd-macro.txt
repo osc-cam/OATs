@@ -1,0 +1,10 @@
+%%%%WAIVER VARIABLES FOR ZD-{{ticket.id}} %%%%
+
+\newcommand{\currentagent}{ {{current_user.name}} }
+\signature{\vspace{-4em}\includegraphics[]{\string~/.OATs/OutLAW/waiver-signature}\\Dr \currentagent\\Open Access Service\\info@openaccess.cam.ac.uk}
+\newcommand{\publisher}{ {{ticket.ticket_field_24069543}} }
+\newcommand{\manuscripttitle}{\textbf{Title}: {{ticket.ticket_field_24069473}} }
+\newcommand{\manuscriptjournal}{\textbf{Journal}: {{ticket.ticket_field_24069493}} }
+   
+%%%%COMMANDS TO EXECUTE WAIVER PROCESSING SCRIPTS
+%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\OATS\OutLAW\OutLAW.py

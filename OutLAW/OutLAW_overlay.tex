@@ -1,0 +1,45 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+\documentclass[12pt]{letter}
+\usepackage{tikz}
+\usepackage[top=3in, a4paper]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{hanging}
+\thispagestyle{empty}
+
+%%%%WAIVER VARIABLES 
+\input{\string~/.OATs/OutLAW/waiver-variables.txt}
+%\signature{\vspace{-4em}\includegraphics[]{waiver_signature}\\Dr Andr\'{e} Sartori\\Open Access Research Advisor\\info@openaccess.cam.ac.uk} % Goes after the closing (ie at the end of the letter, with space for a signature)
+\def\fromaddress{\null}%forces placement of signature at right hand side
+
+%\renewcommand{\publisher}{Elsevier} %%UNCOMMENT THIS TO SET PUBLISHER MANUALLY
+%\renewcommand{\manuscriptdetails}{\textbf{Title}: My best paper\\\textbf{Journal}: My sister's journal}%%UNCOMMENT THIS TO MANUSCRIPT DETAILS MANUALLY
+
+\begin{document}
+\begin{letter}{}
+
+\opening{Dear \publisher,}
+
+Regarding a manuscript submitted to your journal:
+
+\bigskip
+\hangpara{3.4em}{1}\textbf{\manuscripttitle}
+
+\hangpara{3.4em}{1}\textbf{\manuscriptjournal}
+
+\bigskip\noindent 
+%The University of Cambridge’s open access policy framework is to prefer ‘green’ over ‘gold’ open access (http://osc.cam.ac.uk/oa-policy-landscape/cambridge-open-access-policy-framework). 
+%The University of Cambridge does not provide funding for open access article processing charges or standard publication charges, instead relying on funding that has been made available for this purpose by research funders. 
+The Open Access Team at the Office of Scholarly Communication administers funds that are provided by the Research Councils UK and by the Charities Open Access Funds. These funds are used to pay for Article Processing Charges for works that have arisen from funded research.
+
+\emph{Please note that the University of Cambridge does not have any funds to support open access payments outside of these arrangements}.
+
+As the authors of this paper are not funded by RCUK or COAF, the University is therefore unable to support the payment of the fee for this article. I hope that in this case you will waive the publication costs, including open access, for the authors.
+
+\closing{Kind regards,} % eg Regards,
+
+\tikz[remember picture,overlay] \node[opacity=1,inner sep=0pt] at (current page.center){\includegraphics[width=\paperwidth,height=\paperheight,trim=0 0 0 0,clip]{\string~/.OATs/OutLAW/library-letter-paper}};
+\clearpage
+
+\end{letter}
+\end{document}

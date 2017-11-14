@@ -1,0 +1,90 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+\documentclass[12pt]{article}
+\usepackage{tikz}
+\usepackage[margin=0cm,a4paper,
+%landscape
+]{geometry}
+\usepackage[ddmmyyyy]{datetime}
+\usepackage[utf8]{inputenc}
+\renewcommand*{\familydefault}{\ttdefault}
+\thispagestyle{empty}
+
+%%Warnings and errors
+\newcommand{\ERROR}[1]{\LARGE ERROR: #1}
+\newcommand{\WARNING}[1]{\LARGE WARNING: #1}
+\newcommand{\oldwarning}{}
+
+%%Transaction codes
+\newcommand{\OA}{EBDU}
+\newcommand{\membership}{EBDV}
+\newcommand{\pagecolour}{EBDW (Page/colour)}
+%\newcommand{\transaction}{\OA} %set default code to OA
+
+%%%%Funder codes
+\newcommand{\VEJIJUDB}{VEJI.JUDB.}
+\newcommand{\VEJJJUDB}{VEJJ.JUDB.}
+\newcommand{\COAFsixteen}{VEAG/050.RG88122.}
+\newcommand{\COAFseventeen}{VEAG/052.RG93375.}
+
+%%%%INVOICE VARIABLES 
+\input{\string~/.OATs/OASIS/invoice-variables.txt}
+
+\newcommand{\invstamp}{
+\filldraw[draw=red, very thick, fill=white, fill opacity=.7] 
+[xshift= \xshift cm, yshift=\yshift cm] 
+(0, 0) rectangle (15, 5)
+(0, 0) rectangle (11, 1.3)
+(0, 1.3) rectangle (5, 5)
+(11, 0) rectangle (15, 1.3)
+(5, 3.9) rectangle (11, 5)
+(5, 3.9) rectangle (15, 5);
+
+\path [xshift=\xshift cm, yshift=\yshift cm] (0.1 , 1.2) node[red, inner sep=0pt, anchor=north west]{Approved by};
+\path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 1.4) node[red, inner sep=0pt, anchor=south]{\LARGE{Open Access}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (0.1 , 4.9) node[red, inner sep=0pt, anchor=north west]{Reference No.};
+\path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 3.5) node[blue, inner sep=0pt, anchor=base]{\large{\textbf{\invref}}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 2.8) node[blue, inner sep=0pt, anchor=base]{\large{\textbf{\invrefzd}}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 2.3) node[blue, inner sep=0pt, anchor=base]{\scriptsize{Invoice no:\textbf{\invoiceno}}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (5.1 , 4.9) node[red, inner sep=0pt, anchor=north west]{Processed by\footnotesize{\currentagent}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (5.1 , 3.7) node[red, inner sep=0pt, anchor=north west]{Funding Code};
+\path [xshift=\xshift cm, yshift=\yshift cm] (5.3 , 1.8) node[blue, inner sep=0pt, anchor=south west]{\textbf{\invfundcode\ \RCUKratio}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (5.3 , 1.4) node[blue, inner sep=0pt, anchor=south west]{\textbf{\invfundcodeadditional\ \COAFratio}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (11.1 , 4.9) node[red, inner sep=0pt, anchor=north west]{Processed date};
+\path [xshift=\xshift cm, yshift=\yshift cm] (12 , 4.4) node[blue, inner sep=0pt, anchor=north west]{\textbf{\today}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (11.1 , 1.2) node[red, inner sep=0pt, anchor=north west]{Approval date};
+\path [xshift=\xshift cm, yshift=\yshift cm] (6 , 3) node[blue, inner sep=0pt, anchor=north west]{\oldwarning};
+}
+
+\newcommand{\afourgrid}{
+\draw[step=0.5cm,red,very thin, loosely dotted,opacity=0.2] (-9,-14) grid (9,14);
+\draw[step=1cm,red,very thin,opacity=0.2] (-9,-14) grid (9,14);
+\foreach \x in {-8,...,8}
+  \draw[red] (\x, 14) -- (\x, 14) node[anchor=south] {$\x$}
+  (\x, -14) -- (\x, -14) node[anchor=north] {$\x$};
+\foreach \y in {-14,...,14}
+  \draw[red] (-9, \y) -- (-9, \y) node[anchor=east] {$\y$}
+  (9, \y) -- (9, \y) node[anchor=west] {$\y$};
+}
+%\renewcommand{\afourgrid}{}
+% \draw[step=0.5cm,red,very thin, loosely dotted,opacity=0] (-9,-14) grid (9,14);
+% \draw[step=1cm,red,very thin,opacity=0] (-9,-14) grid (9,14);
+% \foreach \x in {-8,...,8}
+%   \draw[red, opacity=0] (\x, 14) -- (\x, 14) node[anchor=south] {$\x$}
+%   (\x, -14) -- (\x, -14) node[anchor=north] {$\x$};
+% \foreach \y in {-14,...,14}
+%   \draw[red, opacity=0] (-9, \y) -- (-9, \y) node[anchor=east] {$\y$}
+%   (9, \y) -- (9, \y) node[anchor=west] {$\y$};
+% }
+
+\begin{document}
+\begin{center}%
+\begin{tikzpicture}
+%\path (-10, 14) node[inner sep=0pt, anchor=north west]{\includegraphics[height=280mm]{tempinv01}};
+\path (-10, 14) node[inner sep=0pt, anchor=north west]{\includegraphics[width=200mm]{tempinv01}}; %portrait
+%\path (-10, 14) node[inner sep=0pt, anchor=north west]{\includegraphics[height=200mm]{tempinv01}}; %landscape
+%\afourgrid
+\invstamp
+\end{tikzpicture}
+\end{center}
+\end{document}
