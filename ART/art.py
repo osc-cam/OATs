@@ -11,10 +11,14 @@ import collections
 from pprint import pprint
 from difflib import SequenceMatcher
 
+### SET UP WORKING FOLDER
+home = os.path.expanduser("~")
+working_folder = os.path.join(home, 'OATs', 'ART-wd')
+
 DOI_CLEANUP = ['http://dx.doi.org/', 'https://doi.org/', 'http://dev.biologists.org/lookup/doi/', 'http://www.hindawi.com/journals/jdr/aip/2848759/']
 DOI_FIX = {'0.1136/jmedgenet-2016-104295':'10.1136/jmedgenet-2016-104295'}
 exclude_from_next_run_prefix = "ART_info_add_to_exclusion_list_because_not_in_funders_policy_"
-logfile = "ART_log.txt"
+logfile = os.path.join(working_folder, "ART_log.txt")
 manual_title2zd_dict = {
     ###SPRINGER
     'Acute Posterior Cranial Fossa Hemorrhage—Is Surgical Decompression Better than Expectant Medical Management?' : '', ##NOT SUBMITTED TO APOLLO
@@ -301,7 +305,7 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                 key = 'no_zd_match_' + str(row_counter)
                 if funder == 'RCUK':
                     rejected_rcuk_payment_dict[key] = row
-                debug_filename = unmatched_payment_file_prefix + paymentsfile.split('/')[-1]
+                debug_filename = os.path.join(working_folder, unmatched_payment_file_prefix, paymentsfile.split('/')[-1])
                 output_debug_info(debug_filename, row, fileheader)
             row_counter += 1
 
@@ -693,7 +697,6 @@ def filter_prepayment_records(row, publisher, filter_date_field, request_status_
     prune = 0
     prune_reason = ''
     if publisher == 'Springer':
-<<<<<<< HEAD
         #### THIS IS OBSOLETE BECAUSE SPRINGER NOW PROVIDES A REPORT
         #### FILTERED BY INSTITUTION BY DEFAULT
         # if row['Institution'].strip() in institution_filter:
@@ -702,13 +705,6 @@ def filter_prepayment_records(row, publisher, filter_date_field, request_status_
         #     prune = 1
         #     prune_reason = 'Other institution'
         publication_date = row[filter_date_field]
-=======
-        if row['Institution'].strip() in institution_filter:
-            publication_date = row[filter_date_field]
-        else:
-            prune = 1
-            prune_reason = 'Other institution'
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
     elif (publisher == 'OUP') or (publisher == 'Wiley'):
         request_status = row[request_status_field]
         if request_status in ['Cancelled', 'Rejected', 'Denied']:
@@ -759,16 +755,16 @@ def match_datasource_fields_to_report_fields(datasource_dict, translation_dict, 
     return(datasource_dict)
 
 def action_cleanup_debug_info():
-    with open(unmatched_payment_file_prefix + rcuk_paymentsfile, 'w') as csvfile:
+    with open(os.path.join(working_folder, unmatched_payment_file_prefix, rcuk_paymentsfile), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
-    with open(unmatched_payment_file_prefix + coaf_paymentsfile, 'w') as csvfile:
+    with open(os.path.join(working_folder, unmatched_payment_file_prefix, coaf_paymentsfile), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=coaffieldnames)
         writer.writeheader()
-    with open(nonJUDB_payment_file_prefix + rcuk_paymentsfile, 'w') as csvfile:
+    with open(os.path.join(working_folder, nonJUDB_payment_file_prefix, rcuk_paymentsfile), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
-    with open(nonEBDU_payment_file_prefix + rcuk_paymentsfile, 'w') as csvfile:
+    with open(os.path.join(working_folder, nonEBDU_payment_file_prefix, rcuk_paymentsfile), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
 
@@ -867,15 +863,12 @@ def action_populate_doi2apollo(apolloexport, enc='utf-8'):
     return(doi2apollo)
 
 def action_populate_report_dict():
-<<<<<<< HEAD
     if paydate_field == rcuk_paydate_field:
         datetime_format_st = '%d-%b-%Y' #e.g 21-APR-2016
     elif paydate_field == coaf_paydate_field:
         datetime_format_st = '%d-%b-%y' #e.g 21-APR-16
     else:
         print('ERROR: unrecognised paydate_field', paydate_field)
-=======
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
     zd_dict_counter = 0
     for a in zd_dict:
         ## CHECK IF THERE IS A PAYMENT FROM REPORT REQUESTER; 
@@ -883,19 +876,11 @@ def action_populate_report_dict():
         try:
             payments = zd_dict[a][paydate_field].split('%&%')
             for p in payments:
-<<<<<<< HEAD
                 payment_date = datetime.datetime.strptime(p.strip(), datetime_format_st)
                 if report_start_date <= payment_date <= report_end_date:
                     report_dict[a] = zd_dict[a]
                 else:
                     key = 'out_of_reporting_period_' + str(zd_dict_counter)
-=======
-                payment_date = datetime.datetime.strptime(p.strip(), '%d-%b-%Y') #e.g 21-APR-2016
-                if report_start_date <= payment_date <= report_end_date:
-                    report_dict[a] = zd_dict[a]
-                else:
-                    key = 'out_of_reporting_period_' + zd_dict_counter
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
                     rejected_rcuk_payment_dict[key] = zd_dict[a]
         except KeyError:
             pass
@@ -908,11 +893,7 @@ def action_populate_report_dict():
 
 def action_export_payments_reconciliation():
     reconcile_prefix = 'ART_reconcile_'
-<<<<<<< HEAD
-    reconcile_file = reconcile_prefix + rcuk_paymentsfile.split('/')[-1]
-=======
-    reconcile_file = reconcile_prefix + rcuk_paymentsfile
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
+    reconcile_file = os.path.join(working_folder, reconcile_prefix, rcuk_paymentsfile.split('/')[-1])
     reconcile_field = 'report_status'
     reconcile_fieldnames = rcuk_paymentsfieldnames + [reconcile_field]
     with open(reconcile_file, 'w') as csvfile:
@@ -927,7 +908,7 @@ def action_export_payments_reconciliation():
 
 def action_populate_report_fields():
     rep_fund_field_list = ['Fund that APC is paid from (1)', 'Fund that APC is paid from (2)', 'Fund that APC is paid from (3)']
-<<<<<<< HEAD
+
     zd_fund_field_list = ['RCUK payment [flag]', 'COAF payment [flag]', 'Other institution payment [flag]',
                           'Grant payment [flag]', 'Voucher/membership/offset payment [flag]',
                           'Author/department payment [flag]', 'Wellcome payment [flag]',
@@ -942,12 +923,6 @@ def action_populate_report_fields():
                       'FP7 [flag]', 'NIHR [flag]', 'H2020 [flag]', 'AHRC [flag]', 'BBSRC [flag]', 'EPSRC [flag]',
                       'MRC [flag]', 'Gates Foundation [flag]', 'STFC [flag]', 'Cancer Research UK [flag]',
                       'Wellcome Trust [flag]', 'British Heart Foundation [flag]']
-=======
-    zd_fund_field_list = ['RCUK payment [flag]', 'COAF payment [flag]', 'Other institution payment [flag]', 'Grant payment [flag]', 'Voucher/membership/offset payment [flag]', 'Author/department payment [flag]', 'Wellcome payment [flag]', 'Wellcome Supplement Payment [flag]']
-
-    rep_funders = ['Funder of research (1)', 'Funder of research (2)', 'Funder of research (3)']
-    zd_allfunders = [ 'ERC [flag]', 'Arthritis Research UK [flag]', 'Breast Cancer Campaign [flag]', "Parkinson's UK [flag]", 'ESRC [flag]', 'NERC [flag]', 'Bloodwise (Leukaemia & Lymphoma Research) [flag]', 'FP7 [flag]', 'NIHR [flag]', 'H2020 [flag]', 'AHRC [flag]', 'BBSRC [flag]', 'EPSRC [flag]', 'MRC [flag]', 'Gates Foundation [flag]', 'STFC [flag]', 'Cancer Research UK [flag]', 'Wellcome Trust [flag]', 'British Heart Foundation [flag]']
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
 
     rep_grants = ['Grant ID (1)', 'Grant ID (2)', 'Grant ID (3)']
     zd_grantfields = ['COAF Grant Numbers [txt]'] #ZD funders field could also be used, but it does not seem to be included in the default export; this could be because it is a "multi-line text field" 
@@ -1004,11 +979,7 @@ def action_manually_filter_and_export_to_report_csv():
             else:
                 excluded_recs[ticket] = report_dict[ticket]
 
-<<<<<<< HEAD
 #################################### VARIABLES ################################
-### SET UP WORKING FOLDER
-home = os.path.expanduser("~")
-working_folder = os.path.join(home, 'OATs', 'ART-wd')
 
 ###MANUAL FIXES FOR PAYMENT FILES
 zd_number_typos = {'30878':'50878'}
@@ -1150,152 +1121,7 @@ zdfund2funderstr = {
     }
 
 if __name__ == '__main__':
-=======
-if __name__ == '__main__':
-    #################################### VARIABLES ################################
-    ### SET UP WORKING FOLDER
-    home = os.path.expanduser("~")
-    working_folder = os.path.join(home, 'OATs', 'ART-wd')
 
-    ###MANUAL FIXES FOR PAYMENT FILES
-    zd_number_typos = {'30878':'50878'}
-    oa_number_typos = {'OA 10768':'OA 10468'}
-    description2zd_number = {"OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490', 'REV CHRG/ACQ TAX PD 04/16;  INV NO:Polymers-123512SUPPLIER:  MDPI AG' : '15589'}
-    invoice2zd_number = {'APC502145176':'48547', 'P09819649':'28975', 'Polymers-123512':'15589', 'Polymers-123512/BANKCHRG'
-    :'15589', '9474185' : '18153'}
-
-    lf = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(lf)
-
-    reporttype = "COAF" #Report requester. Change this to COAF if applicable.
-    rcuk_paydate_field = 'Posted' #Name of field in rcuk_paymentsfile containing the payment date
-    rcuk_payamount_field = 'Amount' #Name of field in rcuk_paymentsfile containing the payment amount
-    total_rcuk_payamount_field = 'RCUK APC Amount' #Name of field we want the calculated total RCUK APC to be stored in
-    coaf_paydate_field = 'GL Posting Date' #Name of field in coaf_last_year and coaf_this_year containing the payment date
-    coaf_payamount_field = 'Burdened Cost' #Name of field in coaf_last_year and coaf_this_year containing the payment date
-    total_coaf_payamount_field = 'COAF APC Amount' #Name of field we want the calculated total COAF APC to be stored in
-    total_apc_field = 'Total APC amount'
-
-    if reporttype == "RCUK":
-        paydate_field = rcuk_paydate_field
-        payamount_field = rcuk_payamount_field
-        total_payamount_field = total_rcuk_payamount_field
-        other_funder = "COAF"
-        of_payamount_field = coaf_payamount_field
-        total_of_payamount_field = total_coaf_payamount_field
-    elif reporttype == "COAF":
-        paydate_field = coaf_paydate_field
-        payamount_field = coaf_payamount_field
-        total_payamount_field = total_coaf_payamount_field
-        other_funder = "RCUK"
-        of_payamount_field = rcuk_payamount_field
-        total_of_payamount_field = total_rcuk_payamount_field
-    else:
-        print("ERROR: Could not determine report requester (RCUK or COAF)")
-        raise
-
-    with open(logfile, 'w') as log:
-        log.write('APC Reporting Tool log of last run\n')
-
-    doifile = os.path.join(working_folder, "DOIs_for_cottagelabs.csv")
-    outputfile = os.path.join(working_folder, "COAF_report_draft.csv")
-    excluded_recs_logfile = os.path.join(working_folder, "COAF_report_excluded_records.csv")
-    rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
-    rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31.csv")
-    rcuk_vejj = os.path.join(working_folder, "VEJJ_2017-10-31.csv")
-    rcuk_paymentsfile = os.path.join(working_folder, "RCUK_merged_payments_file.csv")
-    merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
-    # coaf_last_year = os.path.join(working_folder, 'veag45.csv')
-    # coaf_this_year = os.path.join(working_folder, 'veag50.csv')
-    coaf_paymentsfile = os.path.join(working_folder, "VEAG050_2017-10-31.csv")
-    # merge_csv_files([coaf_last_year, coaf_this_year], coaf_paymentsfile)
-    zenexport = os.path.join(working_folder, "export-2017-08-11-0955-457168e82c.csv")
-    zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2017-11-13-2307.csv")
-    apolloexport = os.path.join(working_folder, "Apollo_all_items-20171110.csv")
-    cottagelabsexport = "DOIs_for_cottagelabs_edited_results.csv"
-    # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
-    # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
-    springercompactexport = os.path.join(working_folder, "article_approval_2016-01-01_to_2017-11-10.csv")
-    # merge_csv_files([springercompact_last_year, springercompact_this_year], springercompactexport)
-    wileyrcukcoaf = os.path.join(working_folder, "Wiley_RCUK_COAF_ArticleHistoryReport.csv")
-    wileycredit = os.path.join(working_folder, "Wiley_CREDIT_ArticleHistoryReport.csv")
-    wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
-    merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
-    oupexport = os.path.join(working_folder, "OUP OA Charge Data.csv")
-    report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
-    report_start_date = datetime.datetime(2016, 10, 1)
-    report_end_date = datetime.datetime(2017, 9, 30)
-    green_start_date = datetime.datetime(2016, 1, 1)#Using 1 Jan 2016 to 31 Dec 2016 for green compliance estimate to match WoS period
-    green_end_date = datetime.datetime(2016, 12, 31, hour = 23, minute = 59, second = 59)
-
-    unmatched_payment_file_prefix = 'ART_debug_payments_not_matched_to_zd_numbers__'
-    nonJUDB_payment_file_prefix = 'ART_debug_non_JUDB_payments__'
-    nonEBDU_payment_file_prefix = 'ART_debug_non_EBDU_EBDV_or_EBDW_payments__'
-
-    ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS IN zd_dict
-    rep2zd = [
-    ('Date of acceptance', ['Symplectic acceptance date (YYYY-MM-DD) [txt]', 'Acceptance date', 'dcterms.dateAccepted']),
-    ('PubMed ID', ['PMID']), #from cottagelabs
-    ('DOI', ['DOI (like 10.123/abc456) [txt]', 'rioxxterms.versionofrecord', 'dc.identifier.uri']), #dc.identifier.uri often contains DOIs that are not in rioxxterms.versionofrecord, but it needs cleaning up (e.g. http://dx.doi.org/10.1111/oik.02622,https://www.repository.cam.ac.uk/handle/1810/254674 ); use only if the DOI cannot be found elsewhere
-    ('Publisher', ['Publisher [txt]', 'dc.publisher']),
-    ('Journal', ['Journal title [txt]', 'prism.publicationName']),
-    ('E-ISSN', ['ISSN']), #from cottagelabs
-    ('Type of publication', ['Symplectic item type [txt]', 'dc.type']),
-    ('Article title', ['Manuscript title [txt]', 'dc.title']),
-    ('Date of publication', ['Publication date (YYYY-MM-DD) [txt]', 'dc.date.issued']),
-    ('Date of APC payment', [paydate_field]),
-    #('APC paid (actual currency) excluding VAT', NA ##COULD PROBABLY OBTAIN FROM CUFS IF REALLY NECESSARY
-    #('Currency of APC', NA ##COULD PROBABLY OBTAIN FROM CUFS IF REALLY NECESSARY
-    ('APC paid (£) including VAT if charged', [total_apc_field]), ##CALCULATED FROM 'Amount'
-    ('Additional publication costs (£)', ['Page, colour or membership amount']), ##CALCULATED FROM 'Amount'
-     #('Discounts, memberships & pre-payment agreements',
-    ('Amount of APC charged to COAF grant (including VAT if charged) in £', [total_coaf_payamount_field]),
-    ('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', [total_rcuk_payamount_field]),
-    ('Licence', ['EPMC Licence', 'Publisher Licence', 'Licence applied by publisher [list]'])
-     #('Notes'
-    ]
-    rep2zd = collections.OrderedDict(rep2zd)
-
-    doi2zd_dict = {} #Dictionary mapping DOI to zd number
-    apollo2zd_dict = {} #Dictionary mapping apollo handle to zd number
-    oa2zd_dict = {} #Dictionary mapping OA number to zd number
-    zd2zd_dict = {} #Dictionary mapping zd number to zd number, so that we can use general function plug_in_metadata to match a zd export to another zd export
-    title2zd_dict = {} #Dictionary mapping article title to zd number
-    zd_dict = {}
-    zd_dict_RCUK = {} #A dictionary of tickets that have either RCUK policy or RCUK payment ticked. Needed for title matching because of the SE duplicates, which have an article title, but no decision
-    title2zd_dict_RCUK = {}
-    doi2apollo = {} #Dictionary mapping doi to handle (created using data from apollo export)
-
-    zdfund2funderstr = {
-        'RCUK payment [flag]' : 'RCUK',
-        'COAF payment [flag]' : 'COAF',
-        'Other institution payment [flag]' : 'ERROR: OTHER INSTITUTION',
-        'Grant payment [flag]' : 'Institutional',
-        'Voucher/membership/offset payment [flag]' : 'Institutional',
-        'Author/department payment [flag]' : 'Institutional',
-        'Wellcome payment [flag]' : 'Wellcome Trust',
-        'Wellcome Supplement Payment [flag]' : 'Wellcome Trust',
-        'ERC [flag]' : 'ERC',
-        'Arthritis Research UK [flag]' : 'Arthritis Research UK',
-        'Breast Cancer Campaign [flag]' : 'Breast Cancer Campaign',
-        "Parkinson's UK [flag]" : "Parkinson's UK",
-        'ESRC [flag]' : 'ESRC',
-        'NERC [flag]' : 'NERC' ,
-        'Bloodwise (Leukaemia & Lymphoma Research) [flag]' : 'Bloodwise',
-        'FP7 [flag]' : 'FP7',
-        'NIHR [flag]' : 'NIHR',
-        'H2020 [flag]' : 'H2020',
-        'AHRC [flag]' : 'AHRC',
-        'BBSRC [flag]' : 'BBSRC',
-        'EPSRC [flag]' : 'EPSRC',
-        'MRC [flag]' : 'MRC',
-        'Gates Foundation [flag]' : 'Bill and Melinda Gates Foundation',
-        'STFC [flag]' : 'STFC',
-        'Cancer Research UK [flag]' : 'Cancer Research UK',
-        'Wellcome Trust [flag]' : 'Wellcome Trust',
-        'British Heart Foundation [flag]': 'British Heart Foundation'
-        }
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
 
     ############################ACTION STARTS HERE##################################
 
@@ -1325,207 +1151,140 @@ if __name__ == '__main__':
     #~ print('STATUS: cleanning up debug info from previous run')
     #~ action_cleanup_debug_info()
 
-    ###INDEX INFO FROM ZENDESK ON ZD NUMBER
-    plog('STATUS: indexing zendesk info on zd number', terminal=True)
-    action_index_zendesk_data()
-
-    ### POPULATE doi2apollo DICTIONARY
-    plog('STATUS: populating doi2apollo dictionary', terminal=True)
-    action_populate_doi2apollo(apolloexport)
-
-    #### PLUGGING IN DATA FROM ZENDESK DATE FIELDS
-    plog('STATUS: plugging in data from zendesk date fields into zd_dict', terminal=True)
-    plug_in_metadata(zendatefields, 'id', zd2zd_dict)
-
-<<<<<<< HEAD
-    # #### ESTIMATE COMPLIANCE VIA GREEN ROUTE
-    # plog('STATUS: estimating compliance via the green route', terminal=True)
-    # ### TAKE A SAMPLE OF OUTPUTS COVERED BY THE RCUK POLICY AND PUBLISHED DURING THE REPORTING PERIOD
-    # ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES OR "WRONG VERSION"
-    # rcuk_dict = {}
-    # for a in zd_dict:
-    #     row = zd_dict[a]
-    #     rcuk_policy = row['RCUK policy [flag]']
-    #     ticket_creation = dateutil.parser.parse(row['Created at'])
-    #     wrong_version = row['Wrong version [flag]']
-    #     dup = row['Duplicate [flag]']
-    #     #~ if not row['Online Publication Date (YYYY-MM-DD) [txt]'] == '-':
-    #         #~ try:
-    #             #~ publication_date = dateutil.parser.parse(row['Online Publication Date (YYYY-MM-DD) [txt]'].replace('--','-'))
-    #         #~ except ValueError:
-    #             #~ print(row['Online Publication Date (YYYY-MM-DD) [txt]'])
-    #             #~ raise
-    #     #~ else:
-    #         #~ try:
-    #             #~ if not row['Publication Date (YYYY-MM-DD) [txt]'] == '-':
-    #                 #~ publication_date = dateutil.parser.parse(row['Publication Date (YYYY-MM-DD) [txt]'])
-    #             #~ else:
-    #                 #~ publication_date = datetime.datetime(2100, 1, 1)
-    #         #~ except KeyError:
-    #             #~ publication_date = datetime.datetime(2100, 1, 1)
-    #     if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (green_start_date <= ticket_creation <= green_end_date):
-    #         rcuk_dict[a] = zd_dict[a]
+    # ###INDEX INFO FROM ZENDESK ON ZD NUMBER
+    # plog('STATUS: indexing zendesk info on zd number', terminal=True)
+    # action_index_zendesk_data()
     #
-    # ## CHECK HOW MANY OF THOSE ARE GOLD, GREEN OR UNKNOWN
-    # green_dict = {}
-    # gold_dict = {}
-    # green_counter = 0
-    # gold_counter = 0
-    # apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact']
-    # WoS_total = 2400 #From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
-    # for a in rcuk_dict:
-    #     row = rcuk_dict[a]
-    #     apc_payment = row['Is there an APC payment? [list]']
-    #     green_version = row['Green allowed version [list]']
-    #     embargo = row['Embargo duration [list]']
-    #     green_licence = row['Green licence [list]']
-    #     if apc_payment in apc_payment_values:
-    #         gold_counter += 1
-    #         gold_dict[a] = rcuk_dict[a]
-    #     else:
-    #         green_counter += 1
-    #         green_dict[a] = rcuk_dict[a]
+    # ### POPULATE doi2apollo DICTIONARY
+    # plog('STATUS: populating doi2apollo dictionary', terminal=True)
+    # action_populate_doi2apollo(apolloexport)
     #
-    # rcuk_papers_total = gold_counter + green_counter
+    # #### PLUGGING IN DATA FROM ZENDESK DATE FIELDS
+    # plog('STATUS: plugging in data from zendesk date fields into zd_dict', terminal=True)
+    # plug_in_metadata(zendatefields, 'id', zd2zd_dict)
     #
-    # plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES:', terminal = True)
-    # plog(str(rcuk_papers_total), 'ZD tickets covered by the RCUK open access policy were created during the green reporting period, of which:', terminal=True)
-    # plog(str(gold_counter), '(' + str(gold_counter / rcuk_papers_total) + ') tickets were placed in the GOLD route to comply with the policy', terminal=True)
-    # plog(str(green_counter), '(' + str(green_counter / rcuk_papers_total) + ') tickets were placed in the GREEN route to comply with the policy', terminal=True)
-    # plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES AS A RATIO OF WoS TOTAL:', terminal = True)
-    # plog(str(WoS_total), 'papers (articles, reviews and proceedings papers) acknowledging RCUK funding were published by the University of Cambridge during the green reporting period, of which:', terminal=True)
-    # plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal = True)
-    # plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal = True)
+    # # #### ESTIMATE COMPLIANCE VIA GREEN ROUTE
+    # # plog('STATUS: estimating compliance via the green route', terminal=True)
+    # # ### TAKE A SAMPLE OF OUTPUTS COVERED BY THE RCUK POLICY AND PUBLISHED DURING THE REPORTING PERIOD
+    # # ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES OR "WRONG VERSION"
+    # # rcuk_dict = {}
+    # # for a in zd_dict:
+    # #     row = zd_dict[a]
+    # #     rcuk_policy = row['RCUK policy [flag]']
+    # #     ticket_creation = dateutil.parser.parse(row['Created at'])
+    # #     wrong_version = row['Wrong version [flag]']
+    # #     dup = row['Duplicate [flag]']
+    # #     #~ if not row['Online Publication Date (YYYY-MM-DD) [txt]'] == '-':
+    # #         #~ try:
+    # #             #~ publication_date = dateutil.parser.parse(row['Online Publication Date (YYYY-MM-DD) [txt]'].replace('--','-'))
+    # #         #~ except ValueError:
+    # #             #~ print(row['Online Publication Date (YYYY-MM-DD) [txt]'])
+    # #             #~ raise
+    # #     #~ else:
+    # #         #~ try:
+    # #             #~ if not row['Publication Date (YYYY-MM-DD) [txt]'] == '-':
+    # #                 #~ publication_date = dateutil.parser.parse(row['Publication Date (YYYY-MM-DD) [txt]'])
+    # #             #~ else:
+    # #                 #~ publication_date = datetime.datetime(2100, 1, 1)
+    # #         #~ except KeyError:
+    # #             #~ publication_date = datetime.datetime(2100, 1, 1)
+    # #     if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (green_start_date <= ticket_creation <= green_end_date):
+    # #         rcuk_dict[a] = zd_dict[a]
+    # #
+    # # ## CHECK HOW MANY OF THOSE ARE GOLD, GREEN OR UNKNOWN
+    # # green_dict = {}
+    # # gold_dict = {}
+    # # green_counter = 0
+    # # gold_counter = 0
+    # # apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact']
+    # # WoS_total = 2400 #From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
+    # # for a in rcuk_dict:
+    # #     row = rcuk_dict[a]
+    # #     apc_payment = row['Is there an APC payment? [list]']
+    # #     green_version = row['Green allowed version [list]']
+    # #     embargo = row['Embargo duration [list]']
+    # #     green_licence = row['Green licence [list]']
+    # #     if apc_payment in apc_payment_values:
+    # #         gold_counter += 1
+    # #         gold_dict[a] = rcuk_dict[a]
+    # #     else:
+    # #         green_counter += 1
+    # #         green_dict[a] = rcuk_dict[a]
+    # #
+    # # rcuk_papers_total = gold_counter + green_counter
+    # #
+    # # plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES:', terminal = True)
+    # # plog(str(rcuk_papers_total), 'ZD tickets covered by the RCUK open access policy were created during the green reporting period, of which:', terminal=True)
+    # # plog(str(gold_counter), '(' + str(gold_counter / rcuk_papers_total) + ') tickets were placed in the GOLD route to comply with the policy', terminal=True)
+    # # plog(str(green_counter), '(' + str(green_counter / rcuk_papers_total) + ') tickets were placed in the GREEN route to comply with the policy', terminal=True)
+    # # plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES AS A RATIO OF WoS TOTAL:', terminal = True)
+    # # plog(str(WoS_total), 'papers (articles, reviews and proceedings papers) acknowledging RCUK funding were published by the University of Cambridge during the green reporting period, of which:', terminal=True)
+    # # plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal = True)
+    # # plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal = True)
+    # #
+    # # #~ raise
     #
-    # #~ raise
-=======
-    #### ESTIMATE COMPLIANCE VIA GREEN ROUTE
-    plog('STATUS: estimating compliance via the green route', terminal=True)
-    ### TAKE A SAMPLE OF OUTPUTS COVERED BY THE RCUK POLICY AND PUBLISHED DURING THE REPORTING PERIOD
-    ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES OR "WRONG VERSION"
-    rcuk_dict = {}
-    for a in zd_dict:
-        row = zd_dict[a]
-        rcuk_policy = row['RCUK policy [flag]']
-        ticket_creation = dateutil.parser.parse(row['Created at'])
-        wrong_version = row['Wrong version [flag]']
-        dup = row['Duplicate [flag]']
-        #~ if not row['Online Publication Date (YYYY-MM-DD) [txt]'] == '-':
-            #~ try:
-                #~ publication_date = dateutil.parser.parse(row['Online Publication Date (YYYY-MM-DD) [txt]'].replace('--','-'))
-            #~ except ValueError:
-                #~ print(row['Online Publication Date (YYYY-MM-DD) [txt]'])
-                #~ raise
-        #~ else:
-            #~ try:
-                #~ if not row['Publication Date (YYYY-MM-DD) [txt]'] == '-':
-                    #~ publication_date = dateutil.parser.parse(row['Publication Date (YYYY-MM-DD) [txt]'])
-                #~ else:
-                    #~ publication_date = datetime.datetime(2100, 1, 1)
-            #~ except KeyError:
-                #~ publication_date = datetime.datetime(2100, 1, 1)
-        if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (green_start_date <= ticket_creation <= green_end_date):
-            rcuk_dict[a] = zd_dict[a]
-
-    ## CHECK HOW MANY OF THOSE ARE GOLD, GREEN OR UNKNOWN
-    green_dict = {}
-    gold_dict = {}
-    green_counter = 0
-    gold_counter = 0
-    apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact']
-    WoS_total = 2400 #From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
-    for a in rcuk_dict:
-        row = rcuk_dict[a]
-        apc_payment = row['Is there an APC payment? [list]']
-        green_version = row['Green allowed version [list]']
-        embargo = row['Embargo duration [list]']
-        green_licence = row['Green licence [list]']
-        if apc_payment in apc_payment_values:
-            gold_counter += 1
-            gold_dict[a] = rcuk_dict[a]
-        else:
-            green_counter += 1
-            green_dict[a] = rcuk_dict[a]
-
-    rcuk_papers_total = gold_counter + green_counter
-
-    plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES:', terminal = True)
-    plog(str(rcuk_papers_total), 'ZD tickets covered by the RCUK open access policy were created during the green reporting period, of which:', terminal=True)
-    plog(str(gold_counter), '(' + str(gold_counter / rcuk_papers_total) + ') tickets were placed in the GOLD route to comply with the policy', terminal=True)
-    plog(str(green_counter), '(' + str(green_counter / rcuk_papers_total) + ') tickets were placed in the GREEN route to comply with the policy', terminal=True)
-    plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES AS A RATIO OF WoS TOTAL:', terminal = True)
-    plog(str(WoS_total), 'papers (articles, reviews and proceedings papers) acknowledging RCUK funding were published by the University of Cambridge during the green reporting period, of which:', terminal=True)
-    plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal = True)
-    plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal = True)
-
-    #~ raise
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
-
-    #### PLUGGING IN DATA FROM THE RCUK AND COAF PAYMENTS SPREADSHEETS
-    plug_in_payment_data(rcuk_paymentsfile, rcuk_paymentsfieldnames, 'Description', total_rcuk_payamount_field, 'Page, colour or membership amount', amount_field = rcuk_payamount_field, file_encoding = 'utf-8', transaction_code_field = 'Tran', funder = 'RCUK')
-    plug_in_payment_data(coaf_paymentsfile, coaffieldnames, 'Comment', total_coaf_payamount_field, 'COAF Page, colour or membership amount', invoice_field = 'Invoice', amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder = 'COAF')
-
-    #### PLUGGING IN DATA FROM APOLLO
-    ###NEED TO MAP THIS DATA USING REPOSITORY HANDLE, BECAUSE APOLLO DOES
-    ###NOT STORE ZD AND OA NUMBERS FOR ALL SUBMISSIONS
-    plug_in_metadata(apolloexport, 'handle', apollo2zd_dict)
-
-    #### PLUGGING IN DATA FROM COTTAGELABS
-<<<<<<< HEAD
-    try:
-        plug_in_metadata(cottagelabsexport, 'DOI', doi2zd_dict)
-    except FileNotFoundError:
-        plog('WARNING: Compliance data from Cottage Labs not found; I will assume this is because it was not generated yet',
-             terminal=True)
-=======
-    plug_in_metadata(cottagelabsexport, 'DOI', doi2zd_dict)
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
-
-    #### MAUALLY FIX SOME PROBLEMS
-    zd_dict['3743']['DOI'] = '10.1088/0953-2048/27/8/082001'
-    zd_dict['3743']['externalID [txt]'] = 'OA-1128'
-    zd_dict['3743']['Date of acceptance'] = '2014-06-11'
-    zd_dict['3743']['Publisher'] = 'IOP'
-    zd_dict['3743']['Journal'] = 'Superconductor Science and Technology'
-    zd_dict['3743']['Type of publication'] = 'Article'
-    zd_dict['3743']['Article title'] = 'A Trapped Field of 17.6 T in Melt-Processed, Bulk Gd-Ba-Cu-O Reinforced with Shrink-Fit Steel'
-    zd_dict['3743']['Date of publication'] = '2014-06-25'
-    zd_dict['3743']['Fund that APC is paid from (1)'] = 'RCUK'
-    zd_dict['3743']['Funder of research (1)'] = 'EPSRC'
-    zd_dict['3743']['Grant ID (1)'] = 'EP/K02910X/1'
-    zd_dict['3743']['Licence'] = 'CC BY'
-
-    #### NOW THAT WE PLUGGED IN ALL DATA SOURCES INTO THE ZENDESK EXPORT,
-    #### PRODUCE THE FIRST PART OF THE REPORT (PAYMENTS LINKED TO ZENDESK)
-    report_dict = {}
-    ### START BY FILTERING WHAT WE NEED
-    action_populate_report_dict()
-
-    #### EXPORT PAYMENTS IN ORIGINAL FORMAT WITH AN EXTRA COLUMN "INCLUDED/EXCLUDED FROM REPORT" FOR RECONCILIATION/DEBUGGING:
-    action_export_payments_reconciliation()
-
-    #### NOW ADJUST TOTAL APC VALUES FOR TICKETS WHERE THE APC WAS SPLIT BETWEEN
-    #### RCUK AND COAF
-    action_adjust_total_apc_values()
-
-    ### POPULATE REPORT FIELDS WITH DATA FROM ZD/APOLLO/PAYMENT FIELDS
-    ### CONVERT DATA WHEN NEEDED
-    action_populate_report_fields()
-
-    excluded_recs = {}
-    included_in_report = {}
-
-    report_fields = extract_csv_header(report_template, "utf-8")
-    custom_rep_fields = ['id', 'externalID [txt]', 'Reason for exclusion', 'Description', 'Ref 1', 'Ref 5', 'RCUK policy [flag]', 'RCUK payment [flag]', 'COAF policy [flag]', 'COAF payment [flag]', 'handle']
-    report_fieldnames = report_fields + custom_rep_fields + rcuk_paymentsfieldnames
-    #report_fieldnames = report_fields
-
-    ### THEN EXPORT THE INCLUDED TICKETS TO THE REPORT CSV
-    action_manually_filter_and_export_to_report_csv()
-
-    ### EXPORT EXCLUDED RECORDS TO CSVs
-    excluded_debug_file = 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv'
-    debug_export_excluded_records(excluded_debug_file, excluded_recs_logfile, excluded_recs)
+    # #### PLUGGING IN DATA FROM THE RCUK AND COAF PAYMENTS SPREADSHEETS
+    # plug_in_payment_data(rcuk_paymentsfile, rcuk_paymentsfieldnames, 'Description', total_rcuk_payamount_field, 'Page, colour or membership amount', amount_field = rcuk_payamount_field, file_encoding = 'utf-8', transaction_code_field = 'Tran', funder = 'RCUK')
+    # plug_in_payment_data(coaf_paymentsfile, coaffieldnames, 'Comment', total_coaf_payamount_field, 'COAF Page, colour or membership amount', invoice_field = 'Invoice', amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder = 'COAF')
+    #
+    # #### PLUGGING IN DATA FROM APOLLO
+    # ###NEED TO MAP THIS DATA USING REPOSITORY HANDLE, BECAUSE APOLLO DOES
+    # ###NOT STORE ZD AND OA NUMBERS FOR ALL SUBMISSIONS
+    # plug_in_metadata(apolloexport, 'handle', apollo2zd_dict)
+    #
+    # #### PLUGGING IN DATA FROM COTTAGELABS
+    # try:
+    #     plug_in_metadata(cottagelabsexport, 'DOI', doi2zd_dict)
+    # except FileNotFoundError:
+    #     plog('WARNING: Compliance data from Cottage Labs not found; I will assume this is because it was not generated yet',
+    #          terminal=True)
+    #
+    # #### MAUALLY FIX SOME PROBLEMS
+    # zd_dict['3743']['DOI'] = '10.1088/0953-2048/27/8/082001'
+    # zd_dict['3743']['externalID [txt]'] = 'OA-1128'
+    # zd_dict['3743']['Date of acceptance'] = '2014-06-11'
+    # zd_dict['3743']['Publisher'] = 'IOP'
+    # zd_dict['3743']['Journal'] = 'Superconductor Science and Technology'
+    # zd_dict['3743']['Type of publication'] = 'Article'
+    # zd_dict['3743']['Article title'] = 'A Trapped Field of 17.6 T in Melt-Processed, Bulk Gd-Ba-Cu-O Reinforced with Shrink-Fit Steel'
+    # zd_dict['3743']['Date of publication'] = '2014-06-25'
+    # zd_dict['3743']['Fund that APC is paid from (1)'] = 'RCUK'
+    # zd_dict['3743']['Funder of research (1)'] = 'EPSRC'
+    # zd_dict['3743']['Grant ID (1)'] = 'EP/K02910X/1'
+    # zd_dict['3743']['Licence'] = 'CC BY'
+    #
+    # #### NOW THAT WE PLUGGED IN ALL DATA SOURCES INTO THE ZENDESK EXPORT,
+    # #### PRODUCE THE FIRST PART OF THE REPORT (PAYMENTS LINKED TO ZENDESK)
+    # report_dict = {}
+    # ### START BY FILTERING WHAT WE NEED
+    # action_populate_report_dict()
+    #
+    # #### EXPORT PAYMENTS IN ORIGINAL FORMAT WITH AN EXTRA COLUMN "INCLUDED/EXCLUDED FROM REPORT" FOR RECONCILIATION/DEBUGGING:
+    # action_export_payments_reconciliation()
+    #
+    # #### NOW ADJUST TOTAL APC VALUES FOR TICKETS WHERE THE APC WAS SPLIT BETWEEN
+    # #### RCUK AND COAF
+    # action_adjust_total_apc_values()
+    #
+    # ### POPULATE REPORT FIELDS WITH DATA FROM ZD/APOLLO/PAYMENT FIELDS
+    # ### CONVERT DATA WHEN NEEDED
+    # action_populate_report_fields()
+    #
+    # excluded_recs = {}
+    # included_in_report = {}
+    #
+    # report_fields = extract_csv_header(report_template, "utf-8")
+    # custom_rep_fields = ['id', 'externalID [txt]', 'Reason for exclusion', 'Description', 'Ref 1', 'Ref 5', 'RCUK policy [flag]', 'RCUK payment [flag]', 'COAF policy [flag]', 'COAF payment [flag]', 'handle']
+    # report_fieldnames = report_fields + custom_rep_fields + rcuk_paymentsfieldnames
+    # #report_fieldnames = report_fields
+    #
+    # ### THEN EXPORT THE INCLUDED TICKETS TO THE REPORT CSV
+    # action_manually_filter_and_export_to_report_csv()
+    #
+    # ### EXPORT EXCLUDED RECORDS TO CSVs
+    # excluded_debug_file = 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv'
+    # debug_export_excluded_records(excluded_debug_file, excluded_recs_logfile, excluded_recs)
 
     #### ADD DATA FROM PUBLISHER DEALS TO THE END OF THE REPORT
     institution_filter = ['University of Cambridge']
@@ -1559,16 +1318,12 @@ if __name__ == '__main__':
     rejection_dict_springer = {}
     dateutil_springer = dateutil.parser.parserinfo(dayfirst=True)
     exclude_titles_springer = ['Clinical Trials in Vasculitis', 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology', 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444', 'Hunter-Gatherers and the Origins of Religion', 'A 2-adic automorphy lifting theorem for unitary groups over CM fields', 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot', 'Hohfeldian Infinities: Why Not to Worry', 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion', 'Data processing for the sandwiched Rényi divergence: a condition for equality', 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)', 'Gender patterns in academic entrepreneurship']
-<<<<<<< HEAD
     import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
                                           'DOI', 'Article Title',
                                           'approval requested date', # 'Online Publication Date' was previously used, but it was renamed to 'online first publication date' and has blank values for several articles
                                           'Springer',
                                           'Institution', dateutil_options=dateutil_springer,
                                           exclude_titles=exclude_titles_springer)
-=======
-    import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer, 'DOI', 'Article Title', 'Online Publication Date', 'Springer', 'Institution', dateutil_options=dateutil_springer, exclude_titles=exclude_titles_springer)
->>>>>>> 76656240f9602a5d640d871cb919e6fec31b84fb
 
     excluded_debug_file = 'ART_debug_Springer_Compact_rejected_records.csv'
     springer_reject_fieldnames = [rejection_reason_field]
