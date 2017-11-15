@@ -1460,7 +1460,7 @@ if __name__ == '__main__':
     exclude_titles_wiley = ['Chromatin determinants impart camptothecin sensitivity']
     import_prepayment_data_and_link_to_zd(wileyexport, wiley_dict, rejection_dict_wiley, 'DOI', 'Article Title', filter_date_field_wiley, 'Wiley', field_renaming_list = [('Journal Type', 'Wiley Journal Type'), ('DOI', 'Wiley DOI'), ('Publisher', 'Wiley Publisher')], dateutil_options=dateutil_wiley, exclude_titles=exclude_titles_wiley, request_status_field=request_status_field_wiley) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
 
-    excluded_debug_file = 'ART_debug_Wiley_Dashboard_rejected_records.csv'
+    excluded_debug_file = os.path.join(working_folder, 'ART_debug_Wiley_Dashboard_rejected_records.csv')
     wiley_reject_fieldnames = [rejection_reason_field]
     for a in wileyfieldnames:
         wiley_reject_fieldnames.append(a)
@@ -1512,7 +1512,7 @@ if __name__ == '__main__':
     exclude_titles_oup = ['A RELIGION OF LIFE?', 'MendelianRandomization: an R package for performing Mendelian randomization analyses using summarized data', 'Being Well, Looking Ill: Childbirth and the Return to Health in Seventeenth-Century England']
     import_prepayment_data_and_link_to_zd(oupexport, oup_dict, rejection_dict_oup, 'Doi', 'Manuscript Title', filter_date_field_oup, 'OUP', field_renaming_list = [('Status', 'OUP Status'), ('Licence', 'OUP Licence')], dateutil_options=dateutil_oup, exclude_titles=exclude_titles_oup, request_status_field=request_status_field_oup) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
 
-    excluded_debug_file = 'ART_debug_OUP_Prepayment_rejected_records.csv'
+    excluded_debug_file = os.path.join(working_folder, 'ART_debug_OUP_Prepayment_rejected_records.csv')
     oup_reject_fieldnames = [rejection_reason_field]
     for a in oupfieldnames:
         oup_reject_fieldnames.append(a)
