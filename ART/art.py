@@ -19,6 +19,17 @@ DOI_CLEANUP = ['http://dx.doi.org/', 'https://doi.org/', 'http://dev.biologists.
 DOI_FIX = {'0.1136/jmedgenet-2016-104295':'10.1136/jmedgenet-2016-104295'}
 exclude_from_next_run_prefix = "ART_info_add_to_exclusion_list_because_not_in_funders_policy_"
 logfile = os.path.join(working_folder, "ART_log.txt")
+
+### POPULATE THE DICTIONARY BELOW (manual_title2zd_dict) WITH MATCHES
+### OUTPUT TO ART_log.txt IN THE FORM:
+###
+### Matched zd_no:
+### publisher title:
+### ZD        title:
+###
+### THIS WILL SAVE CONSIDERABLE TIME IN SUBSEQUENT RUNS BECAUSE SIMILARITY
+### SEARCHES FOR THESE TITLES WILL NOT BE NECESSARY
+
 manual_title2zd_dict = {
     ###SPRINGER
     'Acute Posterior Cranial Fossa Hemorrhage—Is Surgical Decompression Better than Expectant Medical Management?' : '', ##NOT SUBMITTED TO APOLLO
@@ -35,6 +46,7 @@ manual_title2zd_dict = {
     'Neurosurgical Emergencies in Sports Neurology' : '', ##NOT SUBMITTED TO APOLLO
     'Free Energies and Fluctuations for the Unitary Brownian Motion' : '', ##NOT SUBMITTED TO APOLLO
     ##SPRINGER SIMILARITY MATCHES
+    #INPUT FOR RCUK 2017 REPORT
     'Target templates specify visual, not semantic, features to guide search: A marked asymmetry between seeking and ignoring' : '15402',
     'Investigating upper urinary tract urothelial carcinomas: a single-centre 10-year experience' : '16400',
     'Report: increases in police use of force in the presence of body-worn cameras are driven by officer discretion: a protocol-based subgroup analysis of ten randomized experiments' : '16286',
@@ -45,6 +57,35 @@ manual_title2zd_dict = {
     'Higher Spins from Nambu–Chern–Simons Theory' : '19874',
     'Unstable Mode Solutions to the Klein–Gordon Equation in Kerr-anti-de Sitter Spacetimes' : '38709',
     'An Association Between ICP-Derived Data and Outcome in TBI Patients: The Role of Sample Size' : '29290',
+    #INPUT FOR COAF 2017 REPORT
+    'Standing on the Edge – What Type of “Exclusive Licensees” Should Be Able to Initiate Patent Infringement Actions?' : '105331',
+    'The Complexity of Translationally-Invariant Spin Chains with Low Local Dimension' : '127855',
+    'Intimate partner homicide in England and Wales 2011-2013: pathways to prediction from multi-agency Domestic Homicide Reviews' : '105317',
+    'Ultrastructural and immunocytochemical evidence for the reorganisation of the Milk Fat Globule Membrane after secretion.' : '22166',
+    'ICP versus Laser Doppler Cerebrovascular Reactivity Indices to Assess Brain Autoregulatory Capacity' : '118919',
+    "Forces, Friction and Fractionation: Denis Walsh's Organism, Agency and Evolution." : '102832',
+    'Predicting domestic homicide and serious violence in Leicestershire with intelligence records of suicidal ideation or self-harm warnings: a retrospective analysis' : '104225',
+    'How do Hunter-Gatherer Children Learn Subsistence Skills? A Meta-Ethnographic Review' : '68187',
+    'Redressing Risk Oversight Failure in UK and US Listed Companies: Lessons from the RBS and Citigroup Litigation' : '81307',
+    'The geodesic X-ray transform with a GL(n,C)-connection' : '120748',
+    'Predicting Domestic Homicides And Serious Violence in Dorset: A Replication of Thornton’s Thames Valley Analysis' : '103157',
+    'Targeting Escalation of Intimate Partner Violence: Evidence from 52,000 Offenders' : '104857',
+    "There's Nothing Quasi about Quasi-Realism: Moral Realism as a Moral Doctrine" : '68568',
+    'SKA aperture Array verification system: electromagnetic modeling and beam pattern measurements using a micro UAV' : '116758',
+    'Hohfeldian infinities: why not to worry' : '14144',
+    'Neurodegeneration and the ordered assembly of α-synuclein' : '123748',
+    'In Situ Chemically-Selective Monitoring of Multiphase Displacement Processes in a Carbonate Rock Using 3D Magnetic Resonance Imaging' : '134308',
+    'Modelling of spray flames with Doubly Conditional Moment Closure' : '132855',
+    'What works in conservation? Using expert assessment of summarised evidence to identify practices that enhance natural pest control in agriculture' : '17129',
+    'The thickness of the crystal mush on the floor of the Bushveld magma chamber' : '133741',
+    'Clinical Implications of Germline Mutations in Breast Cancer Genes -RECQL' : '123730',
+    'Powerful Qualities and Pure Powers' : '84364',
+    'Diagnostic evaluation of Magnetization Transfer and Diffusion Kurtosis imaging for prostate cancer detection in a re-biopsy population' : '127858',
+    'Linear Waves in the Interior of Extremal Black Holes II' : '127852',
+    "Functional morphology in paleobiology: origins of the method of 'paradigms'" : '84914',
+    'In defence of substantial sentencing discretion' : '106411',
+    'Integrated case management of repeated intimate partner violence: a randomized, controlled trial' : '103521',
+    'Numerical study of a sphere descending along an inclined slope in a liquid' : '126414',
     ###WILEY
     'Refining Genotype-Phenotype Correlation in Alström Syndrome Through Study of Primary Human Fibroblasts' : '81394',
     'The canine POMC gene, obesity in Labrador retrievers and susceptibility to diabetes mellitus' : '39491',
@@ -95,7 +136,7 @@ def merge_csv_files(list_of_files, output_filename, repeated_header=1):
         f.close() # not really needed
     fout.close()
 
-def extract_csv_header(inputfile, enc = 'utf-8'):
+def extract_csv_header(inputfile, enc = 'utf-8', delim = ','):
     '''
     This function returns a list of the fields contained in the header (first row) of
     a CSV file
@@ -104,7 +145,7 @@ def extract_csv_header(inputfile, enc = 'utf-8'):
     '''
     outputlist = []
     with open(inputfile, encoding = enc) as csvfile:
-        headerreader = csv.reader(csvfile)
+        headerreader = csv.reader(csvfile, delimiter=delim)
         #~ print(type(headerreader))
         for row in headerreader:
             outputlist.append(row)
@@ -255,7 +296,7 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                             key = 'not_EBD*_payment_' + str(row_counter)
                             if funder == 'RCUK':
                                 rejected_rcuk_payment_dict[key] = row
-                            debug_filename = nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1]
+                            debug_filename = os.path.join(working_folder, nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
                             output_debug_info(debug_filename, row, fileheader)
                     else:
                         ## NOT A JUDB PAYMENT
@@ -444,9 +485,10 @@ def debug_export_excluded_records_prepayment(excluded_debug_file, excluded_recs,
 def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
     '''
     A function to match publications to zendesk data based on similarity of title
-    :param title:
-    :param policy_dict:
-    :param publisher:
+    :param title: the title we are trying to match (e.g. title of article in prepayment deal csv)
+    :param publisher: the name of the publisher
+    :param title2zd_dict: a dictionary of zendesk tickets, indexed by title
+    :param policy_dict: a dictionary of zendesk tickets covered by a funder's policy, indexed by title
     :return:
     '''
     unresolved_titles_sim = []
@@ -463,9 +505,10 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
             most_similar_title = possible_matches[0][1]
             zd_number = policy_dict[most_similar_title]
     #       print('\nWARNING: publisher record matched to ZD via similarity in title. Please review the matches carefully in the log file.\n')
-            plog('Matched zd_no: ' + zd_number)
+            plog('### Matched zd_no: ' + zd_number)
             plog('publisher title: ' + title + '\n')
-            plog('ZD        title: ' + most_similar_title.lower() + '\n\n')
+            plog('ZD        title: ' + most_similar_title.lower() + '\n')
+            plog("Entry for manual_title2zd_dict: '" + title + "' : '" + zd_number + "',\n\n\n")
         else:
             for t in title2zd_dict.keys():
                 #print('t:', t)
@@ -477,14 +520,15 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
                 most_similar_title = possible_matches[0][1]
                 zd_number = title2zd_dict[most_similar_title]
                 out_of_policy.append((title, zd_number))
-                plog('Matched zd_no (OUT OF FUNDER POLICY): ' + zd_number)
+                plog('### Matched zd_no (OUT OF FUNDER POLICY): ' + zd_number)
                 plog('publisher title: ' + title + '\n')
-                plog('ZD        title: ' + most_similar_title.lower() + '\n\n')
+                plog('ZD        title: ' + most_similar_title.lower() + '\n')
+                plog("Entry for manual_title2zd_dict: '" + title + "' : '" + zd_number + "',\n\n\n")
             else:
                 unresolved_titles_sim.append(title)
                 print('\nWARNING:', publisher, 'record could not be matched to ZD:\n', title, '\n')
             zd_number = ''
-        exclude_from_next_run = exclude_from_next_run_prefix + publisher.upper() + '.txt'
+        exclude_from_next_run = os.path.join(working_folder, exclude_from_next_run_prefix + publisher.upper() + '.txt')
         with open(exclude_from_next_run, 'a') as f:
             for i in out_of_policy:
                 f.write(i[0] + ', ')
@@ -505,7 +549,7 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
             unresolved_titles_sim.append(title)
             print('\nWARNING:', publisher, 'record could not be matched to ZD:\n', title, '\n')
         zd_number = ''
-    exclude_from_next_run = exclude_from_next_run_prefix + publisher.upper() + '.txt'
+    exclude_from_next_run = os.path.join(working_folder, exclude_from_next_run_prefix + publisher.upper() + '.txt')
     with open(exclude_from_next_run, 'a') as f:
         for i in unresolved_titles_sim:
             f.write(i + '\n')
@@ -553,7 +597,7 @@ def heuristic_match_by_title_original(title, policy_dict, publisher, title2zd_di
             unresolved_titles_sim.append(title)
             print('\nWARNING:', publisher, 'record could not be matched to ZD:\n', title, '\n')
         zd_number = ''
-    exclude_from_next_run = exclude_from_next_run_prefix + publisher.upper() + '.txt'
+    exclude_from_next_run = os.path.join(working_folder, exclude_from_next_run_prefix + publisher.upper() + '.txt')
     with open(exclude_from_next_run, 'a') as f:
         for i in out_of_policy:
             f.write(i[0] + ', ')
@@ -1002,8 +1046,18 @@ def action_manually_filter_and_export_to_report_csv():
 zd_number_typos = {'30878':'50878'}
 oa_number_typos = {'OA 10768':'OA 10468'}
 description2zd_number = {"OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490', 'REV CHRG/ACQ TAX PD 04/16;  INV NO:Polymers-123512SUPPLIER:  MDPI AG' : '15589'}
-invoice2zd_number = {'APC502145176':'48547', 'P09819649':'28975', 'Polymers-123512':'15589', 'Polymers-123512/BANKCHRG'
-:'15589', '9474185' : '18153'}
+invoice2zd_number = {
+    ##INPUT FOR RCUK 2017 REPORT
+    'APC502145176':'48547',
+    'P09819649':'28975',
+    'Polymers-123512':'15589',
+    'Polymers-123512/BANKCHRG':'15589',
+    '9474185' : '18153',
+    ##INPUT FOR COAF 2017 REPORT
+    '19841M2' : '87254',
+    '20170117' : '50542',
+    '94189700 BANKCHRG' : '47567'
+}
 
 lf = os.path.dirname(os.path.realpath(__file__))
 os.chdir(lf)
@@ -1154,7 +1208,7 @@ if __name__ == '__main__':
     coaffieldnames = extract_csv_header(coaf_paymentsfile, "utf-8")
     apollofieldnames = extract_csv_header(apolloexport, "utf-8")
     # cottagelabsfieldnames = extract_csv_header(cottagelabsexport, "utf-8")
-    springerfieldnames = extract_csv_header(springercompactexport, "utf-8")
+    springerfieldnames = extract_csv_header(springercompactexport, enc="utf-8", delim=';')
     wileyfieldnames = extract_csv_header(wileyrcukcoaf, "utf-8")
     oupfieldnames = extract_csv_header(oupexport, "utf-8")
     rejection_reason_field = 'Reason for exclusion'
@@ -1302,7 +1356,7 @@ if __name__ == '__main__':
     action_manually_filter_and_export_to_report_csv()
 
     ### EXPORT EXCLUDED RECORDS TO CSVs
-    excluded_debug_file = 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv'
+    excluded_debug_file = os.path.join(working_folder, 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv')
     debug_export_excluded_records(excluded_debug_file, excluded_recs_logfile, excluded_recs)
 
     #### ADD DATA FROM PUBLISHER DEALS TO THE END OF THE REPORT
@@ -1311,25 +1365,25 @@ if __name__ == '__main__':
     ### SPRINGER
     ### MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
     rep2springer = [
-    ('Date of acceptance', ['Acceptance Date']),
+    ('Date of acceptance', ['acceptance date']),
     #('PubMed ID', #NA
     ('DOI', ['DOI']),
     #('Publisher', #NOT A VARIABLE; DEFAULT TO SPRINGER
-    ('Journal', ['Journal Title']),
+    ('Journal', ['journal title']),
     ('E-ISSN', ['eISSN']),
     #('Type of publication', #NOT A VARIABLE; DEFAULT TO ARTICLE
-    ('Article title', ['Article Title']),
-    ('Date of publication', ['Online Publication Date']),
+    ('Article title', ['article title']),
+    ('Date of publication', ['online first publication date', 'online issue publication date']),
     #('Date of APC payment', #NA
-    ('APC paid (actual currency) excluding VAT', ['Journal APC']),
-    #('Currency of APC', #NA
+    ('APC paid (actual currency) excluding VAT', ['APC']),
+    ('Currency of APC', ['currency']),
     #('APC paid (£) including VAT if charged', #NA
     #('Additional publication costs (£)', #NA
     #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO SPRINGER COMPACT?
     #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
     #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
-    ('Licence', ['License Type']),
-    ('Notes', ['Comments'])
+    ('Licence', ['license type']),
+    ('Notes', ['FundNames'])
     ]
     rep2springer = collections.OrderedDict(rep2springer)
 
@@ -1346,23 +1400,26 @@ if __name__ == '__main__':
                                           exclude_titles=exclude_titles_springer,
                                           delim=';')
 
-    excluded_debug_file = 'ART_debug_Springer_Compact_rejected_records.csv'
+    excluded_debug_file = os.path.join(working_folder, 'ART_debug_Springer_Compact_rejected_records.csv')
     springer_reject_fieldnames = [rejection_reason_field]
     for a in springerfieldnames:
         springer_reject_fieldnames.append(a)
     #pprint(rejection_dict_springer)
     debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_springer, springer_reject_fieldnames)
 
-    springer_out_dict = match_datasource_fields_to_report_fields(springer_dict, rep2springer, 'Springer', 'Article', 'Springer Compact', 'Springer Compact')
+    springer_out_dict = match_datasource_fields_to_report_fields(springer_dict, rep2springer,
+                                                                 'Springer', 'Article', 'Springer Compact',
+                                                                 'Springer Compact')
 
     report_fieldnames += ['Is there an APC payment? [list]']
     with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
         writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
         #~ writer.writeheader()
         for doi in springer_out_dict:
-            publication_date = springer_out_dict[doi]['Date of publication']
-            publication_date = dateutil.parser.parse(publication_date, dateutil_springer)
-            springer_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
+            if 'Date of publication' in springer_out_dict[doi].keys():
+                publication_date = springer_out_dict[doi]['Date of publication']
+                publication_date = dateutil.parser.parse(publication_date, dateutil_springer)
+                springer_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
             if 'Date of acceptance' in springer_out_dict[doi].keys():
                 acceptance_date = dateutil.parser.parse(springer_out_dict[doi]['Date of acceptance'], dateutil_springer)
                 springer_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
