@@ -620,7 +620,10 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
         zd_number = ''
     return((zd_number, ''))
 
-def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict, doi_field, title_field, filter_date_field, publisher, institution_field = '', field_renaming_list = [], dateutil_options='', exclude_titles = [], request_status_field=''): #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
+def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict, doi_field,
+                                          title_field, filter_date_field, publisher, institution_field = '',
+                                          field_renaming_list = [], dateutil_options='', exclude_titles = [],
+                                          request_status_field='', delim=','): #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
     '''
     This function reads an input CSV file containing one publication per row. For each row,
     it attempts to match the publication to zendesk data based on doi (preferred) or
@@ -638,11 +641,12 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
     :param dateutil_options:
     :param exclude_titles: a list of titles of publications that should be excluded from the output
     :param request_status_field:
+    :param delim: the delimiter of the csv file; defaults to comma
     :return:
     '''
     with open(inputfile) as csvfile:
         publisher_id = 1
-        reader = csv.DictReader(csvfile)
+        reader = csv.DictReader(csvfile, delimiter=delim)
         for row in reader:
             warning = 0
             manual_rejection = ''
@@ -655,7 +659,7 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                 else:
                     institution = 'University of Cambridge'
                 if not title.strip() in exclude_titles:
-                    a = match_prepayment_deal_to_zd(doi, title, publisher, institution)
+                    a = match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, apollo2zd_dict, institution)
                     zd_number = a[0]
                     manual_rejection = a[1]
                 else:
@@ -1319,11 +1323,13 @@ if __name__ == '__main__':
     dateutil_springer = dateutil.parser.parserinfo(dayfirst=True)
     exclude_titles_springer = ['Clinical Trials in Vasculitis', 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology', 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444', 'Hunter-Gatherers and the Origins of Religion', 'A 2-adic automorphy lifting theorem for unitary groups over CM fields', 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot', 'Hohfeldian Infinities: Why Not to Worry', 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion', 'Data processing for the sandwiched Rényi divergence: a condition for equality', 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)', 'Gender patterns in academic entrepreneurship']
     import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
-                                          'DOI', 'Article Title',
+                                          'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
                                           'approval requested date', # 'Online Publication Date' was previously used, but it was renamed to 'online first publication date' and has blank values for several articles
                                           'Springer',
-                                          'Institution', dateutil_options=dateutil_springer,
-                                          exclude_titles=exclude_titles_springer)
+                                          'membership institute', # this used to be 'Institution',
+                                          dateutil_options=dateutil_springer,
+                                          exclude_titles=exclude_titles_springer,
+                                          delim=';')
 
     excluded_debug_file = 'ART_debug_Springer_Compact_rejected_records.csv'
     springer_reject_fieldnames = [rejection_reason_field]
