@@ -17,8 +17,21 @@ working_folder = os.path.join(home, 'OATs', 'ART-wd')
 
 DOI_CLEANUP = ['http://dx.doi.org/', 'https://doi.org/', 'http://dev.biologists.org/lookup/doi/', 'http://www.hindawi.com/journals/jdr/aip/2848759/']
 DOI_FIX = {'0.1136/jmedgenet-2016-104295':'10.1136/jmedgenet-2016-104295'}
+
+### OUTPUT FILES USING THE PREFIXES BELOW LIST RECORDS FROM PREPAYMENT DEALS (SPRINGER COMPACT, WILEY, OUP)
+### EACH PREPAYMENT DEAL HAS A LIST OF TITLES TO BE EXCLUDED; THE SPRINGER ONE IS exclude_titles_springer
 exclude_from_next_run_prefix = "ART_info_add_to_exclusion_list_because_not_in_funders_policy_"
+exclude_from_next_run_not_found_prefix = "ART_info_add_to_exclusion_list_because_not_found_in_Zendesk_"
+
 logfile = os.path.join(working_folder, "ART_log.txt")
+
+### THE LIST BELOW IS USED BY FUNCTION action_manually_filter_and_export_to_report_csv()
+### TO EXCLUDE RECORDS FROM THE GENERATED REPORT
+exclusion_list = [
+    #('Article title', 'NAR Membership 2016'), #THIS ONE WAS EXCLUDED FROM RCUK REPORT 2017, BUT WILL APPEAR IN COAF REPORT 2017
+    ('Description', 'zd 13598'),
+    ('APC paid (£) including VAT if charged', '0.0')#THESE CONSIST OF PAYMENTS THAT WERE REFUNDED (EITHER PAID BY ANOTHER FUNDER OR REFERRED TO A PREPAYMENT DEAL
+    ]
 
 ### POPULATE THE DICTIONARY BELOW (manual_title2zd_dict) WITH MATCHES
 ### OUTPUT TO ART_log.txt IN THE FORM:
@@ -164,10 +177,17 @@ def output_debug_info(outcsv, row_dict, csvheader = []):
 
 rejected_rcuk_payment_dict = {}
 included_rcuk_payment_dict = {}
+rejected_coaf_payment_dict = {}
+included_coaf_payment_dict = {}
 
-def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_field, output_pagecolour_field, invoice_field = 'Ref 5', amount_field = 'Amount', file_encoding = 'charmap',transaction_code_field = 'Tran', source_funds_code_field = 'SOF', funder = 'RCUK'):
+def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_field, output_pagecolour_field,
+                         invoice_field = 'Ref 5', amount_field = 'Amount', file_encoding = 'charmap',transaction_code_field = 'Tran',
+                         source_funds_code_field = 'SOF', funder = 'RCUK'):
     '''
-    This function parses financial reports produced by CUFS
+    This function parses financial reports produced by CUFS. It tries to mach each payment in the CUFS report
+    to a zd ticket and, if successful, it produces summations of payments per zd ticket and appends these
+    values to zd_dict as output_apc_field and/or output_pagecolour_field
+
     :param paymentsfile: path of input CSV file containing payment data
     :param fileheader: header of input CSV file
     :param oa_number_field: name of field in input file containing "OA-" numbers
@@ -310,7 +330,10 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                 ##WE MUST ASSUME ALL PAYMENTS ARE APCs
                     key = 'no_transaction_field_' + str(row_counter)
                     if funder == 'RCUK':
-                        rejected_rcuk_payment_dict[key] = row
+                        included_rcuk_payment_dict[key] = row.copy()
+                        plog('WARNING: RCUK payments without a transaction field detected. Something is probably wrong!')
+                    elif funder == 'COAF':
+                        included_coaf_payment_dict[key] = row.copy()
                     if zd_number in payments_dict_apc.keys():
                         ### ANOTHER APC PAYMENT WAS ALREADY RECORDED FOR THIS ZD 
                         ### NUMBER, SO WE CONCATENATE VALUES
@@ -346,6 +369,8 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                 key = 'no_zd_match_' + str(row_counter)
                 if funder == 'RCUK':
                     rejected_rcuk_payment_dict[key] = row
+                elif funder == 'COAF':
+                    rejected_coaf_payment_dict[key] = row
                 debug_filename = os.path.join(working_folder, unmatched_payment_file_prefix + paymentsfile.split('/')[-1])
                 output_debug_info(debug_filename, row, fileheader)
             row_counter += 1
@@ -531,7 +556,7 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
         exclude_from_next_run = os.path.join(working_folder, exclude_from_next_run_prefix + publisher.upper() + '.txt')
         with open(exclude_from_next_run, 'a') as f:
             for i in out_of_policy:
-                f.write(i[0] + ', ')
+                f.write("'''" + i[0].strip() + "''', ")
     else:
         for t in title2zd_dict.keys():
             # print('t:', t)
@@ -549,10 +574,10 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
             unresolved_titles_sim.append(title)
             print('\nWARNING:', publisher, 'record could not be matched to ZD:\n', title, '\n')
         zd_number = ''
-    exclude_from_next_run = os.path.join(working_folder, exclude_from_next_run_prefix + publisher.upper() + '.txt')
+    exclude_from_next_run = os.path.join(working_folder, exclude_from_next_run_not_found_prefix + publisher.upper() + '.txt')
     with open(exclude_from_next_run, 'a') as f:
         for i in unresolved_titles_sim:
-            f.write(i + '\n')
+            f.write("'''" + i.strip() + "''', ")
     return (zd_number)
 
 def heuristic_match_by_title_original(title, policy_dict, publisher, title2zd_dict):
@@ -607,7 +632,7 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
     '''
     This function attempts to match the DOI of a publication to zendesk data;
     if that fails, it calls a separate function to perform a match
-    based on title similarity (heuristic_match_by_title)
+    based on title similarity (heuristic_match_by_title).
     :param doi: a string containing the DOI of the publication
     :param title: a string containing the title of the publication
     :param publisher: a string containing the publisher of the publication
@@ -678,6 +703,11 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
     This function reads an input CSV file containing one publication per row. For each row,
     it attempts to match the publication to zendesk data based on doi (preferred) or
     similarity of publication title.
+
+    This function also filters prepayment data so that only papers matching zd tickets with
+    funder policy or payment flags set to 'yes' are included in output_dict (and ultimately in
+    the report).
+
     :param inputfile: input CSV file containing publication data
     :param output_dict: an output dictionary containing all the matched data
     :param rejection_dict:
@@ -701,7 +731,7 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
             warning = 0
             manual_rejection = ''
             t = filter_prepayment_records(row, publisher, filter_date_field, request_status_field, dateutil_options)
-            if t[0] == 1:
+            if t[0] == 1: ## first parameter returned by filter_prepayment_records is either 1 for include or 0 for exclude
                 doi = row[doi_field]
                 title = row[title_field]
                 if institution_field:
@@ -711,12 +741,12 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                 if not title.strip() in exclude_titles:
                     a = match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo,
                                                     apollo2zd_dict, title2zd_dict, institution,
-                                                    restrict_to_funder_policy='COAF') ##Hard-coded this option here for now; needs to be implemented properly
+                                                    restrict_to_funder_policy=reporttype) ##global reporttype is either 'COAF' or 'RCUK'
                     zd_number = a[0]
                     manual_rejection = a[1]
                 else:
                     zd_number = ''
-                    manual_rejection = 'Not covered by funder policy'
+                    manual_rejection = 'Not found in zd (match by title attempted only on tickets included in ' + reporttype + ' policy)'
                 #~ output_dict[publisher_id] = row
                 for a in field_renaming_list:
                     #~ output_dict[publisher_id][a[1]] = output_dict[publisher_id][a[0]]
@@ -739,8 +769,19 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                         print('WARNING: A report entry already exists for zd number:', zd_number)
                         print('TITLE:', title)
                         print('Please merge this duplicate in the exported report', '\n')
-                    row.update(zd_dict[zd_number])
-                    output_dict[publisher_id] = row
+                    ###FILTER OUT TICKETS NOT IN reporttype POLICY OR PAYMENT HERE
+                    if reporttype == 'RCUK':
+                        policy_flag = "RCUK policy [flag]"
+                        payment_flag = "RCUK payment [flag]"
+                    elif reporttype == 'COAF':
+                        policy_flag = "COAF policy [flag]"
+                        payment_flag = "COAF payment [flag]"
+                    if (zd_dict[zd_number][policy_flag] == 'yes') or (zd_dict[zd_number][payment_flag] == 'yes'):
+                        row.update(zd_dict[zd_number])
+                        output_dict[publisher_id] = row
+                    else:
+                        row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
+                        rejection_dict[publisher_id] = row
                 else:
                     row[rejection_reason_field] = t[1] + manual_rejection
                     rejection_dict[publisher_id] = row
@@ -749,7 +790,25 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                 rejection_dict[publisher_id] = row
             publisher_id += 1
 
+
 def filter_prepayment_records(row, publisher, filter_date_field, request_status_field='', dateutil_options=''):
+    '''
+    This function filters out prepayment records that:
+    - were not approved for payment
+    - are not an article (some prepayment deals report top ups together with article data)
+    - are not within the reporting period
+
+    It is not possible to implemented filtering based on values of zendesk fields here
+    because this function operates on raw data coming from the prepayment deal; it is
+    not linked to zd data yet.
+
+    :param row:
+    :param publisher:
+    :param filter_date_field:
+    :param request_status_field:
+    :param dateutil_options:
+    :return:
+    '''
     prune = 0
     prune_reason = ''
     if publisher == 'Springer':
@@ -811,16 +870,19 @@ def match_datasource_fields_to_report_fields(datasource_dict, translation_dict, 
     return(datasource_dict)
 
 def action_cleanup_debug_info():
-    with open(os.path.join(working_folder, unmatched_payment_file_prefix, rcuk_paymentsfile), 'w') as csvfile:
+    with open(os.path.join(working_folder, unmatched_payment_file_prefix + rcuk_paymentsfilename), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
-    with open(os.path.join(working_folder, unmatched_payment_file_prefix, coaf_paymentsfile), 'w') as csvfile:
+    with open(os.path.join(working_folder, unmatched_payment_file_prefix + coaf_paymentsfilename), 'w') as csvfile:
+        print('unmatched_payment_file_prefix:', unmatched_payment_file_prefix)
+        print('Cleaning up', os.path.join(working_folder, unmatched_payment_file_prefix + coaf_paymentsfilename))
         writer = csv.DictWriter(csvfile, fieldnames=coaffieldnames)
         writer.writeheader()
-    with open(os.path.join(working_folder, nonJUDB_payment_file_prefix, rcuk_paymentsfile), 'w') as csvfile:
+        print('Done cleaning up', os.path.join(working_folder, unmatched_payment_file_prefix + coaf_paymentsfilename))
+    with open(os.path.join(working_folder, nonJUDB_payment_file_prefix + rcuk_paymentsfilename), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
-    with open(os.path.join(working_folder, nonEBDU_payment_file_prefix, rcuk_paymentsfile), 'w') as csvfile:
+    with open(os.path.join(working_folder, nonEBDU_payment_file_prefix + rcuk_paymentsfilename), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
 
@@ -955,8 +1017,10 @@ def action_populate_report_dict():
 def action_export_payments_reconciliation():
     reconcile_prefix = 'ART_reconcile_'
     reconcile_file = os.path.join(working_folder, reconcile_prefix + rcuk_paymentsfile.split('/')[-1])
+    reconcile_file_coaf = os.path.join(working_folder, reconcile_prefix + coaf_paymentsfile.split('/')[-1])
     reconcile_field = 'report_status'
     reconcile_fieldnames = rcuk_paymentsfieldnames + [reconcile_field]
+    reconcile_fieldnames_coaf = coaffieldnames + [reconcile_field]
     with open(reconcile_file, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=reconcile_fieldnames, extrasaction='ignore')
         writer.writeheader()
@@ -966,6 +1030,15 @@ def action_export_payments_reconciliation():
         for p in included_rcuk_payment_dict:
             included_rcuk_payment_dict[p][reconcile_field] = 'included'
             writer.writerow(included_rcuk_payment_dict[p])
+    with open(reconcile_file_coaf, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=reconcile_fieldnames_coaf, extrasaction='ignore')
+        writer.writeheader()
+        for p in rejected_coaf_payment_dict:
+            rejected_coaf_payment_dict[p][reconcile_field] = 'excluded'
+            writer.writerow(rejected_coaf_payment_dict[p])
+        for p in included_coaf_payment_dict:
+            included_coaf_payment_dict[p][reconcile_field] = 'included'
+            writer.writerow(included_coaf_payment_dict[p])
 
 def action_populate_report_fields():
     rep_fund_field_list = ['Fund that APC is paid from (1)', 'Fund that APC is paid from (2)', 'Fund that APC is paid from (3)']
@@ -1015,11 +1088,6 @@ def action_adjust_total_apc_values():
         report_dict[a][total_apc_field] = str(total_apc_value)
         
 def action_manually_filter_and_export_to_report_csv():
-    exclusion_list = [
-    ('Article title', 'NAR Membership 2016'),
-    ('Description', 'zd 13598'),
-    ('APC paid (£) including VAT if charged', '0.0')#THESE CONSIST OF PAYMENTS THAT WERE REFUNDED (EITHER PAID BY ANOTHER FUNDER OR REFERRED TO A PREPAYMENT DEAL
-    ]
     with open(outputfile, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
         writer.writeheader()
@@ -1098,11 +1166,13 @@ excluded_recs_logfile = os.path.join(working_folder, "COAF_report_excluded_recor
 rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
 rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31.csv")
 rcuk_vejj = os.path.join(working_folder, "VEJJ_2017-10-31.csv")
-rcuk_paymentsfile = os.path.join(working_folder, "RCUK_merged_payments_file.csv")
+rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
+rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
 # coaf_last_year = os.path.join(working_folder, 'veag45.csv')
 # coaf_this_year = os.path.join(working_folder, 'veag50.csv')
-coaf_paymentsfile = os.path.join(working_folder, "VEAG050_2017-10-31.csv")
+coaf_paymentsfilename = "VEAG050_2017-10-31.csv"
+coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 # merge_csv_files([coaf_last_year, coaf_this_year], coaf_paymentsfile)
 zenexport = os.path.join(working_folder, "export-2017-11-09-2150-5703871969.csv")
 zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2017-11-13-2307.csv")
@@ -1220,9 +1290,9 @@ if __name__ == '__main__':
     #~ #pprint(allfieldnames)
     #~ #raise
 
-    #~ ##CLEANUP DEBUG INFO FROM PREVIOUS RUNS BY WRITING HEADERS
-    #~ print('STATUS: cleanning up debug info from previous run')
-    #~ action_cleanup_debug_info()
+    ##CLEANUP DEBUG INFO FROM PREVIOUS RUNS BY WRITING HEADERS
+    print('STATUS: cleanning up debug info from previous run')
+    action_cleanup_debug_info()
 
     ###INDEX INFO FROM ZENDESK ON ZD NUMBER
     plog('STATUS: indexing zendesk info on zd number', terminal=True)
@@ -1298,8 +1368,12 @@ if __name__ == '__main__':
     # #~ raise
 
     #### PLUGGING IN DATA FROM THE RCUK AND COAF PAYMENTS SPREADSHEETS
-    plug_in_payment_data(rcuk_paymentsfile, rcuk_paymentsfieldnames, 'Description', total_rcuk_payamount_field, 'Page, colour or membership amount', amount_field = rcuk_payamount_field, file_encoding = 'utf-8', transaction_code_field = 'Tran', funder = 'RCUK')
-    plug_in_payment_data(coaf_paymentsfile, coaffieldnames, 'Comment', total_coaf_payamount_field, 'COAF Page, colour or membership amount', invoice_field = 'Invoice', amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder = 'COAF')
+    plug_in_payment_data(rcuk_paymentsfile, rcuk_paymentsfieldnames, 'Description', total_rcuk_payamount_field,
+                         'Page, colour or membership amount', amount_field = rcuk_payamount_field,
+                         file_encoding = 'utf-8', transaction_code_field = 'Tran', funder = 'RCUK')
+    plug_in_payment_data(coaf_paymentsfile, coaffieldnames, 'Comment', total_coaf_payamount_field,
+                         'COAF Page, colour or membership amount', invoice_field = 'Invoice',
+                         amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder = 'COAF')
 
     #### PLUGGING IN DATA FROM APOLLO
     ###NEED TO MAP THIS DATA USING REPOSITORY HANDLE, BECAUSE APOLLO DOES
@@ -1348,9 +1422,22 @@ if __name__ == '__main__':
     included_in_report = {}
 
     report_fields = extract_csv_header(report_template, "utf-8")
-    custom_rep_fields = ['id', 'externalID [txt]', 'Reason for exclusion', 'Description', 'Ref 1', 'Ref 5', 'RCUK policy [flag]', 'RCUK payment [flag]', 'COAF policy [flag]', 'COAF payment [flag]', 'handle']
-    report_fieldnames = report_fields + custom_rep_fields + rcuk_paymentsfieldnames
-    report_fieldnames = report_fields
+    custom_rep_fields = ['id',                      # ZD number from zd
+                         'externalID [txt]',        # OA number from zd
+                         'Reason for exclusion',    # field calculated and appended by ART
+                         # 'Description',             # field from CUFS (RCUK)
+                         # 'Ref 1',                   # field from CUFS (RCUK)
+                         # 'Ref 5',                   # field from CUFS (RCUK)
+                         'Comment',                 # field from CUFS (COAF)
+                         'Invoice',                 # field from CUFS (COAF)
+                         'RCUK policy [flag]',      # from zd
+                         'RCUK payment [flag]',     # from zd
+                         'COAF policy [flag]',      # from zd
+                         'COAF payment [flag]',     # from zd
+                         'handle'                   # from Apollo
+                         ]
+    report_fieldnames = report_fields + custom_rep_fields #+ rcuk_paymentsfieldnames
+#    report_fieldnames = report_fields ###UNCOMMENT THIS LINE FOR FINAL VERSION
 
     ### THEN EXPORT THE INCLUDED TICKETS TO THE REPORT CSV
     action_manually_filter_and_export_to_report_csv()
@@ -1358,6 +1445,8 @@ if __name__ == '__main__':
     ### EXPORT EXCLUDED RECORDS TO CSVs
     excluded_debug_file = os.path.join(working_folder, 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv')
     debug_export_excluded_records(excluded_debug_file, excluded_recs_logfile, excluded_recs)
+
+
 
     #### ADD DATA FROM PUBLISHER DEALS TO THE END OF THE REPORT
     institution_filter = ['University of Cambridge']
@@ -1390,7 +1479,41 @@ if __name__ == '__main__':
     springer_dict = {}
     rejection_dict_springer = {}
     dateutil_springer = dateutil.parser.parserinfo(dayfirst=True)
-    exclude_titles_springer = ['Clinical Trials in Vasculitis', 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology', 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444', 'Hunter-Gatherers and the Origins of Religion', 'A 2-adic automorphy lifting theorem for unitary groups over CM fields', 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot', 'Hohfeldian Infinities: Why Not to Worry', 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion', 'Data processing for the sandwiched Rényi divergence: a condition for equality', 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)', 'Gender patterns in academic entrepreneurship']
+    exclude_titles_springer = [
+        ### RCUK REPORT 2017
+        # 'Clinical Trials in Vasculitis',
+        # 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology',
+        # 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444',
+        # 'Hunter-Gatherers and the Origins of Religion',
+        # 'A 2-adic automorphy lifting theorem for unitary groups over CM fields',
+        # 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot',
+        # 'Hohfeldian Infinities: Why Not to Worry',
+        # 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion',
+        # 'Data processing for the sandwiched Rényi divergence: a condition for equality',
+        # 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)',
+        # 'Gender patterns in academic entrepreneurship'
+        ### COAF REPORT 2017
+        ## NOT FOUND IN ZENDESK
+        '''Do Gang Injunctions Reduce Violent Crime? Four Tests in Merseyside, UK''',
+        '''"Don't Mind the Gap!" Reflections on improvement science as a paradigm''',
+        '''Paradoxical effects of self-awareness of being observed: Testing the effect of police body-worn cameras on assaults and aggression against officers''',
+        '''KYC Optimization Using Distributed Ledger Technology''', '''Metric ultraproducts of classical groups''',
+        '''Uniformity of the late points of random walk on''',
+        '''Nowhere differentiable functions of analytic type on products of finitely connected planar domains''',
+        '''Advocacy Science: Explaining the term with case studies from biotechnology''',
+        '''Turn-taking in cooperative offspring care: by-product of individual provisioning behavior or active response rule?''',
+        '''Fetal Androgens and Human Sexual Orientation: Searching for the Elusive Link''',
+        '''The Coevolution of Play and the Cortico-Cerebellar System in Primates''',
+        '''Police Attempts to Predict Domestic Murder and Serious Assaults: Is Early Warning Possible Yet?''',
+        '''Does tracking and feedback boost patrol time in hot spots? Two tests.''',
+        '''Finite vs. Small Strain Discrete Dislocation Analysis of Cantilever Bending of Single Crystals''',
+        '''Effect of context on the contribution of individual harmonics to residue pitch''',
+        '''Preferred location for conducting filament formation in thin-film nano-ionic electrolyte: Study of microstructure by atom-probe tomography''',
+        '''Volumetric Growth Rates of Meningioma and its Correlation with Histological Diagnosis and Clinical Outcome: A Systematic Review''',
+        '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
+        '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
+        '''Comparing representations for function spaces in computable analysis''',
+        ]
     import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
                                           'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
                                           'approval requested date', # 'Online Publication Date' was previously used, but it was renamed to 'online first publication date' and has blank values for several articles
@@ -1457,8 +1580,23 @@ if __name__ == '__main__':
     dateutil_wiley = dateutil.parser.parserinfo(dayfirst=True)
     filter_date_field_wiley = 'Date'
     request_status_field_wiley = 'Request Status'
-    exclude_titles_wiley = ['Chromatin determinants impart camptothecin sensitivity']
-    import_prepayment_data_and_link_to_zd(wileyexport, wiley_dict, rejection_dict_wiley, 'DOI', 'Article Title', filter_date_field_wiley, 'Wiley', field_renaming_list = [('Journal Type', 'Wiley Journal Type'), ('DOI', 'Wiley DOI'), ('Publisher', 'Wiley Publisher')], dateutil_options=dateutil_wiley, exclude_titles=exclude_titles_wiley, request_status_field=request_status_field_wiley) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
+    exclude_titles_wiley = [
+        ## RCUK REPORT 2017
+        # 'Chromatin determinants impart camptothecin sensitivity'
+        ## COAF REPORT 2017
+        '''Incremental Material Flow Analysis with Bayesian Inference''',
+        '''Assessing the Impact of Germination and Sporulation Conditions on the Adhesion of Bacillus Spores to Glass and Stainless Steel by Fluid Dynamic Gauging''',
+        '''A new Mississippian tetrapod from Fife, Scotland, and its environmental context.''',
+        '''Causal narratives in public health: the difference between mechanisms of aetiology and mechanisms of prevention in non-communicable diseases''',
+        '''High imensional change point estimation via sparse projection''',
+        '''Random projection ensemble classification''',
+        ]
+    import_prepayment_data_and_link_to_zd(wileyexport, wiley_dict, rejection_dict_wiley, 'DOI', 'Article Title',
+                                          filter_date_field_wiley, 'Wiley',
+                                          field_renaming_list = [('Journal Type', 'Wiley Journal Type'),
+                                                                 ('DOI', 'Wiley DOI'), ('Publisher', 'Wiley Publisher')],
+                                          dateutil_options=dateutil_wiley, exclude_titles=exclude_titles_wiley,
+                                          request_status_field=request_status_field_wiley) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
 
     excluded_debug_file = os.path.join(working_folder, 'ART_debug_Wiley_Dashboard_rejected_records.csv')
     wiley_reject_fieldnames = [rejection_reason_field]
@@ -1509,8 +1647,21 @@ if __name__ == '__main__':
     dateutil_oup = dateutil.parser.parserinfo(dayfirst=True)
     filter_date_field_oup = 'Referral Date'
     request_status_field_oup = 'Status'
-    exclude_titles_oup = ['A RELIGION OF LIFE?', 'MendelianRandomization: an R package for performing Mendelian randomization analyses using summarized data', 'Being Well, Looking Ill: Childbirth and the Return to Health in Seventeenth-Century England']
-    import_prepayment_data_and_link_to_zd(oupexport, oup_dict, rejection_dict_oup, 'Doi', 'Manuscript Title', filter_date_field_oup, 'OUP', field_renaming_list = [('Status', 'OUP Status'), ('Licence', 'OUP Licence')], dateutil_options=dateutil_oup, exclude_titles=exclude_titles_oup, request_status_field=request_status_field_oup) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
+    exclude_titles_oup = [
+        ## RCUK REPORT 2017
+        # 'A RELIGION OF LIFE?', 'MendelianRandomization: an R package for performing Mendelian randomization analyses using summarized data',
+        # 'Being Well, Looking Ill: Childbirth and the Return to Health in Seventeenth-Century England'
+        ## COAF REPORT 2017
+        '''Rethinking folk culture in twentieth-century Britain''',
+        '''The thickness of the mushy layer on the floor of the Skaergaard magma chamber at apatite saturation''',
+        '''?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark''',
+        '''Blocking Strategies and Stability of Particle Gibbs Samplers''',
+        ]
+    import_prepayment_data_and_link_to_zd(oupexport, oup_dict, rejection_dict_oup, 'Doi', 'Manuscript Title',
+                                          filter_date_field_oup, 'OUP',
+                                          field_renaming_list = [('Status', 'OUP Status'), ('Licence', 'OUP Licence')],
+                                          dateutil_options=dateutil_oup, exclude_titles=exclude_titles_oup,
+                                          request_status_field=request_status_field_oup) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
 
     excluded_debug_file = os.path.join(working_folder, 'ART_debug_OUP_Prepayment_rejected_records.csv')
     oup_reject_fieldnames = [rejection_reason_field]
