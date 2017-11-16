@@ -999,6 +999,9 @@ def action_populate_report_dict():
         try:
             payments = zd_dict[a][paydate_field].split('%&%')
             for p in payments:
+                ### QUICK AND DIRTY FIX FOR COAF REPORT; ALMOST CERTAINLY BREAKS RCUK REPORT GENERATION
+                report_dict[a] = zd_dict[a]
+                ### END OF QUICK AND DIRTY FIX FOR COAF REPORT
                 payment_date = datetime.datetime.strptime(p.strip(), datetime_format_st)
                 if report_start_date <= payment_date <= report_end_date:
                     report_dict[a] = zd_dict[a]
