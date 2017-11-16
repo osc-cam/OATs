@@ -224,6 +224,8 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                     ### MANUAL FIX FOR OLD TICKET
                     if oa_number == "OA-1128":
                         zd_number = '3743' #DOI: 10.1088/0953-2048/27/8/082001
+                    elif oa_number == "OA-1515":
+                        zd_number = '4323'
                     else:
                         print("WARNING: A ZD number could not be found for", oa_number, "in", paymentsfile + ". Data for this OA number will NOT be exported.")
                         zd_number = ''
@@ -874,11 +876,8 @@ def action_cleanup_debug_info():
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
     with open(os.path.join(working_folder, unmatched_payment_file_prefix + coaf_paymentsfilename), 'w') as csvfile:
-        print('unmatched_payment_file_prefix:', unmatched_payment_file_prefix)
-        print('Cleaning up', os.path.join(working_folder, unmatched_payment_file_prefix + coaf_paymentsfilename))
         writer = csv.DictWriter(csvfile, fieldnames=coaffieldnames)
         writer.writeheader()
-        print('Done cleaning up', os.path.join(working_folder, unmatched_payment_file_prefix + coaf_paymentsfilename))
     with open(os.path.join(working_folder, nonJUDB_payment_file_prefix + rcuk_paymentsfilename), 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
@@ -986,6 +985,15 @@ def action_populate_doi2apollo(apolloexport, enc='utf-8'):
     return(doi2apollo)
 
 def action_populate_report_dict():
+    '''
+    This function iterates through zd_dict after it has received data from all possible sources.
+    It then selects tickets that will be included in the report, based on the following criteria:
+    -
+
+    I THINK THIS FUNCTION IS NOT DOING WHAT IT SHOULD BE DOING FOR COAF PAYMENTS; FIX IT
+
+    :return:
+    '''
     if paydate_field == rcuk_paydate_field:
         datetime_format_st = '%d-%b-%Y' #e.g 21-APR-2016
     elif paydate_field == coaf_paydate_field:
@@ -1407,7 +1415,8 @@ if __name__ == '__main__':
     ### START BY FILTERING WHAT WE NEED
     action_populate_report_dict()
 
-    #### EXPORT PAYMENTS IN ORIGINAL FORMAT WITH AN EXTRA COLUMN "INCLUDED/EXCLUDED FROM REPORT" FOR RECONCILIATION/DEBUGGING:
+    #### EXPORT PAYMENTS IN ORIGINAL FORMAT WITH AN EXTRA COLUMN "INCLUDED/EXCLUDED FROM REPORT"
+    #### FOR RECONCILIATION/DEBUGGING:
     action_export_payments_reconciliation()
 
     #### NOW ADJUST TOTAL APC VALUES FOR TICKETS WHERE THE APC WAS SPLIT BETWEEN
