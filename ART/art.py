@@ -644,7 +644,7 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
     :param institution: string containing the institution of the publication
     :param restrict_to_funder_policy: if set to 'RCUK' or 'COAF' matches by title are performed using only zendesk
         tickets flagged as included in those funders policies or payments
-    :return: tuple (zendesk_number, reason_zendesk_number_could_not_be_found)
+    :return: zendesk_number or an empty string # tuple (zendesk_number, reason_zendesk_number_could_not_be_found)
     '''
     unresolved_dois = []
     unresolved_dois_apollo = []
@@ -654,7 +654,7 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
         if title.strip() in manual_title2zd_dict.keys():
             zd_number = manual_title2zd_dict[title.strip()]
             if not zd_number:
-                return(('', 'Not in ZD'))
+                return('')
         else:
             try:
                 zd_number = doi2zd_dict[doi]
@@ -695,7 +695,7 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
             #~ plog(title, '\n')
     else:
         zd_number = ''
-    return((zd_number, ''))
+    return(zd_number)
 
 def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict, doi_field,
                                           title_field, filter_date_field, publisher, institution_field = '',
@@ -731,7 +731,7 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
         reader = csv.DictReader(csvfile, delimiter=delim)
         for row in reader:
             warning = 0
-            manual_rejection = ''
+            manual_rejection = 'BUG: unknown reason for manual rejection'
             t = filter_prepayment_records(row, publisher, filter_date_field, request_status_field, dateutil_options)
             if t[0] == 1: ## first parameter returned by filter_prepayment_records is either 1 for include or 0 for exclude
                 doi = row[doi_field]
@@ -744,8 +744,8 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                     a = match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo,
                                                     apollo2zd_dict, title2zd_dict, institution,
                                                     restrict_to_funder_policy=reporttype) ##global reporttype is either 'COAF' or 'RCUK'
-                    zd_number = a[0]
-                    manual_rejection = a[1]
+                    zd_number = a
+                    manual_rejection = 'DEBUG LINE 748'
                 else:
                     zd_number = ''
                     manual_rejection = 'Not found in zd (match by title attempted only on tickets included in ' + reporttype + ' policy)'
@@ -785,7 +785,10 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                         row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
                         rejection_dict[publisher_id] = row
                 else:
-                    row[rejection_reason_field] = t[1] + manual_rejection
+                    row[rejection_reason_field] = t[1] + '; ' + manual_rejection
+                    # print(t[0])
+                    # print(row)
+                    # print(row[rejection_reason_field])
                     rejection_dict[publisher_id] = row
             else:
                 row[rejection_reason_field] = t[1]
@@ -800,6 +803,9 @@ def filter_prepayment_records(row, publisher, filter_date_field, request_status_
     - are not an article (some prepayment deals report top ups together with article data)
     - are not within the reporting period
 
+    It returns a tuple, where the first element is an integer (0 for excluded records; 1 for included)
+    and the second element is a string specifying the reason for exclusion (if excluded)
+
     It is not possible to implemented filtering based on values of zendesk fields here
     because this function operates on raw data coming from the prepayment deal; it is
     not linked to zd data yet.
@@ -811,8 +817,8 @@ def filter_prepayment_records(row, publisher, filter_date_field, request_status_
     :param dateutil_options:
     :return:
     '''
-    prune = 0
-    prune_reason = ''
+    prune = 0 # Include records in report by default
+    prune_reason = 'BUG: this record was excluded without evaluation by function filter_prepayment_records'
     if publisher == 'Springer':
         #### THIS IS OBSOLETE BECAUSE SPRINGER NOW PROVIDES A REPORT
         #### FILTERED BY INSTITUTION BY DEFAULT
@@ -843,8 +849,15 @@ def filter_prepayment_records(row, publisher, filter_date_field, request_status_
         else:
             publication_date = dateutil.parser.parse(publication_date)
         if report_start_date <= publication_date <= report_end_date:
-            return((1, prune_reason))
+            # plog(publisher, publication_date, 'included in reporting period by function filter_prepayment_records')
+            # plog(row)
+            # plog('\n\n')
+            prune_reason = ''
+            return(1, prune_reason)
         else:
+            # plog(publisher, publication_date, 'EXCLUDED FROM reporting period by function filter_prepayment_records')
+            # plog(row)
+            # plog('\n\n')
             prune_reason = 'Out of reporting period'
             return(0, prune_reason)
     else:
@@ -1182,7 +1195,7 @@ rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
 # coaf_last_year = os.path.join(working_folder, 'veag45.csv')
 # coaf_this_year = os.path.join(working_folder, 'veag50.csv')
-coaf_paymentsfilename = "VEAG050_2017-10-31.csv"
+coaf_paymentsfilename = "VEAG050_2017-10-31_edited.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 # merge_csv_files([coaf_last_year, coaf_this_year], coaf_paymentsfile)
 zenexport = os.path.join(working_folder, "export-2017-11-09-2150-5703871969.csv")
@@ -1200,7 +1213,7 @@ merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
 oupexport = os.path.join(working_folder, "OUP OA Charge Data.csv")
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
 report_start_date = datetime.datetime(2016, 10, 1)
-report_end_date = datetime.datetime(2017, 9, 30)
+report_end_date = datetime.datetime(2017, 9, 30, hour = 23, minute = 59, second = 59)
 green_start_date = datetime.datetime(2016, 1, 1)#Using 1 Jan 2016 to 31 Dec 2016 for green compliance estimate to match WoS period
 green_end_date = datetime.datetime(2016, 12, 31, hour = 23, minute = 59, second = 59)
 
@@ -1490,7 +1503,7 @@ if __name__ == '__main__':
 
     springer_dict = {}
     rejection_dict_springer = {}
-    dateutil_springer = dateutil.parser.parserinfo(dayfirst=True)
+    dateutil_springer = dateutil.parser.parserinfo() ## this used to be dateutil.parser.parserinfo(dayfirst=True) for old Springer Compact reports
     exclude_titles_springer = [
         ### RCUK REPORT 2017
         # 'Clinical Trials in Vasculitis',
