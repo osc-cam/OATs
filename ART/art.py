@@ -99,6 +99,13 @@ manual_title2zd_dict = {
     'In defence of substantial sentencing discretion' : '106411',
     'Integrated case management of repeated intimate partner violence: a randomized, controlled trial' : '103521',
     'Numerical study of a sphere descending along an inclined slope in a liquid' : '126414',
+    'Data processing for the sandwiched Rényi divergence: a condition for equality' : '41706',
+    'Combining different models' : '107533',
+    'The Invisibility of Diffeomorphisms' : '118788',
+    'Unstable mode solutions to the Klein-Gordon equation in Kerr-anti-de Sitter spacetimes' : '38709',
+    'Gender patterns in academic entrepreneurship' : '19129',
+    'Application of a multi-gene next-generation sequencing panel to a non-invasive oesophageal cell-sampling device to diagnose dysplastic Barrett?s oesophagus' : '103034',
+    'TIBLE: a web-based, freely accessible resource for small-molecule binding data for mycobacterial species' : '89577',
     ###WILEY
     'Refining Genotype-Phenotype Correlation in Alström Syndrome Through Study of Primary Human Fibroblasts' : '81394',
     'The canine POMC gene, obesity in Labrador retrievers and susceptibility to diabetes mellitus' : '39491',
@@ -114,6 +121,22 @@ manual_title2zd_dict = {
     """Swinburneâ€™s <i>Atalanta In Calydon</i>: 
     Prosody as sublimation in Victorian â€˜Greekâ€™ tragedy""" : '18350',
     "Reading the Exeter Book Riddles as Life-Writing" : '63449'
+    }
+
+
+# SOMETIMES PREPAYMENT DEALS REPORTS HAVE ROWS WITH DOIs, BUT NO ARTICLE TITLE
+# THIS IS USUALLY NOT AN ISSUE BECAUSE THIS SCRIPT USES DOIs AS THE PRIMARY
+# MATCHING FIELD FOR ZD LOOKUP. HOWEVER, IF A DOI IS UNKNOWN TO ZD AND APOLLO
+# THE ONLY WAY OF MATCHING AN ARTICLE TO ZD WILL BE TO MANUALLY ENTER THESE
+# PROBLEMATIC RECORDS IN THE DICTIONARY BELOW, SO THAT A MATCH BASED ON TITLE
+# CAN BE ATTEMPTED
+manual_doi2title = {
+    # SPRINGER COMPACT
+    '10.1007/s11244-017-0806-0' : 'Modification of Ammonia Decomposition Activity of Ruthenium Nanoparticles by N-Doping of CNT Supports',
+    '10.1007/s41887-017-0016-9' : 'Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index',
+    '10.1007/s11081-016-9323-4' : 'Riemannian optimization and multidisciplinary design optimization',
+    '10.1007/s11125-016-9383-4' : 'Education of children with disabilities in India and Pakistan: Critical analysis of developments in the last 15 years',
+    '10.1007/s11244-016-0653-4' : 'H2 Production via Ammonia Decomposition Using Non-Noble Metal Catalysts: A Review'
     }
 
 def similar(a, b):
@@ -665,6 +688,11 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
                     zd_number = apollo2zd_dict[apollo_handle]
                 except KeyError:
                     unresolved_dois_apollo.append(doi)
+                    if title.strip() == '':
+                        try:
+                            title = manual_doi2title[doi]
+                        except KeyError:
+                            plog('WARNING: Empty title for prepayment record with DOI', doi, 'not found in manual_doi2title dictionary.', terminal=true)
                     try:
                         if restrict_to_funder_policy == 'RCUK':
                             zd_number = title2zd_dict_RCUK[title.upper()]
@@ -712,7 +740,9 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
 
     :param inputfile: input CSV file containing publication data
     :param output_dict: an output dictionary containing all the matched data
-    :param rejection_dict:
+    :param rejection_dict: an output dictionary containing all records in inputfile, with
+                            rejection info for those not included in output_dict and zd data
+                            for all records matched to zd (included or excluded)
     :param doi_field: the column name of the DOI field in the input CSV file
     :param title_field: the column name of the title field in the input CSV file
     :param filter_date_field: the column name of the date field in the input CSV file that will be used
@@ -767,11 +797,11 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                     print('WARNING:', zd_number, 'not in zd_dict. This is probably because the zd number for this article was obtained from manual_title2zd_dict rather than from zd_dict and either (1) the zd ticket is newer than the zd export used here (using a new export should solve the problem); or (2) this zd_number is a typo in manual_title2zd_dict')
                     zd_number = ''
                 if zd_number:
+                    row.update(zd_dict[zd_number])
                     if zd_number in included_in_report.keys():
                         print('WARNING: A report entry already exists for zd number:', zd_number)
                         print('TITLE:', title)
                         print('Please merge this duplicate in the exported report', '\n')
-                    ###FILTER OUT TICKETS NOT IN reporttype POLICY OR PAYMENT HERE
                     if reporttype == 'RCUK':
                         policy_flag = "RCUK policy [flag]"
                         payment_flag = "RCUK payment [flag]"
@@ -779,8 +809,10 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                         policy_flag = "COAF policy [flag]"
                         payment_flag = "COAF payment [flag]"
                     if (zd_dict[zd_number][policy_flag] == 'yes') or (zd_dict[zd_number][payment_flag] == 'yes'):
-                        row.update(zd_dict[zd_number])
+                        #row.update(zd_dict[zd_number])
+                        row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd'
                         output_dict[publisher_id] = row
+                        rejection_dict[publisher_id] = row # this can be removed from the if statement as it also appears in else; leaving it here for now as still in active development
                     else:
                         row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
                         rejection_dict[publisher_id] = row
@@ -1475,6 +1507,13 @@ if __name__ == '__main__':
 
     #### ADD DATA FROM PUBLISHER DEALS TO THE END OF THE REPORT
     institution_filter = ['University of Cambridge']
+    prepayment_debug_fields = ["COAF policy [flag]", # list of fields to include in debug files for all
+                               "COAF payment [flag]", # prepayment details
+                               "RCUK policy [flag]",
+                               "RCUK payment [flag]",
+                               "Is there an APC payment? [list]"
+                               ]
+
 
     ### SPRINGER
     ### MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
@@ -1538,6 +1577,9 @@ if __name__ == '__main__':
         '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
         '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
         '''Comparing representations for function spaces in computable analysis''',
+        '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
+        '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+        '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
         ]
     import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
                                           'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
@@ -1550,6 +1592,8 @@ if __name__ == '__main__':
 
     excluded_debug_file = os.path.join(working_folder, 'ART_debug_Springer_Compact_rejected_records.csv')
     springer_reject_fieldnames = [rejection_reason_field]
+    for a in prepayment_debug_fields:
+        springer_reject_fieldnames.append(a)
     for a in springerfieldnames:
         springer_reject_fieldnames.append(a)
     #pprint(rejection_dict_springer)
@@ -1625,6 +1669,8 @@ if __name__ == '__main__':
 
     excluded_debug_file = os.path.join(working_folder, 'ART_debug_Wiley_Dashboard_rejected_records.csv')
     wiley_reject_fieldnames = [rejection_reason_field]
+    for a in prepayment_debug_fields:
+        wiley_reject_fieldnames.append(a)
     for a in wileyfieldnames:
         wiley_reject_fieldnames.append(a)
     debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_wiley, wiley_reject_fieldnames)
@@ -1690,6 +1736,8 @@ if __name__ == '__main__':
 
     excluded_debug_file = os.path.join(working_folder, 'ART_debug_OUP_Prepayment_rejected_records.csv')
     oup_reject_fieldnames = [rejection_reason_field]
+    for a in prepayment_debug_fields:
+        oup_reject_fieldnames.append(a)
     for a in oupfieldnames:
         oup_reject_fieldnames.append(a)
     debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_oup, oup_reject_fieldnames)
