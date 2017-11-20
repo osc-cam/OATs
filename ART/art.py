@@ -120,7 +120,9 @@ manual_title2zd_dict = {
     'Cancer immunotherapy trial registrations increase exponentially but chronic immunosuppressive glucocorticoid therapy may compromise outcomes' : '81604',
     """Swinburneâ€™s <i>Atalanta In Calydon</i>: 
     Prosody as sublimation in Victorian â€˜Greekâ€™ tragedy""" : '18350',
-    "Reading the Exeter Book Riddles as Life-Writing" : '63449'
+    "Reading the Exeter Book Riddles as Life-Writing" : '63449',
+    #INPUT FOR COAF 2017 REPORT
+    'Cancer Hallmarks Analytics Tool (CHAT): A text mining approach to organise and evaluate scientific literature on cancer' : '100405'
     }
 
 
@@ -773,9 +775,10 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                 if not title.strip() in exclude_titles:
                     a = match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo,
                                                     apollo2zd_dict, title2zd_dict, institution,
-                                                    restrict_to_funder_policy=reporttype) ##global reporttype is either 'COAF' or 'RCUK'
+#                                                    restrict_to_funder_policy=reporttype # default is None, so comment this line for a comprehensive search
+                                                    ) ##global reporttype is either 'COAF' or 'RCUK'
                     zd_number = a
-                    manual_rejection = 'DEBUG LINE 748'
+                    manual_rejection = 'Not found in zd (function match_prepayment_deal_to_zd returned an empty string)'
                 else:
                     zd_number = ''
                     manual_rejection = 'Not found in zd (match by title attempted only on tickets included in ' + reporttype + ' policy)'
@@ -1507,8 +1510,9 @@ if __name__ == '__main__':
 
     #### ADD DATA FROM PUBLISHER DEALS TO THE END OF THE REPORT
     institution_filter = ['University of Cambridge']
-    prepayment_debug_fields = ["COAF policy [flag]", # list of fields to include in debug files for all
-                               "COAF payment [flag]", # prepayment details
+    prepayment_debug_fields = ["Id",                    # zd number
+                               "COAF policy [flag]",    # list of fields to include in debug files for all
+                               "COAF payment [flag]",   # prepayment details
                                "RCUK policy [flag]",
                                "RCUK payment [flag]",
                                "Is there an APC payment? [list]"
@@ -1580,6 +1584,7 @@ if __name__ == '__main__':
         '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
         '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
         '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
+        '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
         ]
     import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
                                           'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
@@ -1715,7 +1720,7 @@ if __name__ == '__main__':
 
     oup_dict = {}
     rejection_dict_oup = {}
-    dateutil_oup = dateutil.parser.parserinfo(dayfirst=True)
+    dateutil_oup = dateutil.parser.parserinfo() # Used for RCUK report but no longer valid: dateutil.parser.parserinfo(dayfirst=True)
     filter_date_field_oup = 'Referral Date'
     request_status_field_oup = 'Status'
     exclude_titles_oup = [
@@ -1727,6 +1732,7 @@ if __name__ == '__main__':
         '''The thickness of the mushy layer on the floor of the Skaergaard magma chamber at apatite saturation''',
         '''?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark''',
         '''Blocking Strategies and Stability of Particle Gibbs Samplers''',
+        '''A.J. Nickerson on Hardy''',
         ]
     import_prepayment_data_and_link_to_zd(oupexport, oup_dict, rejection_dict_oup, 'Doi', 'Manuscript Title',
                                           filter_date_field_oup, 'OUP',
