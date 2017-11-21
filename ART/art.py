@@ -767,6 +767,8 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
             t = filter_prepayment_records(row, publisher, filter_date_field, request_status_field, dateutil_options)
             if t[0] == 1: ## first parameter returned by filter_prepayment_records is either 1 for include or 0 for exclude
                 doi = row[doi_field]
+                # print('Publisher:', publisher)
+                # print('DOI:', doi)
                 title = row[title_field]
                 if institution_field:
                     institution = row[institution_field]
@@ -1629,9 +1631,9 @@ if __name__ == '__main__':
     rep2wiley = [
     ('Date of acceptance', ['Article Accepted Date']),
     #('PubMed ID', #NA
-    ('DOI', ['DOI']),
-    ('Publisher', ['Publisher']),
-    ('Journal', ['Journal']),
+    ('DOI', ['Wiley DOI']),             ## Fields in Wiley report are 'DOI' and 'Publisher', but I had to append 'Wiley ' to these two lines
+    ('Publisher', ['Wiley Publisher']), ## because ART has a mechanism that prevents existing fields (e.g. comming from zd) from being overwritten
+    ('Journal', ['Journal']),           ## by data from prepayment deals; this is something that probably needs revising because it is confusing, not obvious
     #('E-ISSN', ['eISSN']), #NA
     ('Type of publication', ['Article Type']),
     ('Article title', ['Article Title']),
@@ -1681,6 +1683,11 @@ if __name__ == '__main__':
     debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_wiley, wiley_reject_fieldnames)
 
     wiley_out_dict = match_datasource_fields_to_report_fields(wiley_dict, rep2wiley, default_deal = 'Other', default_notes = 'Wiley prepayment discount')
+
+    # for a in wiley_dict:
+    #     print(wiley_dict[a].keys())
+    #     print('DOI', wiley_dict[a]['Wiley DOI'])
+    #     print('Publisher:', wiley_dict[a]['Wiley Publisher'])
 
     with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
         writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
@@ -1767,13 +1774,13 @@ if __name__ == '__main__':
 
     print('STATUS: Finished processing OUP Prepayment entries')
 
-    ## NOW LET'S EXPORT A CSV OF DOIS TO UPLOAD TO https://compliance.cottagelabs.com
-    ## FIX THIS ONE MANUALLY ON THE OUTPUT CSV: http:/​/​dx.​doi.​org/​10.​1104/​pp.​16.​00539
-    #~ with open(doifile, 'w') as csvfile:
-        #~ writer = csv.DictWriter(csvfile, fieldnames=['DOI'], extrasaction='ignore')
-        #~ writer.writeheader()
-        #~ for ticket in report_dict:
-            #~ if 'DOI' in report_dict[ticket].keys():
-                #~ if report_dict[ticket]['DOI'].strip():
-                    #~ writer.writerow(report_dict[ticket])
+    # NOW LET'S EXPORT A CSV OF DOIS TO UPLOAD TO https://compliance.cottagelabs.com
+    # FIX THIS ONE MANUALLY ON THE OUTPUT CSV: http:/​/​dx.​doi.​org/​10.​1104/​pp.​16.​00539
+    with open(doifile, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=['DOI'], extrasaction='ignore')
+        writer.writeheader()
+        for ticket in report_dict:
+            if 'DOI' in report_dict[ticket].keys():
+                if report_dict[ticket]['DOI'].strip():
+                    writer.writerow(report_dict[ticket])
 
