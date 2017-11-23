@@ -33,6 +33,21 @@ exclusion_list = [
     ('APC paid (£) including VAT if charged', '0.0')#THESE CONSIST OF PAYMENTS THAT WERE REFUNDED (EITHER PAID BY ANOTHER FUNDER OR REFERRED TO A PREPAYMENT DEAL
     ]
 
+### USE THE LIST BELOW TO FORCE THE INCLUSION OF TICKETS MARKED AS DUPLICATES IN ZENDESK IN zd_dict
+manual_zendesk_duplicates_to_include = ['36495', '76842', '86232', '83197', '89212']
+
+### USE THIS DICTIONARY TO FORCE THE MAPPING OF PARTICULARLY PROBLEMATIC OA NUMBERS TO ZD NUMBERS
+### FOR EXAMPLE A OA NUMBER MARKED AS DUPLICATE IN ZENDESK, BUT WITH A PAYMENT ASSOCIATED WITH IT
+### (SO NOT EASY TO FIX IN ZENDESK)
+manual_oa2zd_dict = {
+    'OA-13907':'83033',
+    'OA-10518':'36495',
+    'OA-13111':'76842',
+    'OA-14062':'86232',
+    'OA-13919':'83197',
+    'OA-14269':'89212'
+    }
+
 ### POPULATE THE DICTIONARY BELOW (manual_title2zd_dict) WITH MATCHES
 ### OUTPUT TO ART_log.txt IN THE FORM:
 ###
@@ -244,16 +259,19 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
             if m_oa:
                 oa_number = m_oa.group().upper().replace("OA" , "OA-").replace(" ","")
                 try:
-                    zd_number = oa2zd_dict[oa_number]
+                    zd_number = manual_oa2zd_dict[oa_number]
                 except KeyError:
-                    ### MANUAL FIX FOR OLD TICKET
-                    if oa_number == "OA-1128":
-                        zd_number = '3743' #DOI: 10.1088/0953-2048/27/8/082001
-                    elif oa_number == "OA-1515":
-                        zd_number = '4323'
-                    else:
-                        print("WARNING: A ZD number could not be found for", oa_number, "in", paymentsfile + ". Data for this OA number will NOT be exported.")
-                        zd_number = ''
+                    try:
+                        zd_number = oa2zd_dict[oa_number]
+                    except KeyError:
+                        ### MANUAL FIX FOR OLD TICKET
+                        if oa_number == "OA-1128":
+                            zd_number = '3743' #DOI: 10.1088/0953-2048/27/8/082001
+                        elif oa_number == "OA-1515":
+                            zd_number = '4323'
+                        else:
+                            print("WARNING: A ZD number could not be found for", oa_number, "in", paymentsfile + ". Data for this OA number will NOT be exported.")
+                            zd_number = ''
             elif m_zd:
                 zd_number = m_zd.group().replace(" ","-").strip('ZDzd -')
             else:
@@ -425,10 +443,14 @@ def plug_in_metadata(metadata_file, matching_field, translation_dict, warning_me
                 zd_number = ''
             
             if zd_number:
-                for field in row.keys():
-                    if (field in zd_dict[zd_number].keys()) and (row_counter == 0):
-                        print('WARNING: Dictionary for ZD ticket', zd_number, 'already contains a field named', field + '. It will be overwritten by the value in file', metadata_file)
-                zd_dict[zd_number].update(row)
+                if type(zd_number) == type('string'):
+                    for field in row.keys():
+                        if (field in zd_dict[zd_number].keys()) and (row_counter == 0):
+                            print('WARNING: Dictionary for ZD ticket', zd_number, 'already contains a field named', field + '. It will be overwritten by the value in file', metadata_file)
+                    zd_dict[zd_number].update(row)
+                elif type(zd_number) == type(['list']): ### zd_number can now be a tuple because doi2zd_dict now includes all matching tickets for a given DOI as a tuple
+                    for zd in zd_number:
+                        zd_dict[zd].update(row)
             row_counter += 1
 
 def process_repeated_fields(zd_list, report_field_list, ticket):
@@ -683,6 +705,10 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
         else:
             try:
                 zd_number = doi2zd_dict[doi]
+                if '10.1093/brain/awx101' in doi:
+                    print('DOI:', doi)
+                    print('zd_number:', zd_number)
+                    print('title:', title)
             except KeyError:
                 unresolved_dois.append(doi)
                 try:
@@ -725,6 +751,9 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
             #~ plog(title, '\n')
     else:
         zd_number = ''
+    plog('unresolved_dois:', unresolved_dois)
+    plog('unresolved_dois_apollo:', unresolved_dois_apollo)
+    plog('unresolved_titles:', unresolved_titles)
     return(zd_number)
 
 def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict, doi_field,
@@ -790,7 +819,7 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                     row[a[1]] = row[a[0]]
                     #~ del output_dict[publisher_id][a[0]]
                     del row[a[0]]
-                if zd_number.strip():
+                if (type(zd_number) == type('string')) and zd_number.strip():
                     #~ for fn in output_dict[publisher_id].keys():
                     for fn in row.keys():
                         try:
@@ -802,25 +831,43 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                     print('WARNING:', zd_number, 'not in zd_dict. This is probably because the zd number for this article was obtained from manual_title2zd_dict rather than from zd_dict and either (1) the zd ticket is newer than the zd export used here (using a new export should solve the problem); or (2) this zd_number is a typo in manual_title2zd_dict')
                     zd_number = ''
                 if zd_number:
-                    row.update(zd_dict[zd_number])
-                    if zd_number in included_in_report.keys():
-                        print('WARNING: A report entry already exists for zd number:', zd_number)
-                        print('TITLE:', title)
-                        print('Please merge this duplicate in the exported report', '\n')
                     if reporttype == 'RCUK':
                         policy_flag = "RCUK policy [flag]"
                         payment_flag = "RCUK payment [flag]"
                     elif reporttype == 'COAF':
                         policy_flag = "COAF policy [flag]"
                         payment_flag = "COAF payment [flag]"
-                    if (zd_dict[zd_number][policy_flag] == 'yes') or (zd_dict[zd_number][payment_flag] == 'yes'):
-                        #row.update(zd_dict[zd_number])
-                        row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd'
-                        output_dict[publisher_id] = row
-                        rejection_dict[publisher_id] = row # this can be removed from the if statement as it also appears in else; leaving it here for now as still in active development
-                    else:
-                        row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
-                        rejection_dict[publisher_id] = row
+                    if type(zd_number) == type('string'):
+                        row.update(zd_dict[zd_number])
+                        if zd_number in included_in_report.keys():
+                            print('WARNING: A report entry already exists for zd number:', zd_number)
+                            print('TITLE:', title)
+                            print('Please merge this duplicate in the exported report', '\n')
+                        if (zd_dict[zd_number][policy_flag] == 'yes') or (zd_dict[zd_number][payment_flag] == 'yes'):
+                            #row.update(zd_dict[zd_number])
+                            row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd'
+                            output_dict[publisher_id] = row
+                            rejection_dict[publisher_id] = row # this can be removed from the if statement as it also appears in else; leaving it here for now as still in active development
+                        else:
+                            row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
+                            rejection_dict[publisher_id] = row
+                    elif type(zd_number) == type(['list']): ## zd_number may be a tuple because doi2zd_dict now resolves all tickets with a given DOI that are not explicitly marked as duplicates in zd
+                        included_row_flag = False
+                        for zd in zd_number:
+                            if included_row_flag == False:
+                                row.update(zd_dict[zd])
+                                if zd in included_in_report.keys():
+                                    print('WARNING: A report entry already exists for zd number:', zd)
+                                    print('TITLE:', title)
+                                    print('Please merge this duplicate in the exported report', '\n')
+                                if (zd_dict[zd][policy_flag] == 'yes') or (zd_dict[zd][payment_flag] == 'yes'):
+                                    row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd'
+                                    output_dict[publisher_id] = row
+                                    rejection_dict[publisher_id] = row  # this can be removed from the if statement as it also appears in else; leaving it here for now as still in active development
+                                    included_row_flag = True
+                            else:
+                                row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
+                                rejection_dict[publisher_id] = row
                 else:
                     row[rejection_reason_field] = t[1] + '; ' + manual_rejection
                     # print(t[0])
@@ -981,39 +1028,207 @@ def action_index_zendesk_data_general(zenexport, zd_dict={}, title2zd_dict={}, d
     #            title2zd_dict_RCUK[article_title.upper()] = zd_number
         return(zd_dict, title2zd_dict, doi2zd_dict, oa2zd_dict, apollo2zd_dict, zd2zd_dict)
 
+
+debug_problematic_doi_list = [ ### list of DOIs that appear in more than one zendesk ticket
+    '10.1021/acs.macromol.5b02667',
+    '10.2337/dc15-2078',
+    '10.1101/gad.293027.116',
+    '10.1063/1.4964601',
+    '10.1007/s00125-016-3905-8',
+    '10.1093/nar/gkw560',
+    '10.17863/CAM.6700',
+    '10.1515/rle-2016-0046',
+    '10.1016/j.rser.2016.09.107',
+    '10.1038/cddis.2016.302',
+    '10.1038/ncomms10069',
+    '10.1016/j.molbiopara.2016.07.004',
+    '10.1016/j.jclepro.2016.06.155',
+    '10.1210/jc.2015-3854',
+    '10.1080/09537287.2016.1147099',
+    '10.1038/nphys4168',
+    '10.1063/1.4958727',
+    '10.1371/journal.pone.0150686',
+    '10.1007/s12028-017-0404-9',
+    '10.1136/bmjopen-2015-009974',
+    '10.1017/jfm.2016.408',
+    '10.1016/j.lcsi.2016.09.005',
+    '10.1016/j.vaccine.2016.08.002',
+    '10.1061/9780784479827.229',
+    '10.1016/j.conbuildmat.2016.09.086',
+    '10.1111/ajt.14433',
+    '10.1111/ane.12594',
+    '10.1017/S0007114516001859',
+    '10.1534/genetics.115.183285',
+    '10.1680/jcoma.16.00034',
+    '10.1002/acn3.366',
+    '10.1186/s12913-016-1379-5',
+    '10.1113/JP270717',
+    '10.1530/ERC-16-0251',
+    '10.1089/neu.2016.4442',
+    '10.1017/jfm.2016.16',
+    '10.1088/0953-8984/28/1/01LT01',
+    '10.14814/phy2.12836',
+    '10.1177/1744806916636387',
+    '10.1088/0264-9381/33/13/135002',
+    '10.3847/2041-8205/829/1/L11',
+    '10.1021/acsami.6b04041',
+    '10.1186/s12889-017-4170-6',
+    '10.1016/j.pbi.2016.10.007',
+    '10.1093/nar/gkw783',
+    '10.1074/mcp.R115.052902',
+    '10.1111/cen.13011',
+    '10.1016/j.sna.2015.11.003',
+    '10.1039/c7ra02590d',
+    '10.1007/s00442-016-3608-3',
+    '10.1038/tp.2016.271',
+    '10.1680/jensu.15.00015',
+    '10.1016/j.ces.2016.04.004',
+    '10.1136/thoraxjnl-2016-208402',
+    '10.7554/eLife.22848',
+    '10.1186/s12889-016-3184-9',
+    '10.1080/01441647.2016.1200156',
+    '10.1016/j.euroneuro.2016.07.010',
+    '10.17863/CAM.6653',
+    '10.1103/PhysRevB.93.144201',
+    '10.1371/journal.pmed.1002139',
+    '10.1038/ng.3699',
+    '10.1016/j.jclepro.2016.12.048',
+    '10.7717/peerj.2746',
+    '10.1107/S2059798315013236',
+    '10.1016/j.shpsb.2015.08.004',
+    '10.1016/j.jmb.2016.04.025',
+    '10.1088/0022-3727/49/11/11LT01',
+    '10.1136/bjsports-2016-096083',
+    '10.1186/s12889-016-3192-9',
+    '10.1371/journal.pone.0160512',
+    '10.1148/radiol.2017160150',
+    '10.1177/0954406215616984',
+    '10.1140/epjc/s10052-017-5199-5',
+    '10.1017/S0963548314000194',
+    '10.1063/1.4941760',
+    '10.1109/ISIT.2016.7541418',
+    '10.1088/0953-8984/28/34/345504',
+    '10.1007/s12583-015-0643-7',
+    '10.1186/s13041-016-0279-2',
+    '10.1093/indlaw/dwv034',
+    '10.1007/s11229-016-1294-7',
+    '10.1039/c0ib00149j',
+    '10.1016/j.neuroimage.2016.07.022',
+    '10.1021/acsami.5b07026',
+    '10.3389/fpsyg.2016.01902',
+    '10.1371/journal.ppat.1005948',
+    '10.1136/jnnp-2017-316402',
+    '10.18632/oncotarget.8308',
+    '10.1002/eji.201545537',
+    '10.17863/CAM.6118',
+    '10.1371/journal.ppat.1006055',
+    '10.1177/1468087416656946',
+    '10.1002/2016GB005570',
+    '10.7554/eLife.09617',
+    '10.1111/oik.02622',
+    '10.1136/bmjspcare-2015-001059',
+    '10.1186/s13326-016-0085-x',
+    '10.1016/j.tem.2017.06.004',
+    '10.1111/jsbm.12230',
+    '10.1038/ncomms10781',
+    '10.1016/j.jmb.2015.12.018',
+    '10.1186/s40814-016-0071-1',
+    '10.1021/acs.est.6b04746',
+    '10.3389/fimmu.2017.00298',
+    '10.1016/j.cell.2016.09.037',
+    '10.1192/bjp.bp.116.190165',
+    '10.1089/neu.2015.4134',
+    '10.1093/brain/awx101',
+    '10.1001/jamapsychiatry.2015.3058',
+    '10.1099/mic.0.000184',
+    '10.1109/HRI.2016.7451745',
+    '10.1098/rsfs.2016.0018',
+    '10.1177/0269216315627125',
+    '10.1038/lsa.2016.255',
+    '10.1038/srep35333',
+    '10.1007/s00199-016-0992-1',
+    'http://www.cs.rochester.edu/u/tetreaul/bea12proceedings.pdf',
+    '10.1017/jfm.2017.200',
+    '10.1037/a0038524',
+    '10.1063/1.4937473',
+    '10.1016/j.dib.2016.11.028',
+    '10.1007/s10437-016-9211-5',
+    '10.3390/cancers8090077',
+    '10.1021/jacs.6b09334',
+    '10.1093/mnras/stw2958',
+    '10.1038/nature21039',
+    '10.1177/1932296815604439',
+    'https://www.repository.cam.ac.uk/handle/1810/255727',
+    '10.1038/srep44283',
+    '10.1136/jnnp-2016-313918',
+    '10.1016/j.neuroimage.2016.08.012',
+    '10.1111/1471-0528.14385',
+    '10.1016/j.stemcr.2017.05.033',
+    '10.1042/BCJ20160041',
+    '10.1109/TPEL.2016.2587757',
+    '10.1111/criq.12260',
+    '10.1103/PhysRevB.95.054412',
+    '10.1016/j.neuint.2016.11.012',
+    '10.1038/ng.3751',
+    '10.1002/gepi.22001',
+    'No DOI'
+    ]
+
+
 def action_index_zendesk_data():
+    '''
+    This function reads in data exported from Zendesk and parses it into a number of global
+    dictionaries. Zendesk tickets with the 'Duplicate' field set to 'yes' are ignored.
+
+    :return:
+    '''
     with open(zenexport, encoding = "utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             zd_number = row['Id']
-            oa_number = row['externalID [txt]']
-            article_title = row['Manuscript title [txt]']
-            rcuk_payment = row['RCUK payment [flag]']
-            rcuk_policy = row['RCUK policy [flag]']
-            coaf_payment = row['COAF payment [flag]']
-            coaf_policy = row['COAF policy [flag]']
-    #        apc_payment = row['Is there an APC payment? [list]']
-    #        green_version = 'Green allowed version [list]'
-    #        embargo = 'Embargo duration [list]'
-    #        green_licence = 'Green licence [list]',
-            apollo_handle = row['Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
-            doi = prune_and_cleanup_string(row['DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
-            row['DOI (like 10.123/abc456) [txt]'] = doi
-            dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
-            publication_date = convert_date_str_to_yyyy_mm_dd(row['Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
-            row['Publication date (YYYY-MM-DD) [txt]'] = publication_date
-            title2zd_dict[article_title.upper()] = zd_number
-            doi2zd_dict[doi] = zd_number
-            oa2zd_dict[oa_number] = zd_number
-            apollo2zd_dict[apollo_handle] = zd_number
-            zd2zd_dict[zd_number] = zd_number
-            zd_dict[zd_number] = row
-            if (rcuk_payment == 'yes') or (rcuk_policy == 'yes'):
-                zd_dict_RCUK[zd_number] = row
-                title2zd_dict_RCUK[article_title.upper()] = zd_number
-            if (coaf_payment == 'yes') or (coaf_policy == 'yes'):
-                zd_dict_COAF[zd_number] = row
-                title2zd_dict_COAF[article_title.upper()] = zd_number
+            dup_of = row['Duplicate of [txt]']
+            if (row['Duplicate [flag]'] in ['no', '-', '']) or (zd_number in manual_zendesk_duplicates_to_include):
+                oa_number = row['externalID [txt]']
+                article_title = row['Manuscript title [txt]']
+                rcuk_payment = row['RCUK payment [flag]']
+                rcuk_policy = row['RCUK policy [flag]']
+                coaf_payment = row['COAF payment [flag]']
+                coaf_policy = row['COAF policy [flag]']
+        #        apc_payment = row['Is there an APC payment? [list]']
+        #        green_version = 'Green allowed version [list]'
+        #        embargo = 'Embargo duration [list]'
+        #        green_licence = 'Green licence [list]',
+                apollo_handle = row['Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
+                doi = prune_and_cleanup_string(row['DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
+                row['DOI (like 10.123/abc456) [txt]'] = doi
+                dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
+                publication_date = convert_date_str_to_yyyy_mm_dd(row['Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
+                row['Publication date (YYYY-MM-DD) [txt]'] = publication_date
+                title2zd_dict[article_title.upper()] = zd_number
+                if doi not in ['', '-']:
+                    if (doi in doi2zd_dict.keys()) and doi2zd_dict[doi]: ## Although we excluded tickets marked as duplicates from this loop, it is still possible to have unmarked duplicates reaching this line because of tickets that have not been processed yet by the OA team and/or errors
+                        # print('zd_number:', zd_number)
+                        # print('DOI:', doi)
+                        # print('doi2zd_dict[doi]:', doi2zd_dict[doi])
+                        # print('doi2zd_dict:', doi2zd_dict)
+                        doi2zd_dict[doi].append(zd_number)
+                    else:
+                        doi2zd_dict[doi] = [zd_number]
+                oa2zd_dict[oa_number] = zd_number
+                apollo2zd_dict[apollo_handle] = zd_number
+                zd2zd_dict[zd_number] = zd_number
+                zd_dict[zd_number] = row
+                if (rcuk_payment == 'yes') or (rcuk_policy == 'yes'):
+                    zd_dict_RCUK[zd_number] = row
+                    title2zd_dict_RCUK[article_title.upper()] = zd_number
+                if (coaf_payment == 'yes') or (coaf_policy == 'yes'):
+                    zd_dict_COAF[zd_number] = row
+                    title2zd_dict_COAF[article_title.upper()] = zd_number
+            else:
+                if dup_of not in ['', '-']:
+                    zd2oa_dups_dict[zd_number] = dup_of
+                else:
+                    pass # maybe capture these 'duplicates of empty string' somewhere
 
 def action_populate_doi2apollo(apolloexport, enc='utf-8'):
     '''
@@ -1238,7 +1453,10 @@ coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 zenexport = os.path.join(working_folder, "export-2017-11-09-2150-5703871969.csv")
 zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2017-11-13-2307.csv")
 apolloexport = os.path.join(working_folder, "Apollo_all_items-20171110.csv")
-cottagelabsexport = "DOIs_for_cottagelabs_edited_results.csv"
+cottagelabsDoisResult = os.path.join(working_folder, "DOIs_for_cottagelabs_2017-11-21_results_edited.csv")
+cottagelabsTitlesResult =  os.path.join(working_folder, "Titles_for_cottagelabs_2017-11-21_results_edited.csv")
+cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
+merge_csv_files([cottagelabsDoisResult, cottagelabsTitlesResult], cottagelabsexport)
 # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
 # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
 springercompactexport = os.path.join(working_folder, "article_approval_2016-01-01_to_2017-11-10.csv")
@@ -1282,7 +1500,7 @@ rep2zd = [
 ]
 rep2zd = collections.OrderedDict(rep2zd)
 
-doi2zd_dict = {} #Dictionary mapping DOI to zd number
+doi2zd_dict = {} #Dictionary mapping DOI to zd number; each of this dictionary's values may be a string if there is only one zd number matching the given DOI, or a list if more than one match were found during populating
 apollo2zd_dict = {} #Dictionary mapping apollo handle to zd number
 oa2zd_dict = {} #Dictionary mapping OA number to zd number
 zd2zd_dict = {} #Dictionary mapping zd number to zd number, so that we can use general function plug_in_metadata to match a zd export to another zd export
@@ -1293,6 +1511,7 @@ zd_dict_COAF = {} #A dictionary of tickets that have either COAF policy or COAF 
 title2zd_dict_RCUK = {}
 title2zd_dict_COAF = {}
 doi2apollo = {} #Dictionary mapping doi to handle (created using data from apollo export)
+zd2oa_dups_dict = {} #Dictionary mapping zendesk tickets marked as duplicates to the OA number of their master ticket
 
 zdfund2funderstr = {
     'RCUK payment [flag]' : 'RCUK',
@@ -1442,6 +1661,7 @@ if __name__ == '__main__':
     plug_in_metadata(apolloexport, 'handle', apollo2zd_dict)
 
     #### PLUGGING IN DATA FROM COTTAGELABS
+    ## For some reason not all PMIDs are appearing in the final COAF 2017 report, so this is something that needs to be fixed.
     try:
         plug_in_metadata(cottagelabsexport, 'DOI', doi2zd_dict)
     except FileNotFoundError:
