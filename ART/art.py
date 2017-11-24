@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+
+### DEV NOTES:
+## Need a new function detect_decision_ticket to parse lists of zd numbers from doi2zd_dict, title2zd_dict, etc.
+## The new function should look at each of the zendesk tickets in the list and identify the one that is most likely
+## to contain a decision about payment/funding:
+## - 'Is there an APC payment' not blank
+## - ticket group is open access
+## - RCUK and/or COAF payment ticked
+
 import os
 import re
 import csv
@@ -122,13 +131,13 @@ manual_title2zd_dict = {
     'Application of a multi-gene next-generation sequencing panel to a non-invasive oesophageal cell-sampling device to diagnose dysplastic Barrett?s oesophagus' : '103034',
     'TIBLE: a web-based, freely accessible resource for small-molecule binding data for mycobacterial species' : '89577',
     ###WILEY
-    'Refining Genotype-Phenotype Correlation in Alström Syndrome Through Study of Primary Human Fibroblasts' : '81394',
-    'The canine POMC gene, obesity in Labrador retrievers and susceptibility to diabetes mellitus' : '39491',
+    # 'Refining Genotype-Phenotype Correlation in Alström Syndrome Through Study of Primary Human Fibroblasts' : '81394',
+    # 'The canine POMC gene, obesity in Labrador retrievers and susceptibility to diabetes mellitus' : '39491',
     ##WILEY SIMILARITY MATCHES
-    'From ?Virgin Births? to ?Octomom?: Representations of single motherhood via sperm donation in the UK media' : '30491',
-    'Prognostic models for identifying adults with intellectual disabilities and mealtime support needs who are at greatest risk of respiratory infection and emergency hospitalization' : '74902',
-    'Using predictions from a joint model for longitudinal and survival data to inform the optimal time of intervention in an abdominal aortic aneurysm screening programme' : '72229',
-    'Markov models for ocular fixation locations in the pres- ence and absence of colour' : '69352',
+    # 'From ?Virgin Births? to ?Octomom?: Representations of single motherhood via sperm donation in the UK media' : '30491',
+    # 'Prognostic models for identifying adults with intellectual disabilities and mealtime support needs who are at greatest risk of respiratory infection and emergency hospitalization' : '74902',
+    # 'Using predictions from a joint model for longitudinal and survival data to inform the optimal time of intervention in an abdominal aortic aneurysm screening programme' : '72229',
+    # 'Markov models for ocular fixation locations in the pres- ence and absence of colour' : '69352',
     ###OUP
     'Changes over time in the health and functioning of older people moving into care homes: Analysis of data from the English Longitudinal Study of Ageing' : '76550',
     'Disease-free and overall survival at 3.5 years for neoadjuvant bevacizumab added to docetaxel followed by fluorouracil, epirubicin and cyclophosphamide, for women with HER2 negative early breast cancer: ARTemis Trial.' : '81145',
@@ -137,7 +146,9 @@ manual_title2zd_dict = {
     Prosody as sublimation in Victorian â€˜Greekâ€™ tragedy""" : '18350',
     "Reading the Exeter Book Riddles as Life-Writing" : '63449',
     #INPUT FOR COAF 2017 REPORT
-    'Cancer Hallmarks Analytics Tool (CHAT): A text mining approach to organise and evaluate scientific literature on cancer' : '100405'
+    'Cancer Hallmarks Analytics Tool (CHAT): A text mining approach to organise and evaluate scientific literature on cancer' : '100405',
+    'A.J. Nickerson on Hardy' : '92942', #Hardy’s Apprehensions
+    '?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark' : '39170',
     }
 
 
@@ -487,11 +498,11 @@ def process_repeated_fields(zd_list, report_field_list, ticket):
                         report_dict[ticket][fund_f] = report_dict[ticket][zd_f]
                         used_funders.append(zd_f)
 
-def plog(*args, logfilename=logfile, terminal=False):
+def plog(*args, logfilename=logfile, terminal=True):
     '''
     A function to print arguments to a log file
     :param args: the argumes to output
-    :param terminal:
+    :param terminal: if set to false, suppresses terminal output
     '''
     with open(logfilename, 'a') as f:
         if terminal == True:
@@ -565,10 +576,12 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
     :param policy_dict: a dictionary of zendesk tickets covered by a funder's policy, indexed by title
     :return:
     '''
+    plog('INFO: Attempting heuristic_match_by_title for', title)
     unresolved_titles_sim = []
     possible_matches = []
     out_of_policy = []
     if policy_dict:
+        plog('DEBUG: policy_dict:', policy_dict)
         for t in policy_dict.keys():
             #print('t:', t)
             similarity = similar(title.upper(), t)
@@ -594,10 +607,10 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
                 most_similar_title = possible_matches[0][1]
                 zd_number = title2zd_dict[most_similar_title]
                 out_of_policy.append((title, zd_number))
-                plog('### Matched zd_no (OUT OF FUNDER POLICY): ' + zd_number)
+                plog('### Matched zd_no (OUT OF FUNDER POLICY): ',  zd_number)
                 plog('publisher title: ' + title + '\n')
                 plog('ZD        title: ' + most_similar_title.lower() + '\n')
-                plog("Entry for manual_title2zd_dict: '" + title + "' : '" + zd_number + "',\n\n\n")
+                plog("Entry for manual_title2zd_dict: '" + title + "' : '", zd_number, "',\n\n\n")
             else:
                 unresolved_titles_sim.append(title)
                 print('\nWARNING:', publisher, 'record could not be matched to ZD:\n', title, '\n')
@@ -607,6 +620,7 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
             for i in out_of_policy:
                 f.write("'''" + i[0].strip() + "''', ")
     else:
+        plog('DEBUG: policy_dict is empty')
         for t in title2zd_dict.keys():
             # print('t:', t)
             similarity = similar(title.upper(), t)
@@ -616,9 +630,12 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
             possible_matches.sort(reverse=True)
             most_similar_title = possible_matches[0][1]
             zd_number = title2zd_dict[most_similar_title]
-            plog('Matched zd_no (OUT OF FUNDER POLICY): ' + zd_number)
+            plog('Matched zd_no (match attempted using title2zd_dict): ', zd_number)
             plog('publisher title: ' + title + '\n')
-            plog('ZD        title: ' + most_similar_title.lower() + '\n\n')
+            plog('ZD        title: ' + most_similar_title.lower() + '\n')
+            plog('''Please review the match above; if it is a correct match, please include this record in manual_title2zd_dict.
+                Notice that matching by title currently identifies the ticket containg the most similar title in Zendesk, which might not
+                necessarily be the ticket containing the decision (info on funders' policies, etc.''')
         else:
             unresolved_titles_sim.append(title)
             print('\nWARNING:', publisher, 'record could not be matched to ZD:\n', title, '\n')
@@ -627,6 +644,7 @@ def heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict={}):
     with open(exclude_from_next_run, 'a') as f:
         for i in unresolved_titles_sim:
             f.write("'''" + i.strip() + "''', ")
+    plog('DEBUG: zd_number returned by heuristic_match_by_title:', zd_number)
     return (zd_number)
 
 def heuristic_match_by_title_original(title, policy_dict, publisher, title2zd_dict):
@@ -705,10 +723,10 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
         else:
             try:
                 zd_number = doi2zd_dict[doi]
-                if '10.1093/brain/awx101' in doi:
-                    print('DOI:', doi)
-                    print('zd_number:', zd_number)
-                    print('title:', title)
+                # if '10.1093/brain/awx101' in doi: ##DEBUGGING STUFF
+                #     print('DOI:', doi)
+                #     print('zd_number:', zd_number)
+                #     print('title:', title)
             except KeyError:
                 unresolved_dois.append(doi)
                 try:
@@ -751,9 +769,9 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
             #~ plog(title, '\n')
     else:
         zd_number = ''
-    plog('unresolved_dois:', unresolved_dois)
-    plog('unresolved_dois_apollo:', unresolved_dois_apollo)
-    plog('unresolved_titles:', unresolved_titles)
+    # plog('unresolved_dois:', unresolved_dois)
+    # plog('unresolved_dois_apollo:', unresolved_dois_apollo)
+    # plog('unresolved_titles:', unresolved_titles)
     return(zd_number)
 
 def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict, doi_field,
@@ -812,7 +830,10 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                     manual_rejection = 'Not found in zd (function match_prepayment_deal_to_zd returned an empty string)'
                 else:
                     zd_number = ''
-                    manual_rejection = 'Not found in zd (match by title attempted only on tickets included in ' + reporttype + ' policy)'
+                    manual_rejection = 'Title included in exclude_titles list; Not found in zd (match by title attempted only on tickets included in ' + reporttype + ' policy) during a previous run'
+                    plog('''WARNING: The following record could not be matched to a Zendesk ticket. 
+                        If this is a Wiley or OUP record, please map it manually to a Zendesk by adding it to
+                        manual_title2zd_dict.''')
                 #~ output_dict[publisher_id] = row
                 for a in field_renaming_list:
                     #~ output_dict[publisher_id][a[1]] = output_dict[publisher_id][a[0]]
@@ -845,11 +866,11 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                             print('Please merge this duplicate in the exported report', '\n')
                         if (zd_dict[zd_number][policy_flag] == 'yes') or (zd_dict[zd_number][payment_flag] == 'yes'):
                             #row.update(zd_dict[zd_number])
-                            row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd'
+                            row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd (zd_number is string)'
                             output_dict[publisher_id] = row
                             rejection_dict[publisher_id] = row # this can be removed from the if statement as it also appears in else; leaving it here for now as still in active development
                         else:
-                            row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
+                            row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy (zd_number is string)'
                             rejection_dict[publisher_id] = row
                     elif type(zd_number) == type(['list']): ## zd_number may be a tuple because doi2zd_dict now resolves all tickets with a given DOI that are not explicitly marked as duplicates in zd
                         included_row_flag = False
@@ -861,13 +882,18 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                                     print('TITLE:', title)
                                     print('Please merge this duplicate in the exported report', '\n')
                                 if (zd_dict[zd][policy_flag] == 'yes') or (zd_dict[zd][payment_flag] == 'yes'):
-                                    row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd'
+                                    row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data_and_link_to_zd (zd_number is list)'
                                     output_dict[publisher_id] = row
                                     rejection_dict[publisher_id] = row  # this can be removed from the if statement as it also appears in else; leaving it here for now as still in active development
                                     included_row_flag = True
                             else:
-                                row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy'
-                                rejection_dict[publisher_id] = row
+                                print('INFO: This row has already been included in output_dict based on another zendesk ticket:')
+                                print('INFO: Current zendesk ticket:', zd)
+                                print('INFO: List of zendesk tickets being evaluated for this input row:', zd_number)
+                                print('INFO: This input row:', row, '\n')
+                        if included_row_flag == False:
+                            row[rejection_reason_field] = 'Not included in ' + reporttype + ' policy (zd_number is list)'
+                            rejection_dict[publisher_id] = row
                 else:
                     row[rejection_reason_field] = t[1] + '; ' + manual_rejection
                     # print(t[0])
@@ -1029,7 +1055,7 @@ def action_index_zendesk_data_general(zenexport, zd_dict={}, title2zd_dict={}, d
         return(zd_dict, title2zd_dict, doi2zd_dict, oa2zd_dict, apollo2zd_dict, zd2zd_dict)
 
 
-debug_problematic_doi_list = [ ### list of DOIs that appear in more than one zendesk ticket
+debug_problematic_doi_list = [ ### list of DOIs that appear in more than one zendesk ticket ; not used anywhere; safe to delete
     '10.1021/acs.macromol.5b02667',
     '10.2337/dc15-2078',
     '10.1101/gad.293027.116',
@@ -1189,7 +1215,7 @@ def action_index_zendesk_data():
             dup_of = row['Duplicate of [txt]']
             if (row['Duplicate [flag]'] in ['no', '-', '']) or (zd_number in manual_zendesk_duplicates_to_include):
                 oa_number = row['externalID [txt]']
-                article_title = row['Manuscript title [txt]']
+                article_title = row['Manuscript title [txt]'].upper()
                 rcuk_payment = row['RCUK payment [flag]']
                 rcuk_policy = row['RCUK policy [flag]']
                 coaf_payment = row['COAF payment [flag]']
@@ -1204,7 +1230,11 @@ def action_index_zendesk_data():
                 dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
                 publication_date = convert_date_str_to_yyyy_mm_dd(row['Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
                 row['Publication date (YYYY-MM-DD) [txt]'] = publication_date
-                title2zd_dict[article_title.upper()] = zd_number
+                if article_title not in ['', '-']:
+                    if article_title in title2zd_dict.keys():
+                        title2zd_dict[article_title].append(zd_number)
+                    else:
+                        title2zd_dict[article_title] = [zd_number]
                 if doi not in ['', '-']:
                     if (doi in doi2zd_dict.keys()) and doi2zd_dict[doi]: ## Although we excluded tickets marked as duplicates from this loop, it is still possible to have unmarked duplicates reaching this line because of tickets that have not been processed yet by the OA team and/or errors
                         # print('zd_number:', zd_number)
@@ -1500,11 +1530,16 @@ rep2zd = [
 ]
 rep2zd = collections.OrderedDict(rep2zd)
 
+### DEVELOPMENT NOTES:
+## All translation dictionaries 2zd_dict should be adapted to take lists as values because of duplicates in Zendesk;
+## once this is done, the functions using these dictionaries can be edited to expect lists, rather than sometimes strings
+## and sometimes lists.
+
 doi2zd_dict = {} #Dictionary mapping DOI to zd number; each of this dictionary's values may be a string if there is only one zd number matching the given DOI, or a list if more than one match were found during populating
 apollo2zd_dict = {} #Dictionary mapping apollo handle to zd number
 oa2zd_dict = {} #Dictionary mapping OA number to zd number
 zd2zd_dict = {} #Dictionary mapping zd number to zd number, so that we can use general function plug_in_metadata to match a zd export to another zd export
-title2zd_dict = {} #Dictionary mapping article title to zd number
+title2zd_dict = {} #Dictionary mapping article title to zd number; each of this dictionary's values may be a string if there is only one zd number matching the given DOI, or a list if more than one match were found during populating
 zd_dict = {}
 zd_dict_RCUK = {} #A dictionary of tickets that have either RCUK policy or RCUK payment ticked. Needed for title matching because of the SE duplicates, which have an article title, but no decision
 zd_dict_COAF = {} #A dictionary of tickets that have either COAF policy or COAF payment ticked. Needed for title matching because of the SE duplicates, which have an article title, but no decision
@@ -1844,7 +1879,7 @@ if __name__ == '__main__':
                 springer_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
             writer.writerow(springer_out_dict[doi])
 
-    print('STATUS: Finished processing Springer Compact entries')
+    plog('STATUS: Finished processing Springer Compact entries')
 
     ### WILEY
     ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
@@ -1880,12 +1915,12 @@ if __name__ == '__main__':
         ## RCUK REPORT 2017
         # 'Chromatin determinants impart camptothecin sensitivity'
         ## COAF REPORT 2017
-        '''Incremental Material Flow Analysis with Bayesian Inference''',
-        '''Assessing the Impact of Germination and Sporulation Conditions on the Adhesion of Bacillus Spores to Glass and Stainless Steel by Fluid Dynamic Gauging''',
-        '''A new Mississippian tetrapod from Fife, Scotland, and its environmental context.''',
-        '''Causal narratives in public health: the difference between mechanisms of aetiology and mechanisms of prevention in non-communicable diseases''',
-        '''High imensional change point estimation via sparse projection''',
-        '''Random projection ensemble classification''',
+        # '''Incremental Material Flow Analysis with Bayesian Inference''',
+        # '''Assessing the Impact of Germination and Sporulation Conditions on the Adhesion of Bacillus Spores to Glass and Stainless Steel by Fluid Dynamic Gauging''',
+        # '''A new Mississippian tetrapod from Fife, Scotland, and its environmental context.''',
+        # '''Causal narratives in public health: the difference between mechanisms of aetiology and mechanisms of prevention in non-communicable diseases''',
+        # '''High imensional change point estimation via sparse projection''',
+        # '''Random projection ensemble classification''',
         ]
     import_prepayment_data_and_link_to_zd(wileyexport, wiley_dict, rejection_dict_wiley, 'DOI', 'Article Title',
                                           filter_date_field_wiley, 'Wiley',
@@ -1918,7 +1953,7 @@ if __name__ == '__main__':
                 wiley_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
             writer.writerow(wiley_out_dict[doi])
 
-    print('STATUS: Finished processing Wiley Dashboard entries')
+    plog('STATUS: Finished processing Wiley Dashboard entries')
 
     ###OUP
     ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
@@ -1955,11 +1990,11 @@ if __name__ == '__main__':
         # 'A RELIGION OF LIFE?', 'MendelianRandomization: an R package for performing Mendelian randomization analyses using summarized data',
         # 'Being Well, Looking Ill: Childbirth and the Return to Health in Seventeenth-Century England'
         ## COAF REPORT 2017
-        '''Rethinking folk culture in twentieth-century Britain''',
-        '''The thickness of the mushy layer on the floor of the Skaergaard magma chamber at apatite saturation''',
-        '''?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark''',
-        '''Blocking Strategies and Stability of Particle Gibbs Samplers''',
-        '''A.J. Nickerson on Hardy''',
+        # '''Rethinking folk culture in twentieth-century Britain''',
+        # '''The thickness of the mushy layer on the floor of the Skaergaard magma chamber at apatite saturation''',
+        # '''?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark''',
+        # '''Blocking Strategies and Stability of Particle Gibbs Samplers''',
+        # '''A.J. Nickerson on Hardy''',
         ]
     import_prepayment_data_and_link_to_zd(oupexport, oup_dict, rejection_dict_oup, 'Doi', 'Manuscript Title',
                                           filter_date_field_oup, 'OUP',
@@ -1992,7 +2027,7 @@ if __name__ == '__main__':
                 oup_out_dict[doi]['Date of APC payment'] = payment_date.strftime('%Y-%m-%d')
             writer.writerow(oup_out_dict[doi])
 
-    print('STATUS: Finished processing OUP Prepayment entries')
+    plog('STATUS: Finished processing OUP Prepayment entries')
 
     # NOW LET'S EXPORT A CSV OF DOIS TO UPLOAD TO https://compliance.cottagelabs.com
     # FIX THIS ONE MANUALLY ON THE OUTPUT CSV: http:/​/​dx.​doi.​org/​10.​1104/​pp.​16.​00539
