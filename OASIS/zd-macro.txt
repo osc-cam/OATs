@@ -117,5 +117,5 @@
 {% endif %}
 
 %%%%COMMAND TO EXECUTE OASIS
-%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\OATS\OASIS\OASIS.py
+%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\OASIS\OASIS.py
 %USERPROFILE%\AppData\Local\Programs\Python\Python35-32\python.exe %USERPROFILE%\OATS\OASIS\OASIS.py

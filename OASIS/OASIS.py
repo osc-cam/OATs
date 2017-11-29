@@ -7,7 +7,7 @@ import shutil
 import time
 import subprocess
 
-test_mode = 1
+test_mode = False
 
 ## Function plog is also used by art.py, so could be moved to a oats_common module
 def plog(*args, logfile=os.path.splitext(os.path.realpath(__file__))[0] + '.log', terminal=True):
@@ -29,14 +29,14 @@ def plog(*args, logfile=os.path.splitext(os.path.realpath(__file__))[0] + '.log'
         f.write('\n')
 
 def oasis_copy(src, dst):
-    if test_mode == 0:
+    if test_mode == False:
         shutil.copy(src, dst)
     else:
         plog("OASIS TEST: Running in test mode\n", src, "was NOT COPIED to", dst)
 
 
 def oasis_move(src, dst):
-    if test_mode == 0:
+    if test_mode == False:
         shutil.move(src, dst)
     else:
         plog("OASIS TEST: Running in test mode\n", src, "was NOT MOVED to", dst)
@@ -61,22 +61,31 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
         open_cmd, username, pdftk = setup_os('linux')
     return (open_cmd, rm_cmd, username, home, pdftk)
 
+print(
+'''OASIS 0.8
 
+Author: André Sartori
+Copyright (c) 2017
+
+OASIS is part of OATs. The source code and documentation can be found at
+https://github.com/osc-cam/OATs
+
+You are free to distribute this software under the terms of the GNU General Public License.  
+The complete text of the GNU General Public License can be found at 
+http://www.gnu.org/copyleft/gpl.html
+
+'''
+)
+    
 # CUT OFF DATES FOR OLD INVOICE WARNING
 cutoffyear = 2017
 cutoffmonth = 8
 
+
 # SET UP PROGRAM VARIABLES
-open_cmd, rm_cmd, username, home, pdftk = setup_os()
-
-# CHECK THAT PDFTK IS INSTALLED
-try:
-    subprocess.run(pdftk, stdout=open(os.devnull, 'w'), check=True)
-except FileNotFoundError:
-    sys.exit('ERROR: pdftk could not be found. Please make sure it is installed in your system.')
-
 oasisfolder = os.path.dirname(os.path.realpath(__file__))  # the folder containing this script
 os.chdir(oasisfolder)
+open_cmd, rm_cmd, username, home, pdftk = setup_os()
 config_folder = os.path.join(home, ".OATs", "OASIS")
 configfile = os.path.join(config_folder, "config.txt")
 configexample = r"""## UNIX
@@ -86,6 +95,13 @@ Path to shared OSC drive = /home/<your username>/OSC-shared-drive/OSC
 ## WINDOWS
 Browser download folder = C:\userdata\<your CRSid>\downloads
 Path to shared OSC drive = O:\OSC"""
+
+
+# CHECK THAT PDFTK IS INSTALLED
+try:
+    subprocess.run(pdftk, stdout=open(os.devnull, 'w'), check=True)
+except FileNotFoundError:
+    sys.exit('ERROR: pdftk could not be found. Please make sure it is installed in your system.')
 
 warning_counter = 0
 
@@ -179,8 +195,10 @@ else:
     shutil.move(src, dst)
 
 # SUMMON invoicevarfile AND overlayfile, THEN PROMPTS USER TO STAMP INVOICE
-subprocess.run([open_cmd, invoicevarfile])
-subprocess.run([open_cmd, overlayfile])
+#subprocess.run([open_cmd, invoicevarfile]) # Not sure why on Windows this is generating error FileNotFoundError:
+#subprocess.run([open_cmd, overlayfile])    # [WinError 2] The system cannot find the file specified; let's use os.system instead
+os.system(open_cmd + ' ' + invoicevarfile)
+os.system(open_cmd + ' ' + overlayfile)
 
 plog("OASIS: Please copy the invoice data to", invoicevarfile, "if you have not done so already")
 plog("OASIS: Please stamp the invoice using TeXworks.\n")
