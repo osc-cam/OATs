@@ -711,6 +711,17 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
         tickets flagged as included in those funders policies or payments
     :return: zendesk_number or an empty string # tuple (zendesk_number, reason_zendesk_number_could_not_be_found)
     '''
+
+    # DEV NOTES
+    # Maybe I should change this function so that zd_numbers are appended to a list of possible matches
+    # using each of the different search methods (doi, apollo handle, title).
+    # The problem with the current approach is that if we find a false match based on doi,
+    # the other search methods are not tried. It saves time, but need to decide if
+    # false matches are too many or too serious a problem to compensate the time saved.
+
+    # Maybe a good solution would be to perform all searches, but use dictionary that has been
+    # restricted to tickets in the OA group rather than the entire ZD dataset.
+
     unresolved_dois = []
     unresolved_dois_apollo = []
     unresolved_titles = []
