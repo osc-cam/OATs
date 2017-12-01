@@ -30,14 +30,22 @@ def plog(*args, logfile=os.path.splitext(os.path.realpath(__file__))[0] + '.log'
 
 def oasis_copy(src, dst):
     if test_mode == False:
-        shutil.copy(src, dst)
+        try:
+            shutil.copy(src, dst)
+        except PermissionError:
+            sys.exit('\nERROR: You do not have permission to write to ' + dst + 
+                    '\nPlease run OASIS again as a superuser/administrator.')
     else:
         plog("OASIS TEST: Running in test mode\n", src, "was NOT COPIED to", dst)
 
 
 def oasis_move(src, dst):
     if test_mode == False:
-        shutil.move(src, dst)
+        try:
+            shutil.move(src, dst)
+        except PermissionError:
+            sys.exit('\nERROR: You do not have permission to write to ' + dst + 
+                    '\nPlease run OASIS again as a superuser/administrator.')
     else:
         plog("OASIS TEST: Running in test mode\n", src, "was NOT MOVED to", dst)
 
@@ -114,7 +122,7 @@ if not os.path.exists(configfile):
     f.write(configexample)
     f.close()
     subprocess.call([open_cmd, configfile])
-    a = input("Have you finished editing the config file? (y/n)")
+    a = input("Have you finished editing the config file? (y/n) (or q to quit)")
     while a not in ["y", "Y", "yes", "YES"]:
         if a == "q":
             sys.exit()
@@ -187,7 +195,8 @@ else:
 # print "OASIS: This invoice has", str(nopages), "pages"
 if nopages > 1:
     plog("OASIS: Splitting", str(nopages), "pages")
-    subprocess.check_call([pdftk, invoicefile, "burst", "output", os.path.join(oasisfolder, "tempinv%02d.pdf")])
+    subprocess.check_call([pdftk, invoicefile, "burst", "output",
+                           os.path.join(oasisfolder, "tempinv%02d.pdf")])
 else:
     plog("OASIS: This invoice has only", str(nopages), "page\n")
     src = invoicefile
@@ -202,7 +211,7 @@ os.system(open_cmd + ' ' + overlayfile)
 
 plog("OASIS: Please copy the invoice data to", invoicevarfile, "if you have not done so already")
 plog("OASIS: Please stamp the invoice using TeXworks.\n")
-a = input("After stamping the invoice, please close the preview TeXworks window.\nHave you finished stamping the invoice? (y/n)")
+a = input("After stamping the invoice, please close the preview TeXworks window.\nHave you finished stamping the invoice? (y/n) (or q to quit)")
 while a not in ["y", "Y", "yes", "YES"]:
     if a == "q":
         sys.exit()
@@ -241,7 +250,9 @@ oasis_copy(src, dst)
 stampedinvoice = os.path.join(oasisfolder, "stamped_invoice.pdf")
 if nopages > 1:
     plog("OASIS: Merging stamped page with remaining invoice pages")
-    subprocess.check_call([pdftk, os.path.join(oasisfolder, "tempinv*.pdf"), "cat", "output", stampedinvoice])
+    subprocess.run(pdftk + ' ' + os.path.join(oasisfolder, "tempinv*.pdf") + " cat " + 
+                    " output " + stampedinvoice, stdout=open(os.devnull, 'w'),
+                    shell=True, check=True)
 else:
     src = os.path.join(oasisfolder, "tempinv01.pdf")
     dst = stampedinvoice
