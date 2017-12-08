@@ -70,7 +70,7 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     return (open_cmd, rm_cmd, username, home, pdftk)
 
 print(
-'''OASIS 0.8
+'''OASIS 0.9
 
 Author: André Sartori
 Copyright (c) 2017
@@ -322,11 +322,15 @@ else:
 
 # WARN USER IF THERE ARE INVOICES THAT SHOULD BE PRINTED SOON
 maxnoinvtoprint = 10
-currentnoinvtoprint = len(list(filter(os.path.isfile, os.listdir(printfolder))))
+# currentnoinvtoprint = len(list(filter(os.path.isfile, os.listdir(printfolder)))) # For some reason this is not working on Windows, so using workaround below
+os.chdir(printfolder)
+currentnoinvtoprint = len(list(filter(os.path.isfile, os.listdir())))
 if currentnoinvtoprint > maxnoinvtoprint:
     plog("WARNING: There are", str(currentnoinvtoprint), "invoices waiting to be printed in", printfolder)
     plog("Don't forget to print them at some point!")
     warning_counter += 1
+else:
+    plog("OASIS: There are", str(currentnoinvtoprint), "invoices waiting to be printed in", printfolder)
 
 maxprintdelaydays = 5
 maxprintdelaysecs = maxprintdelaydays * 86400
