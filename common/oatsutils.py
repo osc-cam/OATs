@@ -4,6 +4,29 @@ import csv
 DOI_CLEANUP = ['http://dx.doi.org/', 'https://doi.org/', 'http://dev.biologists.org/lookup/doi/', 'http://www.hindawi.com/journals/jdr/aip/2848759/']
 DOI_FIX = {'0.1136/jmedgenet-2016-104295':'10.1136/jmedgenet-2016-104295'}
 
+class oatslogger:
+
+    def __init__(self, logfile):
+        self.logfile = logfile
+
+    def plog(self, *args, terminal=True):
+        '''
+        A function to print arguments to a log file
+        :param args: the arguments to output
+        :param terminal: if set to false, suppresses terminal output
+        '''
+        with open(self.logfile, 'a') as f:
+            if terminal == True:
+                print(' '.join(map(str, args)))
+            for a in args:
+                try:
+                    f.write(str(a))
+                    f.write(' ')
+                except UnicodeEncodeError:
+                    f.write('UnicodeEncodeError')
+                    f.write(' ')
+            f.write('\n')
+
 def get_latest_csv(folder_path):
     """ This function returns the filename of the latest modified CSV file in directory folder_path
     """

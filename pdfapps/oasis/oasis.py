@@ -7,48 +7,14 @@ import shutil
 import time
 import subprocess
 
-test_mode = False
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))) # Add OATs folder to PYTHONPATH
 
-## Function plog is also used by art.py, so could be moved to a oats_common module
-def plog(*args, logfile=os.path.splitext(os.path.realpath(__file__))[0] + '.log', terminal=True):
-    '''
-    A function to print arguments to a log file
-    :param args: the arguments to output
-    :param terminal: if set to false, suppresses terminal output
-    '''
-    with open(logfile, 'a') as f:
-        if terminal == True:
-            print(' '.join(map(str, args)))
-        for a in args:
-            try:
-                f.write(str(a))
-                f.write(' ')
-            except UnicodeEncodeError:
-                f.write('UnicodeEncodeError')
-                f.write(' ')
-        f.write('\n')
+from common.oatsutils import oatslogger
+from pdfapps.helpers import oats_copy, oats_move
 
-def oasis_copy(src, dst):
-    if test_mode == False:
-        try:
-            shutil.copy(src, dst)
-        except PermissionError:
-            sys.exit('\nERROR: You do not have permission to write to ' + dst + 
-                    '\nPlease run OASIS again as a superuser/administrator.')
-    else:
-        plog("OASIS TEST: Running in test mode\n", src, "was NOT COPIED to", dst)
-
-
-def oasis_move(src, dst):
-    if test_mode == False:
-        try:
-            shutil.move(src, dst)
-        except PermissionError:
-            sys.exit('\nERROR: You do not have permission to write to ' + dst + 
-                    '\nPlease run OASIS again as a superuser/administrator.')
-    else:
-        plog("OASIS TEST: Running in test mode\n", src, "was NOT MOVED to", dst)
-
+logfile = os.path.splitext(os.path.realpath(__file__))[0] + '.log'
+logger = oatslogger(logfile)
+##need to delete the logfile between runs
 
 def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     pdftk = 'pdftk'
@@ -64,9 +30,9 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     elif platform_string.startswith('darwin'):  # MAC OS
         open_cmd = 'open'
     else:
-        plog('OASIS ERROR: Operational system', platform_string,
+        logger.plog('OASIS ERROR: Operational system', platform_string,
               'not supported. Oasis will attempt to apply linux parameters')
-        open_cmd, username, pdftk = setup_os('linux')
+        open_cmd, rm_cmd, username, home, pdftk = setup_os('linux')
     return (open_cmd, rm_cmd, username, home, pdftk)
 
 print(
@@ -117,7 +83,7 @@ if not os.path.exists(config_folder):
     os.makedirs(config_folder)
 
 if not os.path.exists(configfile):
-    plog("OASIS: Configuration file does not exist. Creating and opening the file. Please edit the paths to match your system")
+    logger.plog("OASIS: Configuration file does not exist. Creating and opening the file. Please edit the paths to match your system")
     f = open(configfile, 'w')
     f.write(configexample)
     f.close()
@@ -128,7 +94,7 @@ if not os.path.exists(configfile):
             sys.exit()
         a = input("Have you finished editing the config file? (y/n) (or q to quit)")
 
-plog("OASIS: Reading configuration file.")
+logger.plog("OASIS: Reading configuration file.")
 
 downloadsfolder = ''
 shareddrive = ''
@@ -156,7 +122,7 @@ overlayfile = os.path.join(oasisfolder, "overlay.tex")
 filingfolder = os.path.join(remoteinvoicefolder, "Invoices to be checked")
 
 # GET RID OF TEMPORARY FILES FROM PREVIOUS RUN
-plog("OASIS: Deleting temporary files from previous run")
+logger.plog("OASIS: Deleting temporary files from previous run")
 os.system(rm_cmd + " tempinv*.pdf invoice.pdf doc_data.txt overlay.aux overlay.log overlay.synctex.gz")
 
 # COPY THE INVOICE FROM DOWNLOADS TO LOCAL FOLDER
@@ -179,7 +145,7 @@ src = os.path.join(downloadsfolder, invoicefilename)
 dst = invoicefile
 shutil.copy(src, dst)
 
-plog("OASIS: Copied the invoice file", invoicefilename, "to", oasisfolder)
+logger.plog("OASIS: Copied the invoice file", invoicefilename, "to", oasisfolder)
 
 # DETECT NUMBER OF PAGES AND SPLIT IF NECESSARY
 process = subprocess.Popen([pdftk, invoicefile, "dump_data"], stdout=subprocess.PIPE)
@@ -189,28 +155,29 @@ m = t.search(str(out))
 if m:
     nopages = int(m.group().replace("NumberOfPages: ", "").strip())
 else:
-    plog("WARNING: Failed to detect invoice number of pages. I will assume it contains only 1 page.")
+    logger.plog("WARNING: Failed to detect invoice number of pages. I will assume it contains only 1 page.")
     nopages = 1
 
 # print "OASIS: This invoice has", str(nopages), "pages"
 if nopages > 1:
-    plog("OASIS: Splitting", str(nopages), "pages")
+    logger.plog("OASIS: Splitting", str(nopages), "pages")
     subprocess.check_call([pdftk, invoicefile, "burst", "output",
                            os.path.join(oasisfolder, "tempinv%02d.pdf")])
 else:
-    plog("OASIS: This invoice has only", str(nopages), "page\n")
+    logger.plog("OASIS: This invoice has only", str(nopages), "page\n")
     src = invoicefile
     dst = os.path.join(oasisfolder, "tempinv01.pdf")
     shutil.move(src, dst)
 
-# SUMMON invoicevarfile AND overlayfile, THEN PROMPTS USER TO STAMP INVOICE
-#subprocess.run([open_cmd, invoicevarfile]) # Not sure why on Windows this is generating error FileNotFoundError:
+# SUMMON waiver_var_file AND overlayfile, THEN PROMPTS USER TO STAMP INVOICE
+#subprocess.run([open_cmd, waiver_var_file]) # Not sure why on Windows this is generating error FileNotFoundError:
 #subprocess.run([open_cmd, overlayfile])    # [WinError 2] The system cannot find the file specified; let's use os.system instead
 os.system(open_cmd + ' ' + invoicevarfile)
+time.sleep(0.5)
 os.system(open_cmd + ' ' + overlayfile)
 
-plog("OASIS: Please copy the invoice data to", invoicevarfile, "if you have not done so already")
-plog("OASIS: Please stamp the invoice using TeXworks.\n")
+logger.plog("OASIS: Please copy the invoice data to", invoicevarfile, "if you have not done so already")
+logger.plog("OASIS: Please stamp the invoice using TeXworks.\n")
 a = input("After stamping the invoice, please close the preview TeXworks window.\nHave you finished stamping the invoice? (y/n) (or q to quit)")
 while a not in ["y", "Y", "yes", "YES"]:
     if a == "q":
@@ -238,28 +205,28 @@ if minvdate:
         with open(invoicevarfile, 'a') as f:
             f.write('\n' + r'\renewcommand{\oldwarning}{\textbf{NOTE FOR MEL}: This is an old invoice.}')
 else:
-    plog("OASIS WARNING: Failed to extract invoice date from", invoicevarfile)
+    logger.plog("OASIS WARNING: Failed to extract invoice date from", invoicevarfile)
     warning_counter += 1
 
 # REPLACE FIRST PAGE WITH STAMPED COPY
 src = os.path.join(oasisfolder, "overlay.pdf")
 dst = os.path.join(oasisfolder, "tempinv01.pdf")
-oasis_copy(src, dst)
+oats_copy(src, dst)
 
 # MERGE PAGES AGAIN IF INVOICE HAS MORE THAN ONE PAGE OR RENAME 1 PAGE INVOICES
 stampedinvoice = os.path.join(oasisfolder, "stamped_invoice.pdf")
 if nopages > 1:
-    plog("OASIS: Merging stamped page with remaining invoice pages")
+    logger.plog("OASIS: Merging stamped page with remaining invoice pages")
     subprocess.run(pdftk + ' ' + os.path.join(oasisfolder, "tempinv*.pdf") + " cat " + 
                     " output " + stampedinvoice, stdout=open(os.devnull, 'w'),
                     shell=True, check=True)
 else:
     src = os.path.join(oasisfolder, "tempinv01.pdf")
     dst = stampedinvoice
-    oasis_copy(src, dst)
+    oats_copy(src, dst)
 
 # OBTAIN INVOICE DATA AND RENAME THE FILE TO <OA/ZD NUMBER>_<INVOICE NUMBER>.PDF
-plog("OASIS: Renaming invoice to <OA/ZD NUMBER>_<INVOICE NUMBER>.pdf")
+logger.plog("OASIS: Renaming invoice to <OA/ZD NUMBER>_<INVOICE NUMBER>.pdf")
 invno = ""
 tinvno = re.compile("%%%%INVOICE VARIABLES FOR .+%%%%")
 minvno = tinvno.search(varcontent)
@@ -285,38 +252,38 @@ else:
 invfilename = refno + "_" + invno + ".pdf"
 src = stampedinvoice
 dst = os.path.join(oasisfolder, invfilename)
-oasis_move(src, dst)
+oats_move(src, dst)
 
 # COPY FILE TO PRINTFOLDERS AND FILE IT ON THE O: DRIVE
 if invfilename not in os.listdir(printfolder):
     src = os.path.join(oasisfolder, invfilename)
     dst = os.path.join(printfolder, invfilename)
-    oasis_copy(src, dst)
-    plog("OASIS: copied stamped invoice to", printfolder)
+    oats_copy(src, dst)
+    logger.plog("OASIS: copied stamped invoice to", printfolder)
 else:
     msg = "Invoice " + invfilename + " already exists in " + printfolder
     overwrite = input("OASIS: " + msg + ". Would you like to overwrite it? (y/n)[n]")
     if overwrite in ["Y", 'y']:
         src = os.path.join(oasisfolder, invfilename)
         dst = os.path.join(printfolder, invfilename)
-        oasis_copy(src, dst)
-        plog("OASIS: copied stamped invoice to", printfolder)
+        oats_copy(src, dst)
+        logger.plog("OASIS: copied stamped invoice to", printfolder)
     else:
         sys.exit("OASIS ERROR:", msg)
 
 if invfilename not in os.listdir(filingfolder):
     src = os.path.join(oasisfolder, invfilename)
     dst = os.path.join(filingfolder, invfilename)
-    oasis_move(src, dst)
-    plog("OASIS: moved stamped invoice to", filingfolder)
+    oats_move(src, dst)
+    logger.plog("OASIS: moved stamped invoice to", filingfolder)
 else:
     msg = "Invoice " + invfilename + " already exists in " + filingfolder
     overwrite = input("OASIS: " + msg + ". Would you like to overwrite it? (y/n)[n]")
     if overwrite in ["Y", 'y']:
         src = os.path.join(oasisfolder, invfilename)
         dst = os.path.join(filingfolder, invfilename)
-        oasis_move(src, dst)
-        plog("OASIS: moved stamped invoice to", filingfolder)
+        oats_move(src, dst)
+        logger.plog("OASIS: moved stamped invoice to", filingfolder)
     else:
         sys.exit("OASIS ERROR:", msg)
 
@@ -326,11 +293,11 @@ maxnoinvtoprint = 10
 os.chdir(printfolder)
 currentnoinvtoprint = len(list(filter(os.path.isfile, os.listdir())))
 if currentnoinvtoprint > maxnoinvtoprint:
-    plog("WARNING: There are", str(currentnoinvtoprint), "invoices waiting to be printed in", printfolder)
-    plog("Don't forget to print them at some point!")
+    logger.plog("WARNING: There are", str(currentnoinvtoprint), "invoices waiting to be printed in", printfolder)
+    logger.plog("Don't forget to print them at some point!")
     warning_counter += 1
 else:
-    plog("OASIS: There are", str(currentnoinvtoprint), "invoices waiting to be printed in", printfolder)
+    logger.plog("OASIS: There are", str(currentnoinvtoprint), "invoices waiting to be printed in", printfolder)
 
 maxprintdelaydays = 5
 maxprintdelaysecs = maxprintdelaydays * 86400
@@ -345,12 +312,12 @@ oldestinvoicemodtime = printfoldermodtimes[0][0]
 oldestinvoicename = printfoldermodtimes[0][1]
 timenow = time.time()
 if oldestinvoicemodtime + maxprintdelaysecs < timenow:
-    plog("WARNING:", oldestinvoicename, "is older than", str(maxprintdelaydays), "days")
-    plog("Don't forget to print old invoices at some point!")
+    logger.plog("WARNING:", oldestinvoicename, "is older than", str(maxprintdelaydays), "days")
+    logger.plog("Don't forget to print old invoices at some point!")
     warning_counter += 1
 
 if warning_counter > 0:
-    plog("\nOASIS: Processing finished with", warning_counter, "warnings.")
-    plog("Please review the log above carefully for details")
+    logger.plog("\nOASIS: Processing finished with", warning_counter, "warnings.")
+    logger.plog("Please review the log above carefully for details")
 else:
-    plog("\nThank you for using the Open Access Service Invoice Stamper!")
+    logger.plog("\nThank you for using the Open Access Service Invoice Stamper!")
