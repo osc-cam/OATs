@@ -7,8 +7,6 @@ import shutil
 import time
 import subprocess
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))) # Add OATs folder to PYTHONPATH
-
 from common.oatsutils import oatslogger
 from pdfapps.helpers import oats_copy, oats_move
 
@@ -20,6 +18,7 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     pdftk = 'pdftk'
     username = home.split('/')[-1]
     rm_cmd = 'rm'
+    texworks = 'texworks'
     if platform_string.startswith('linux'):
         open_cmd = 'xdg-open'
     elif platform_string.startswith('win32'):
@@ -32,8 +31,8 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     else:
         logger.plog('OASIS ERROR: Operational system', platform_string,
               'not supported. Oasis will attempt to apply linux parameters')
-        open_cmd, rm_cmd, username, home, pdftk = setup_os('linux')
-    return (open_cmd, rm_cmd, username, home, pdftk)
+        open_cmd, rm_cmd, username, home, pdftk, texworks = setup_os('linux')
+    return (open_cmd, rm_cmd, username, home, pdftk, texworks)
 
 print(
 '''OASIS 0.9
@@ -57,9 +56,9 @@ cutoffmonth = 8
 
 
 # SET UP PROGRAM VARIABLES
-oasisfolder = os.path.dirname(os.path.realpath(__file__))  # the folder containing this script
+oasisfolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pdfapps', 'oasis')  # the folder containing this script
 os.chdir(oasisfolder)
-open_cmd, rm_cmd, username, home, pdftk = setup_os()
+open_cmd, rm_cmd, username, home, pdftk, texworks = setup_os()
 config_folder = os.path.join(home, ".OATs", "OASIS")
 configfile = os.path.join(config_folder, "config.txt")
 configexample = r"""## UNIX
@@ -76,6 +75,12 @@ try:
     subprocess.run(pdftk, stdout=open(os.devnull, 'w'), check=True)
 except FileNotFoundError:
     sys.exit('ERROR: pdftk could not be found. Please make sure it is installed in your system.')
+
+# CHECK THAT TEXWORKS CAN BE FOUND; IF NOT USE DEFAULT OS APPLICATION INSTEAD
+try:
+    subprocess.run([texworks, '-v'], stdout=open(os.devnull, 'w'), check=True)
+except FileNotFoundError:
+    texworks = open_cmd
 
 warning_counter = 0
 
@@ -174,7 +179,7 @@ else:
 #subprocess.run([open_cmd, overlayfile])    # [WinError 2] The system cannot find the file specified; let's use os.system instead
 os.system(open_cmd + ' ' + invoicevarfile)
 time.sleep(0.5)
-os.system(open_cmd + ' ' + overlayfile)
+os.system(texworks + ' ' + overlayfile)
 
 logger.plog("OASIS: Please copy the invoice data to", invoicevarfile, "if you have not done so already")
 logger.plog("OASIS: Please stamp the invoice using TeXworks.\n")

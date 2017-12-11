@@ -5,14 +5,13 @@ import sys
 import re
 import time
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))  # Add OATs folder to PYTHONPATH
-
 from pdfapps.helpers import oats_copy
 
 
 def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     username = home.split('/')[-1]
     rm_cmd = 'rm'
+    texworks = 'texworks'
     if platform_string.startswith('linux'):
         open_cmd = 'xdg-open'
     elif platform_string.startswith('win32'):
@@ -24,8 +23,8 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     else:
         print('OutLAW ERROR: Operational system', platform_string,
                     'not supported. OutLAW will attempt to apply linux parameters')
-        open_cmd, rm_cmd, username, home = setup_os('linux')
-    return (open_cmd, rm_cmd, username, home)
+        open_cmd, rm_cmd, username, home, texworks = setup_os('linux')
+    return (open_cmd, rm_cmd, username, home, texworks)
 
 
 print(
@@ -45,9 +44,15 @@ http://www.gnu.org/copyleft/gpl.html
 )
 
 # SET UP PROGRAM VARIABLES
-outlawfolder = os.path.dirname(os.path.realpath(__file__))  # the folder containing this script
+outlawfolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pdfapps', 'outlaw')  # the folder containing this script
 os.chdir(outlawfolder)
-open_cmd, rm_cmd, username, home = setup_os()
+open_cmd, rm_cmd, username, home, texworks = setup_os()
+
+# CHECK THAT TEXWORKS CAN BE FOUND; IF NOT USE DEFAULT OS APPLICATION INSTEAD
+try:
+    subprocess.run([texworks, '-v'], stdout=open(os.devnull, 'w'), check=True)
+except FileNotFoundError:
+    texworks = open_cmd
 
 auxiliary_folder = os.path.join(home, ".OATs", "OutLAW")
 
@@ -66,7 +71,7 @@ overlayfile = os.path.join(outlawfolder, "OutLAW_overlay.tex")
 # SUMMON waiver_var_file AND overlayfile, THEN PROMPTS USER TO STAMP INVOICE
 os.system(open_cmd + ' ' + waiver_var_file)
 time.sleep(0.5)
-os.system(open_cmd + ' ' + overlayfile)
+os.system(texworks + ' ' + overlayfile)
 
 print("OutLAW: Please copy waiver data to", waiver_var_file, "if you have not done so already")
 print("OutLAW: Please generate the waiver using TeXworks. You will need to typeset (click the green 'play' button) this document twice to correctly render the library's letterhead \n")
