@@ -29,6 +29,9 @@
 {% elsif ticket.ticket_field_24069543 == "JMIR Publications" or ticket.ticket_field_24069543 == "JMIR" %}
 \newcommand{\xshift}{-4.5}
 \newcommand{\yshift}{4}
+{% elsif ticket.ticket_field_24069543 == "MDPI" or ticket.ticket_field_24069543 == "mdpi" %}
+\newcommand{\xshift}{-7.5}
+\newcommand{\yshift}{9}
 {% elsif ticket.ticket_field_24069543 == "Oxford University Press" or ticket.ticket_field_24069543 == "OUP" or ticket.ticket_field_24069543 == "Oxford" %}
 \newcommand{\xshift}{-7.5}
 \newcommand{\yshift}{-0.7}
@@ -117,5 +120,5 @@
 {% endif %}
 
 %%%%COMMAND TO EXECUTE OASIS
-%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\OASIS\OASIS.py
+%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\oasis.py
 %USERPROFILE%\AppData\Local\Programs\Python\Python35-32\python.exe %USERPROFILE%\OATS\OASIS\OASIS.py
