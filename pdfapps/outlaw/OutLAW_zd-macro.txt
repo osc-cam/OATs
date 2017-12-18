@@ -7,4 +7,4 @@
 \newcommand{\manuscriptjournal}{\textbf{Journal}: {{ticket.ticket_field_24069493}} }
    
 %%%%COMMANDS TO EXECUTE WAIVER PROCESSING SCRIPTS
-%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\OATS\OutLAW\OutLAW.py
+%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\outlaw.py
