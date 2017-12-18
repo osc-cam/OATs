@@ -3,6 +3,7 @@
 import os
 import sys
 import re
+import subprocess
 import time
 
 from pdfapps.helpers import oats_copy
