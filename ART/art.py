@@ -1488,7 +1488,7 @@ rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
 # coaf_last_year = os.path.join(working_folder, 'veag45.csv')
 # coaf_this_year = os.path.join(working_folder, 'veag50.csv')
-coaf_paymentsfilename = "VEAG050_2017-10-31_edited.csv"
+coaf_paymentsfilename = "VEAG50_Dec2017_edited.csv"#"VEAG050_2017-10-31_edited.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 # merge_csv_files([coaf_last_year, coaf_this_year], coaf_paymentsfile)
 zenexport = os.path.join(working_folder, "export-2017-11-09-2150-5703871969.csv")
@@ -1773,8 +1773,6 @@ if __name__ == '__main__':
     ### EXPORT EXCLUDED RECORDS TO CSVs
     excluded_debug_file = os.path.join(working_folder, 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv')
     debug_export_excluded_records(excluded_debug_file, excluded_recs_logfile, excluded_recs)
-
-
 
     #### ADD DATA FROM PUBLISHER DEALS TO THE END OF THE REPORT
     institution_filter = ['University of Cambridge']
