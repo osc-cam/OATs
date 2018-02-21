@@ -4,6 +4,7 @@
 ## Need a new function detect_decision_ticket to parse lists of zd numbers from doi2zd_dict, title2zd_dict, etc.
 ## The new function should look at each of the zendesk tickets in the list and identify the one that is most likely
 ## to contain a decision about payment/funding:
+## - Is there a DOI?
 ## - 'Is there an APC payment' not blank
 ## - ticket group is open access
 ## - RCUK and/or COAF payment ticked
