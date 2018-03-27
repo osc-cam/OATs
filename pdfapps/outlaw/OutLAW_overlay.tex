@@ -15,6 +15,9 @@
 %\renewcommand{\publisher}{Elsevier} %%UNCOMMENT THIS TO SET PUBLISHER MANUALLY
 %\renewcommand{\manuscriptdetails}{\textbf{Title}: My best paper\\\textbf{Journal}: My sister's journal}%%UNCOMMENT THIS TO MANUSCRIPT DETAILS MANUALLY
 
+\newcommand{\InvitedReview}[2]{#2} % this is the default value
+\renewcommand{\InvitedReview}[2]{#1} % this is value for invited reviews funded by RCUK/COAF
+
 \begin{document}
 \begin{letter}{}
 
@@ -30,11 +33,11 @@ Regarding a manuscript submitted to your journal:
 \bigskip\noindent 
 %The University of Cambridge’s open access policy framework is to prefer ‘green’ over ‘gold’ open access (http://osc.cam.ac.uk/oa-policy-landscape/cambridge-open-access-policy-framework). 
 %The University of Cambridge does not provide funding for open access article processing charges or standard publication charges, instead relying on funding that has been made available for this purpose by research funders. 
-The Open Access Team at the Office of Scholarly Communication administers funds that are provided by the Research Councils UK and by the Charities Open Access Funds. These funds are used to pay for Article Processing Charges for works that have arisen from funded research.
+The Open Access Team at the Office of Scholarly Communication administers funds that are provided by the Research Councils UK and by the Charities Open Access Funds. These funds are used to pay for Article Processing Charges for works that \InvitedReview{are covered by these funders' Open Access policies}{have arisen from funded research}.
 
 \emph{Please note that the University of Cambridge does not have any funds to support open access payments outside of these arrangements}.
 
-As the authors of this paper are not funded by RCUK or COAF, the University is therefore unable to support the payment of the fee for this article. I hope that in this case you will waive the publication costs, including open access, for the authors.
+\InvitedReview{Because invited review articles are excluded from RCUK's and COAF's Open Access policies}{As the authors of this paper are not funded by RCUK or COAF}, the University is therefore unable to support the payment of the fee for this article. I hope that in this case you will waive the publication costs, including open access, for the authors.
 
 \closing{Kind regards,} % eg Regards,
 
