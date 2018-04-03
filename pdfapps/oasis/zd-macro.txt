@@ -92,12 +92,14 @@
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veji_judb' %}{\mbox{\begin{tabular}{ll}\VEJIJUDB\transactionTWO \\ \VEJIJUDB\transaction\end{tabular}}}
         {% elsif ticket.ticket_field_46241307 == 'vejf_judb_iop_fund' %}{\mbox{\begin{tabular}{ll}\VEJFJUDB\transactionTWO \\ \VEJFJUDB\transaction\end{tabular}}}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejj_judb' %}{\mbox{\begin{tabular}{ll}\VEJJJUDB\transactionTWO \\ \VEJJJUDB\transaction\end{tabular}}}
+        {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejk_judb' %}{\mbox{\begin{tabular}{ll}\VEJKJUDB\transactionTWO \\ \VEJKJUDB\transaction\end{tabular}}}
         {% else%}{\ERROR{RCUK cost centre not recognized}}{% endif %}
     {% else %}
         {% if ticket.ticket_field_46241307 == 'rcuk_cost_centre_veje_judb' %}{\VEJEJUDB\transaction}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veji_judb' %}{\VEJIJUDB\transaction}
         {% elsif ticket.ticket_field_46241307 == 'vejf_judb_iop_fund' %}{\VEJFJUDB\transaction}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejj_judb' %}{\VEJJJUDB\transaction}
+        {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejk_judb' %}{\VEJKJUDB\transaction}
         {% else%}{\ERROR{RCUK cost centre not recognized}}{% endif %}
     {% endif %}
 }{% else %}{}
@@ -120,5 +122,11 @@
 {% endif %}
 
 %%%%COMMAND TO EXECUTE OASIS
+%%ANDRE
 %USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\oasis.py
+
+%%KATIE
 %USERPROFILE%\AppData\Local\Programs\Python\Python35-32\python.exe %USERPROFILE%\OATS\OASIS\OASIS.py
+
+%%PHILLIPA
+%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\OATS\oasis.py
