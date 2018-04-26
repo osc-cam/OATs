@@ -517,20 +517,7 @@ def plog(*args, logfilename=logfile, terminal=True):
                 f.write(' ')
         f.write('\n')
 
-def prune_and_cleanup_string(string, pruning_list, typo_dict):
-    '''
-    A function to prune substrings from a string and/or correct typos (replace original string
-    by corrected string)
-    :param string: original string
-    :param pruning_list: list of substrings to be replaced by an empty string
-    :param typo_dict: a dictionary mapping strings to corrected strings
-    :return: corrected string
-    '''
-    for a in pruning_list:
-        string = string.replace(a, '')
-    if string in typo_dict.keys():
-        string = typo_dict[string]
-    return(string.strip())
+
 
 def convert_date_str_to_yyyy_mm_dd(string, dateutil_options):
     '''
@@ -1020,52 +1007,6 @@ def action_cleanup_debug_info():
         writer = csv.DictWriter(csvfile, fieldnames=rcuk_paymentsfieldnames)
         writer.writeheader()
 
-def action_index_zendesk_data_general(zenexport, zd_dict={}, title2zd_dict={}, doi2zd_dict={}, oa2zd_dict={}, apollo2zd_dict={}, zd2zd_dict={}):
-    """ This function parses a csv file exported from the UoC OSC zendesk account
-        and returns several dictionaries with the contained data
-
-        :param zenexport: path of the csv file exported from zendesk
-        :param zd_dict: dictionary representation of the data exported from zendesk
-        :param title2zd_dict: dictionary matching publication titles to zendesk numbers
-        :param doi2zd_dict: dictionary matching DOIs to zendesk numbers
-        :param oa2zd_dict: dictionary matching OA- numbers (Avocet) to zendesk numbers
-        :param apollo2zd_dict: dictionary matching Apollo handles to zendesk numbers
-        :param zd2zd_dict: dictionary matching zendesk numbers to zendesk numbers
-        :return: zd_dict, title2zd_dict, doi2zd_dict, oa2zd_dict, apollo2zd_dict, zd2zd_dict
-    """
-    with open(zenexport, encoding = "utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            zd_number = row['Id']
-            oa_number = row['externalID [txt]']
-            article_title = row['Manuscript title [txt]']
-    #        rcuk_payment = row['RCUK payment [flag]']
-    #        rcuk_policy = row['RCUK policy [flag]']
-    #        apc_payment = row['Is there an APC payment? [list]']
-    #        green_version = 'Green allowed version [list]'
-    #        embargo = 'Embargo duration [list]'
-    #        green_licence = 'Green licence [list]',
-            apollo_handle = row['Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
-            doi = prune_and_cleanup_string(row['DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
-            row['DOI (like 10.123/abc456) [txt]'] = doi
-            try:
-                dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
-                publication_date = convert_date_str_to_yyyy_mm_dd(row['Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
-                row['Publication date (YYYY-MM-DD) [txt]'] = publication_date
-            except NameError:
-                # dateutil module could not be imported (not installed)
-                pass
-            title2zd_dict[article_title.upper()] = zd_number
-            doi2zd_dict[doi] = zd_number
-            oa2zd_dict[oa_number] = zd_number
-            apollo2zd_dict[apollo_handle] = zd_number
-            zd2zd_dict[zd_number] = zd_number
-            zd_dict[zd_number] = row
-    #        if (rcuk_payment == 'yes') or (rcuk_policy) == 'yes':
-    #            zd_dict_RCUK[zd_number] = row
-    #            title2zd_dict_RCUK[article_title.upper()] = zd_number
-        return(zd_dict, title2zd_dict, doi2zd_dict, oa2zd_dict, apollo2zd_dict, zd2zd_dict)
-
 
 debug_problematic_doi_list = [ ### list of DOIs that appear in more than one zendesk ticket ; not used anywhere; safe to delete
     '10.1021/acs.macromol.5b02667',
@@ -1211,66 +1152,6 @@ debug_problematic_doi_list = [ ### list of DOIs that appear in more than one zen
     '10.1002/gepi.22001',
     'No DOI'
     ]
-
-
-def action_index_zendesk_data():
-    '''
-    This function reads in data exported from Zendesk and parses it into a number of global
-    dictionaries. Zendesk tickets with the 'Duplicate' field set to 'yes' are ignored.
-
-    :return:
-    '''
-    with open(zenexport, encoding = "utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            zd_number = row['Id']
-            dup_of = row['Duplicate of [txt]']
-            if (row['Duplicate [flag]'] in ['no', '-', '']) or (zd_number in manual_zendesk_duplicates_to_include):
-                oa_number = row['externalID [txt]']
-                article_title = row['Manuscript title [txt]'].upper()
-                rcuk_payment = row['RCUK payment [flag]']
-                rcuk_policy = row['RCUK policy [flag]']
-                coaf_payment = row['COAF payment [flag]']
-                coaf_policy = row['COAF policy [flag]']
-        #        apc_payment = row['Is there an APC payment? [list]']
-        #        green_version = 'Green allowed version [list]'
-        #        embargo = 'Embargo duration [list]'
-        #        green_licence = 'Green licence [list]',
-                apollo_handle = row['Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
-                doi = prune_and_cleanup_string(row['DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
-                row['DOI (like 10.123/abc456) [txt]'] = doi
-                dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
-                publication_date = convert_date_str_to_yyyy_mm_dd(row['Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
-                row['Publication date (YYYY-MM-DD) [txt]'] = publication_date
-                if article_title not in ['', '-']:
-                    if article_title in title2zd_dict.keys():
-                        title2zd_dict[article_title].append(zd_number)
-                    else:
-                        title2zd_dict[article_title] = [zd_number]
-                if doi not in ['', '-']:
-                    if (doi in doi2zd_dict.keys()) and doi2zd_dict[doi]: ## Although we excluded tickets marked as duplicates from this loop, it is still possible to have unmarked duplicates reaching this line because of tickets that have not been processed yet by the OA team and/or errors
-                        # print('zd_number:', zd_number)
-                        # print('DOI:', doi)
-                        # print('doi2zd_dict[doi]:', doi2zd_dict[doi])
-                        # print('doi2zd_dict:', doi2zd_dict)
-                        doi2zd_dict[doi].append(zd_number)
-                    else:
-                        doi2zd_dict[doi] = [zd_number]
-                oa2zd_dict[oa_number] = zd_number
-                apollo2zd_dict[apollo_handle] = zd_number
-                zd2zd_dict[zd_number] = zd_number
-                zd_dict[zd_number] = row
-                if (rcuk_payment == 'yes') or (rcuk_policy == 'yes'):
-                    zd_dict_RCUK[zd_number] = row
-                    title2zd_dict_RCUK[article_title.upper()] = zd_number
-                if (coaf_payment == 'yes') or (coaf_policy == 'yes'):
-                    zd_dict_COAF[zd_number] = row
-                    title2zd_dict_COAF[article_title.upper()] = zd_number
-            else:
-                if dup_of not in ['', '-']:
-                    zd2oa_dups_dict[zd_number] = dup_of
-                else:
-                    pass # maybe capture these 'duplicates of empty string' somewhere
 
 def action_populate_doi2apollo(apolloexport, enc='utf-8'):
     '''
