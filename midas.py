@@ -19,6 +19,25 @@ import collections
 from pprint import pprint
 from difflib import SequenceMatcher
 
+class Report():
+    '''
+    The report object
+    '''
+
+    def __init__(self):
+        self.period_start = datetime.datetime(2000, 1, 1)
+        self.period_end = datetime.datetime.now().date()
+        self.report_rcuk = True
+        self.report_coaf = True
+        self.report_springer = True
+        self.report_wiley = True
+        self.report_oup = True
+        self.report_frontiers = True
+
+    
+
+
+
 sign_off = '''-------------
 Midas {}
 Author: {}
