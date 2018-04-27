@@ -10,7 +10,7 @@ from pprint import pprint
 
 sys.path.append(os.path.relpath('..'))#this only works if this script is executed from its containing folder.
 #sys.path.append(os.path.abspath('/home/asartori/afs_support_files/Scripts/PythonScripts'))
-import OATs_common
+import common
 
 # parser = argparse.ArgumentParser(description='Fetch invoices from the OSC shared folder based on zendesk ticket matches.')
 # parser.add_argument('-p', '--publisher', help='the publisher that issued the invoices of interest')
@@ -335,12 +335,12 @@ zendeskfolder = os.path.join(datasourcesfolder, 'ZendeskExports')
 financereportsfolder = os.path.join(datasourcesfolder, 'FinanceReports')
 invoicefolder = os.path.join(sharedfolder, 'PaymentsAndCommitments\Invoices')
 #invoicefolder = os.path.join(sharedfolder, 'PaymentsAndCommitments\Invoices\Invoices to be checked')
-zendeskexportname = OATs_common.get_latest_csv(zendeskfolder)
+zendeskexportname = common.get_latest_csv(zendeskfolder)
 zendeskexport = os.path.join(zendeskfolder, zendeskexportname)
 # header = OATs_common.extract_csv_header(zendeskexport)
 # pprint(header)
 print('parsing data exported from zendesk into zd_dict')
-(zd_dict, title2zd_dict, doi2zd_dict, oa2zd_dict, apollo2zd_dict, zd2zd_dict) = OATs_common.action_index_zendesk_data_general(zendeskexport)
+(zd_dict, title2zd_dict, doi2zd_dict, oa2zd_dict, apollo2zd_dict, zd2zd_dict) = common.action_index_zendesk_data_general(zendeskexport)
 
 matches = query_zd_dict(**user_query)
 logfilename = 'invoice-fetcher-log.txt'

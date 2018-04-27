@@ -136,3 +136,14 @@ def extract_csv_header(inputfile, enc = 'utf-8', delim = ','):
         for row in headerreader:
             outputlist.append(row)
     return(outputlist[0])
+
+def output_debug_csv(outcsv, row_dict, csvheader = []):
+    '''
+    This function appends a row to an output CSV file
+    :param outcsv: path of output CSV file
+    :param row_dict: dictionary containing the row to be output
+    :param csvheader: the header of the CSV file
+    '''
+    with open(outcsv, 'a') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=csvheader)
+        writer.writerow(row_dict)
