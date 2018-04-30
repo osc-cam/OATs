@@ -55,10 +55,20 @@ description_text = 'Produces reports of open access and other publication charge
 
 parser = argparse.ArgumentParser(description=description_text, epilog=sign_off, prog='Midas',
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
+parser.add_argument('-a', '--ignore-apollo', dest='ignore_apollo', action='store_true',
+                    help='Do not include metadata exported from Apollo')
+parser.add_argument('-c', '--coaf', dest='coaf', default=True, type=bool, metavar='True or False',
+                    help='Report on all APCs paid using COAF funds during the reporting period')
+parser.add_argument('-d', '--dois', dest='dois', default=False, type=bool, metavar='True or False',
+                    help='Output list of DOIs for Cottage Labs compliance check')
+parser.add_argument('-l', '--cottage-labs', dest='cottage-labs', default=False, type=bool, metavar='True or False',
+                    help='Include results of Cottage Labs search in output report')
+parser.add_argument('-r', '--rcuk', dest='rcuk', default=True, type=bool, metavar='True or False',
+                    help='Report on all APCs paid using RCUK funds during the reporting period')
 parser.add_argument('-o', '--output-folder', dest='working_folder', type=str, metavar='<path>',
                     help='Path to folder where {} should save output files'.format('%(prog)s'),
                     default=os.path.join(os.path.expanduser("~"), 'OATs', 'Midas-wd'))
+parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
 arguments = parser.parse_args()
 
 working_folder = arguments.working_folder

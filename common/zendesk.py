@@ -57,6 +57,10 @@ class Parser():
         self.doi2zd_dict = {}
         self.oa2zd_dict = {}
         self.parsed_payments = {}
+        self.grant_report = {}
+        self.grant_report_requester = None
+        self.grant_report_start_date = None
+        self.grant_report_end_date = None
         self.rejected_payments = {}
         self.title2zd_dict = {}
         self.title2zd_dict_COAF = {}
@@ -99,6 +103,13 @@ class Parser():
             else:
                 return (d)
 
+        def initiate_or_append_list(v, dict, zd_number):
+            if v not in ['', '-']:
+                if v in dict.keys():
+                    dict[v].append(zd_number)
+                else:
+                    dict[v] = [zd_number]
+
         with open(zenexport, encoding = "utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
@@ -120,26 +131,23 @@ class Parser():
                 dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
                 publication_date = convert_date_str_to_yyyy_mm_dd(row[self.zd_fields.publication_date], dateutil_options)
                 row[self.zd_fields.publication_date] = publication_date
-                if article_title not in ['', '-']:
-                    if article_title in self.title2zd_dict.keys():
-                        self.title2zd_dict[article_title].append(zd_number)
-                    else:
-                        self.title2zd_dict[article_title] = [zd_number]
-                if doi not in ['', '-']:
-                    if (doi in self.doi2zd_dict.keys()) and self.doi2zd_dict[doi]:
-                        self.doi2zd_dict[doi].append(zd_number)
-                    else:
-                        self.doi2zd_dict[doi] = [zd_number]
-                self.oa2zd_dict[oa_number] = zd_number
-                self.apollo2zd_dict[apollo_handle] = zd_number
+                for v, dict in [
+                        (apollo_handle, self.apollo2zd_dict),
+                        (article_title, self.title2zd_dict),
+                        (doi, self.doi2zd_dict),
+                        (oa_number, self.oa2zd_dict)
+                        ]:
+                    initiate_or_append_list(v, dict, zd_number)
+
                 self.zd2zd_dict[zd_number] = zd_number
                 self.zd_dict[zd_number] = row
+
                 if (rcuk_payment == 'yes') or (rcuk_policy == 'yes'):
                     self.zd_dict_RCUK[zd_number] = row
-                    self.title2zd_dict_RCUK[article_title.upper()] = zd_number
+                    initiate_or_append_list(article_title.upper(), self.title2zd_dict_RCUK, zd_number)
                 if (coaf_payment == 'yes') or (coaf_policy == 'yes'):
                     self.zd_dict_COAF[zd_number] = row
-                    self.title2zd_dict_COAF[article_title.upper()] = zd_number
+                    initiate_or_append_list(article_title.upper(), self.title2zd_dict_COAF, zd_number)
                 if dup_of not in ['', '-']:
                     self.zd2oa_dups_dict[zd_number] = dup_of
 
@@ -268,63 +276,50 @@ class Parser():
                 if zd_number:
                     if zd_number in cufs.zd_number_typos.keys():
                         zd_number = cufs.zd_number_typos[zd_number]
-                    if cufs_export_type == 'RCUK':
-                        if row[self.cufs_map.source_of_funds] == 'JUDB':
-                            if row[self.cufs_map.transaction_code] == 'EBDU':
-                                key = 'EBDU_' + str(row_counter)
-                                self.parsed_payments[key] = row.copy()
-                                payments_dict_apc = parse_apc_payments(self, zd_number, payments_dict_apc, row,
-                                                                       row_counter, paymentsfile)
-                            elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
-                                key = 'EBDV-W_' + str(row_counter)
-                                self.parsed_payments[key] = row.copy()
-                                if zd_number in payments_dict_other.keys():
-                                    # another page/membership payment was already recorded, so we concatenate values
-                                    balance = calculate_balance(self, payments_dict_other, zd_number, 'other')
-                                    for k in row.keys():
-                                        if (existing_payment[k] != row[k]) and (k not in [self.cufs_map.paydate_field, self.cufs_map.transaction_code]):
-                                            n_value = existing_payment[k] + ' %&% ' + row[k]
-                                        elif k == self.cufs_map.transaction_code: #special treatment for this case necessary to avoid overwriting preexisting APC transaction code (EBDU); concatenate with value in apc dict
-                                            try:
-                                                if payments_dict_apc[zd_number][k]:
-                                                    n_value = payments_dict_apc[zd_number][k] + ' %&% ' + row[k]
-                                                else:
-                                                    n_value = row[k]
-                                            except KeyError:
-                                                n_value = row[k]
+                    if (cufs_export_type == 'COAF') or (row[self.cufs_map.transaction_code] == 'EBDU'):
+                        key = 'APC_' + str(row_counter)
+                        self.parsed_payments[key] = row.copy()
+                        payments_dict_apc = parse_apc_payments(self, zd_number, payments_dict_apc, row,
+                                                               row_counter, paymentsfile)
+                    elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
+                        key = 'EBDV-W_' + str(row_counter)
+                        self.parsed_payments[key] = row.copy()
+                        if zd_number in payments_dict_other.keys():
+                            # another page/membership payment was already recorded, so we concatenate values
+                            balance = calculate_balance(self, payments_dict_other, zd_number, 'other')
+                            for k in row.keys():
+                                if (existing_payment[k] != row[k]) and (k not in [self.cufs_map.paydate_field, self.cufs_map.transaction_code]):
+                                    n_value = existing_payment[k] + ' %&% ' + row[k]
+                                elif k == self.cufs_map.transaction_code: #special treatment for this case necessary to avoid overwriting preexisting APC transaction code (EBDU); concatenate with value in apc dict
+                                    try:
+                                        if payments_dict_apc[zd_number][k]:
+                                            n_value = payments_dict_apc[zd_number][k] + ' %&% ' + row[k]
                                         else:
                                             n_value = row[k]
-                                        payments_dict_other[zd_number][k] = n_value
-                                    payments_dict_other[zd_number][self.cufs_map.total_other] = balance
+                                    except KeyError:
+                                        n_value = row[k]
                                 else:
-                                    payments_dict_other[zd_number] = row
-                                    payments_dict_other[zd_number][self.cufs_map.total_other] = \
-                                        payments_dict_other[zd_number][self.cufs_map.amount_field]
-                                    # Now that we dealt with the problem of several apc payments per ticket,
-                                    # add payment info to master dict of zd numbers
-                                for field in payments_dict_other[zd_number].keys():
-                                    if (field in self.zd_dict[zd_number].keys()) and (row_counter == 0):
-                                        logging.warning('Dictionary for ZD ticket {} already contains a field named {}.'
-                                                        'It will be overwritten by the value in file {}.'.format(
-                                            zd_number, field, paymentsfile))
-                                self.zd_dict[zd_number].update(payments_dict_other[zd_number])
-                            else:
-                                # Not a EBDU, EBDV or EBDW payment
-                                key = 'not_EBD*_payment_' + str(row_counter)
-                                self.rejected_payments[key] = row
-                                debug_filename = os.path.join(os.getcwd(), nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
-                                output_debug_csv(debug_filename, row, fileheader)
+                                    n_value = row[k]
+                                payments_dict_other[zd_number][k] = n_value
+                            payments_dict_other[zd_number][self.cufs_map.total_other] = balance
                         else:
-                            ## NOT A JUDB PAYMENT
-                            key = 'not_JUDB_payment_' + str(row_counter)
-                            self.rejected_payments[key] = row
-                            debug_filename = os.path.join(os.getcwd(), nonJUDB_payment_file_prefix + paymentsfile.split('/')[-1])
-                            output_debug_csv(debug_filename, row, fileheader)
-                    elif cufs_export_type == 'COAF':
-                        key = 'no_transaction_field_' + str(row_counter)
-                        self.parsed_payments[key] = row.copy()
-                        payments_dict_apc = parse_apc_payments(self, zd_number, payments_dict_apc, row, row_counter,
-                                                               paymentsfile)
+                            payments_dict_other[zd_number] = row
+                            payments_dict_other[zd_number][self.cufs_map.total_other] = \
+                                payments_dict_other[zd_number][self.cufs_map.amount_field]
+                            # Now that we dealt with the problem of several apc payments per ticket,
+                            # add payment info to master dict of zd numbers
+                        for field in payments_dict_other[zd_number].keys():
+                            if (field in self.zd_dict[zd_number].keys()) and (row_counter == 0):
+                                logging.warning('Dictionary for ZD ticket {} already contains a field named {}.'
+                                                'It will be overwritten by the value in file {}.'.format(
+                                    zd_number, field, paymentsfile))
+                        self.zd_dict[zd_number].update(payments_dict_other[zd_number])
+                    else:
+                        # Not a EBDU, EBDV or EBDW payment
+                        key = 'not_EBD*_payment_' + str(row_counter)
+                        self.rejected_payments[key] = row
+                        debug_filename = os.path.join(os.getcwd(), nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
+                        output_debug_csv(debug_filename, row, fileheader)
                 else:
                     # Payment could not be linked to a zendesk number
                     key = 'no_zd_match_' + str(row_counter)
@@ -332,3 +327,83 @@ class Parser():
                     debug_filename = os.path.join(os.getcwd(), unmatched_payment_file_prefix + paymentsfile.split('/')[-1])
                     output_debug_csv(debug_filename, row, fileheader)
                 row_counter += 1
+
+    def plug_in_metadata(self, metadata_file, matching_field, translation_dict, warning_message='', file_encoding='utf-8'):
+        '''
+        This function appends data from various sources (Apollo, etc) to the main dictionary
+        produced from the zendesk export (self.zd_dict)
+        :param metadata_file: input CSV file containing data from the new source
+        :param matching_field: field to be used to match new data to zd_dict (e.g. doi, title, etc)
+        :param translation_dict: dictionary to be used to match new data to a zendesk number
+        :param warning_message: message to print if a match could not be found
+        :param file_encoding: encoding of input file
+        '''
+        with open(metadata_file, encoding=file_encoding) as csvfile:
+            reader = csv.DictReader(csvfile)
+            row_counter = 0
+            for row in reader:
+                mf = row[matching_field]
+                zd_number_list = []
+                try:
+                    zd_number_list = translation_dict[mf]
+                except KeyError:
+                    if warning_message:
+                        print(warning_message)
+
+                if zd_number_list:
+                    for zd_number in zd_number_list:
+                        if row_counter < 4:
+                            for field in row.keys():
+                                if field in zd_dict[zd_number].keys():
+                                    logging.warning('Dictionary for ZD ticket {} already contains a field named {}.' 
+                                        'It will be overwritten by the value in file {}'.format(zd_number, field ,
+                                                                                                metadata_file))
+                        zd_dict[zd_number].update(row)
+                row_counter += 1
+
+    def populate_grant_report(self):
+        '''
+        This function iterates through self.zd_dict after it has received data from all input sources.
+        It then selects tickets that will be included in the report, based on the following criteria:
+        -
+
+        I THINK THIS FUNCTION IS NOT DOING WHAT IT SHOULD BE DOING FOR COAF PAYMENTS; FIX IT
+
+        ADD SUPPORT FOR REPORTS COMBINING ALL PAYMENTS BY RCUK AND COAF
+
+        :return:
+        '''
+
+        paydate_field = self.cufs_map.paydate_field
+
+        if self.grant_report_requester == 'RCUK':
+            datetime_format_st = '%d-%b-%Y'  # e.g 21-APR-2016
+        elif self.grant_report_requester == 'COAF':
+            datetime_format_st = '%d-%b-%y'  # e.g 21-APR-16
+        else:
+            sys.exit('ERROR: unrecognised grant report requester: {}'.format(self.grant_report_requester))
+
+        zd_dict_counter = 0
+        for a in self.zd_dict:
+            ## CHECK IF THERE IS A PAYMENT FROM REPORT REQUESTER;
+            ## IF THERE IS, ADD TO self.grant_report (I.E. INCLUDE IN REPORT)
+            try:
+                payments = self.zd_dict[a][paydate_field].split('%&%')
+                for p in payments:
+                    ### QUICK AND DIRTY FIX FOR COAF REPORT; ALMOST CERTAINLY BREAKS RCUK REPORT GENERATION
+                    self.grant_report[a] = self.zd_dict[a]
+                    ### END OF QUICK AND DIRTY FIX FOR COAF REPORT
+                    payment_date = datetime.datetime.strptime(p.strip(), datetime_format_st)
+                    if self.grant_report_start_date <= payment_date <= self.grant_report_end_date:
+                        self.grant_report[a] = self.zd_dict[a]
+                    else:
+                        key = 'out_of_reporting_period_' + str(zd_dict_counter)
+                        self.rejected_payments[key] = self.zd_dict[a]
+            except KeyError:
+                pass
+                ## THIS WARNING IS NOT A GOOD IDEA BECAUSE MANY TICKETS OLDER THAN THE REPORTING PERIOD MATCH THIS CONDITION
+                # ~ if zd_dict[a]['RCUK payment [flag]'] == 'yes':
+                # ~ print('WARNING: RCUK payment ticked in zendesk but no RCUK payment located for record:')
+                # ~ pprint(zd_dict[a])
+                # ~ print('\n')
+            zd_dict_counter += 1
