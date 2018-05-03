@@ -45,6 +45,36 @@ class ZdFieldsMapping():
         self.rcuk_policy = 'RCUK policy [flag]'
         self.repository_link = 'Repository link [txt]'
 
+class Ticket():
+    '''
+    A single Zendesk ticket
+    '''
+    def __init__(self):
+        '''
+        :param self.zd_data: data stored in Zendesk about this ticket
+        :param self.rcuk_apc: APC amount charged to RCUK block grant
+        :param self.rcuk_other: Amount of other publication fees charged to RCUK block grant
+        :param self.decision_score: Integer indicating how likely this ticket is to contain a decision on policies
+                and payments
+        '''
+        self.apollo_handle = None
+        self.article_title = None
+        self.coaf_apc_total = 0
+        self.coaf_other_total = 0
+        self.coaf_payment = None
+        self.coaf_policy = None
+        self.decision_score = 0
+        self.doi = None
+        self.external_id = None
+        self.dup_of = None
+        self.number = None
+        self.publication_date = None
+        self.rcuk_apc_total = 0
+        self.rcuk_other_total = 0
+        self.rcuk_payment = None
+        self.rcuk_policy = None
+        self.zd_data = {}
+
 class Parser():
     '''
     Parser for Zendesk CSV exports.
@@ -77,12 +107,12 @@ class Parser():
             and returns several dictionaries with the contained data
 
             :param zenexport: path of the csv file exported from zendesk
-            :param zd_dict: dictionary representation of the data exported from zendesk
-            :param title2zd_dict: dictionary matching publication titles to zendesk numbers
-            :param doi2zd_dict: dictionary matching DOIs to zendesk numbers
-            :param oa2zd_dict: dictionary matching OA- numbers (Avocet) to zendesk numbers
-            :param apollo2zd_dict: dictionary matching Apollo handles to zendesk numbers
-            :param zd2zd_dict: dictionary matching zendesk numbers to zendesk numbers
+            :param zd_dict: dictionary of Ticket objects indexed by zendesk ticket number (one Ticket object per number)
+            :param title2zd_dict: dictionary of Ticket objects indexed by publication titles (list of objects per title)
+            :param doi2zd_dict: dictionary of Ticket objects indexed by DOIs (list of objects per DOI)
+            :param oa2zd_dict: dictionary of Ticket objects indexed by OA- numbers (list of objects per OA- number)
+            :param apollo2zd_dict: dictionary of Ticket objects indexed by Apollo handles (list of objects per handle)
+            :param zd2zd_dict: dictionary matching zendesk numbers to zendesk numbers IS THIS USED ANYWHERE?
             :return: zd_dict, title2zd_dict, doi2zd_dict, oa2zd_dict, apollo2zd_dict, zd2zd_dict
         """
 
@@ -113,43 +143,42 @@ class Parser():
         with open(zenexport, encoding = "utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                zd_number = row[self.zd_fields.id]
-                dup_of = row[self.zd_fields.duplicate_of]
-                oa_number = row[self.zd_fields.external_id]
-                article_title = row[self.zd_fields.manuscript_title].upper()
-                rcuk_payment = row[self.zd_fields.rcuk_payment]
-                rcuk_policy = row[self.zd_fields.rcuk_policy]
-                coaf_payment = row[self.zd_fields.coaf_payment]
-                coaf_policy = row[self.zd_fields.coaf_policy]
-                # apc_payment = row[self.zd_fields.apc_payment]
-                # green_version = row[self.zd_fields.green_allowed_version]
-                # embargo = row[self.zd_fields.embargo]
-                # green_licence = row[self.zd_fields.green_licence]
-                apollo_handle = row[self.zd_fields.repository_link].replace('https://www.repository.cam.ac.uk/handle/' , '')
-                doi = prune_and_cleanup_string(row[self.zd_fields.doi], DOI_CLEANUP, DOI_FIX)
-                row[self.zd_fields.doi] = doi
+                t = Ticket()  # create a new Ticket object
+                t.number = row[self.zd_fields.id]
+                t.dup_of = row[self.zd_fields.duplicate_of]
+                t.external_id = row[self.zd_fields.external_id]
+                t.article_title = row[self.zd_fields.manuscript_title].upper()
+                t.rcuk_payment = row[self.zd_fields.rcuk_payment]
+                t.rcuk_policy = row[self.zd_fields.rcuk_policy]
+                t.coaf_payment = row[self.zd_fields.coaf_payment]
+                t.coaf_policy = row[self.zd_fields.coaf_policy]
+                t.apollo_handle = row[self.zd_fields.repository_link].replace('https://www.repository.cam.ac.uk/handle/' , '')
+                t.doi = prune_and_cleanup_string(row[self.zd_fields.doi], DOI_CLEANUP, DOI_FIX)
+                row[self.zd_fields.doi] = t.doi
                 dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
-                publication_date = convert_date_str_to_yyyy_mm_dd(row[self.zd_fields.publication_date], dateutil_options)
-                row[self.zd_fields.publication_date] = publication_date
+                t.publication_date = convert_date_str_to_yyyy_mm_dd(row[self.zd_fields.publication_date], dateutil_options)
+                row[self.zd_fields.publication_date] = t.publication_date
                 for v, dict in [
-                        (apollo_handle, self.apollo2zd_dict),
-                        (article_title, self.title2zd_dict),
-                        (doi, self.doi2zd_dict),
-                        (oa_number, self.oa2zd_dict)
+                        (t.apollo_handle, self.apollo2zd_dict),
+                        (t.article_title, self.title2zd_dict),
+                        (t.doi, self.doi2zd_dict),
+                        (t.external_id, self.oa2zd_dict)
                         ]:
-                    initiate_or_append_list(v, dict, zd_number)
+                    initiate_or_append_list(v, dict, t.number)
 
-                self.zd2zd_dict[zd_number] = zd_number
-                self.zd_dict[zd_number] = row
+                self.zd2zd_dict[t.number] = t
+                self.zd_dict[t.number] = t
 
-                if (rcuk_payment == 'yes') or (rcuk_policy == 'yes'):
-                    self.zd_dict_RCUK[zd_number] = row
-                    initiate_or_append_list(article_title.upper(), self.title2zd_dict_RCUK, zd_number)
-                if (coaf_payment == 'yes') or (coaf_policy == 'yes'):
-                    self.zd_dict_COAF[zd_number] = row
-                    initiate_or_append_list(article_title.upper(), self.title2zd_dict_COAF, zd_number)
-                if dup_of not in ['', '-']:
-                    self.zd2oa_dups_dict[zd_number] = dup_of
+                if (t.rcuk_payment == 'yes') or (t.rcuk_policy == 'yes'):
+                    self.zd_dict_RCUK[t.number] = t
+                    initiate_or_append_list(t.article_title.upper(), self.title2zd_dict_RCUK, t.number)
+                if (t.coaf_payment == 'yes') or (t.coaf_policy == 'yes'):
+                    self.zd_dict_COAF[t.number] = t
+                    initiate_or_append_list(t.article_title.upper(), self.title2zd_dict_COAF, t.number)
+                if t.dup_of not in ['', '-']:
+                    self.zd2oa_dups_dict[t.number] = t.dup_of
+
+                t.zd_data = row
 
         return [
                 self.apollo2zd_dict,
@@ -170,6 +199,11 @@ class Parser():
         This function parses financial reports produced by CUFS. It tries to mach each payment in the CUFS report
         to a zd ticket and, if successful, it produces summations of payments per zd ticket and appends these
         values to zd_dict as output_apc_field and/or self.cufs_map.total_other
+
+        DEV idea: instead of appending payments to custom fields added to zd_dict, it would probably be better if
+        zd_dict was a dictionary of ticket objects indexed by zd_number. We could then use object calculated attributes
+        instead of custom fields in a dictionary to store anything useful for reporting and **kwargs for fields
+        coming from zendesk
 
         :param cufs_export_type: type of report exported by CUFS. Supported values are 'RCUK' and 'COAF'
         :param paymentsfile: path of input CSV file containing payment data
@@ -237,7 +271,7 @@ class Parser():
         elif cufs_export_type == 'COAF':
             self.cufs_map = cufs.CoafFieldsMapping()
         else:
-            sys.exit('{} is not supported.'.format(cufs_export_type))
+            sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(cufs_export_type))
 
         fileheader = extract_csv_header(paymentsfile)
 
@@ -276,50 +310,26 @@ class Parser():
                 if zd_number:
                     if zd_number in cufs.zd_number_typos.keys():
                         zd_number = cufs.zd_number_typos[zd_number]
-                    if (cufs_export_type == 'COAF') or (row[self.cufs_map.transaction_code] == 'EBDU'):
-                        key = 'APC_' + str(row_counter)
-                        self.parsed_payments[key] = row.copy()
-                        payments_dict_apc = parse_apc_payments(self, zd_number, payments_dict_apc, row,
-                                                               row_counter, paymentsfile)
-                    elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
-                        key = 'EBDV-W_' + str(row_counter)
-                        self.parsed_payments[key] = row.copy()
-                        if zd_number in payments_dict_other.keys():
-                            # another page/membership payment was already recorded, so we concatenate values
-                            balance = calculate_balance(self, payments_dict_other, zd_number, 'other')
-                            for k in row.keys():
-                                if (existing_payment[k] != row[k]) and (k not in [self.cufs_map.paydate_field, self.cufs_map.transaction_code]):
-                                    n_value = existing_payment[k] + ' %&% ' + row[k]
-                                elif k == self.cufs_map.transaction_code: #special treatment for this case necessary to avoid overwriting preexisting APC transaction code (EBDU); concatenate with value in apc dict
-                                    try:
-                                        if payments_dict_apc[zd_number][k]:
-                                            n_value = payments_dict_apc[zd_number][k] + ' %&% ' + row[k]
-                                        else:
-                                            n_value = row[k]
-                                    except KeyError:
-                                        n_value = row[k]
-                                else:
-                                    n_value = row[k]
-                                payments_dict_other[zd_number][k] = n_value
-                            payments_dict_other[zd_number][self.cufs_map.total_other] = balance
+
+                    t = self.zd_dict[zd_number]
+
+                    if cufs_export_type == 'COAF':
+                        # Payments spreadsheet does not contain transaction field, so assume all payments are APCs
+                        t.coaf_apc_total += row[self.cufs_map.amount_field]
+                    elif cufs_export_type == 'RCUK':
+                        if row[self.cufs_map.transaction_code] == 'EBDU':
+                            t.rcuk_apc_total += row[self.cufs_map.amount_field]
+                        elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
+                            t.rcuk_other_total += row[self.cufs_map.amount_field]
                         else:
-                            payments_dict_other[zd_number] = row
-                            payments_dict_other[zd_number][self.cufs_map.total_other] = \
-                                payments_dict_other[zd_number][self.cufs_map.amount_field]
-                            # Now that we dealt with the problem of several apc payments per ticket,
-                            # add payment info to master dict of zd numbers
-                        for field in payments_dict_other[zd_number].keys():
-                            if (field in self.zd_dict[zd_number].keys()) and (row_counter == 0):
-                                logging.warning('Dictionary for ZD ticket {} already contains a field named {}.'
-                                                'It will be overwritten by the value in file {}.'.format(
-                                    zd_number, field, paymentsfile))
-                        self.zd_dict[zd_number].update(payments_dict_other[zd_number])
+                            # Not a EBDU, EBDV or EBDW payment
+                            key = 'not_EBD*_payment_' + str(row_counter)
+                            self.rejected_payments[key] = row
+                            debug_filename = os.path.join(os.getcwd(),
+                                                          nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
+                            output_debug_csv(debug_filename, row, fileheader)
                     else:
-                        # Not a EBDU, EBDV or EBDW payment
-                        key = 'not_EBD*_payment_' + str(row_counter)
-                        self.rejected_payments[key] = row
-                        debug_filename = os.path.join(os.getcwd(), nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
-                        output_debug_csv(debug_filename, row, fileheader)
+                        sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(cufs_export_type))
                 else:
                     # Payment could not be linked to a zendesk number
                     key = 'no_zd_match_' + str(row_counter)

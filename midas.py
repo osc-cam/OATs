@@ -11,13 +11,12 @@ import os
 import re
 import csv
 import datetime
-try:
-    import dateutil.parser
-except ModuleNotFoundError:
-    print('WARNING: Could not load the dateutil module. Please install it if you have admin rights. Conversion of dates will not work properly during this run')
+import dateutil.parser
 import collections
 from pprint import pprint
 from difflib import SequenceMatcher
+
+import common.zendesk as zendesk
 
 class Report():
     '''
@@ -33,6 +32,7 @@ class Report():
         self.report_wiley = True
         self.report_oup = True
         self.report_frontiers = True
+        self.zd_parser = zendesk.Parser()
 
     
 
@@ -75,3 +75,5 @@ working_folder = arguments.working_folder
 if not os.path.exists(working_folder):
     os.makedirs(working_folder)
 
+
+rep = Report()
