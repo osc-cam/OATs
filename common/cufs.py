@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from oatsutils import extract_csv_header
+from .oatsutils import extract_csv_header
 
 ###MANUAL FIXES FOR PAYMENT FILES
 zd_number_typos = {'30878':'50878'}
@@ -27,7 +27,7 @@ class CoafFieldsMapping():
     Mapping of column names in CUFS reports of COAF spending.
     '''
     def __init__(self):
-        self.field_names = extract_csv_header(coaf_paymentsfile, "utf-8")
+        # self.field_names = extract_csv_header(coaf_paymentsfile, "utf-8")
         self.amount_field = 'Burdened Cost'
         self.invoice_field = 'Invoice'
         self.oa_number =  'Comment'
@@ -42,7 +42,7 @@ class RcukFieldsMapping():
     Mapping of column names in CUFS reports of RCUK spending.
     '''
     def __init__(self):
-        self.field_names = extract_csv_header(rcuk_paymentsfile, "utf-8")
+        # self.field_names = extract_csv_header(rcuk_paymentsfile, "utf-8")
         self.amount_field = 'Amount'
         self.invoice_field = 'Ref 5'
         self.oa_number =  'Description'

@@ -1,10 +1,12 @@
 import csv
-import cufs
 import datetime
 import dateutil.parser
 import logging
+import os
+import re
 import sys
-from oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
+from . import cufs
+from .oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
 
 ### USE THIS DICTIONARY TO FORCE THE MAPPING OF PARTICULARLY PROBLEMATIC OA NUMBERS TO ZD NUMBERS
 ### FOR EXAMPLE A OA NUMBER MARKED AS DUPLICATE IN ZENDESK, BUT WITH A PAYMENT ASSOCIATED WITH IT
@@ -294,7 +296,13 @@ class Parser():
                         zd_number = manual_oa2zd_dict[oa_number] # might be obsolete; test
                     except KeyError:
                         try:
-                            zd_number = self.oa2zd_dict[oa_number]
+                            zd_number_list = self.oa2zd_dict[oa_number]
+                            if len(zd_number_list) > 1:
+                                logging.error('More than one ZD number is linked to OA number {}'
+                                              'Expect to see "TypeError: unhashable type: list"'.format(oa_number))
+                                zd_number = zd_number_list
+                            else:
+                                zd_number = zd_number_list[0]
                         except KeyError:
                             logging.warning('A ZD number could not be found for {} in {}.' 
                                             'Data for this OA number will be ignored'.format(oa_number, paymentsfile))
@@ -315,12 +323,12 @@ class Parser():
 
                     if cufs_export_type == 'COAF':
                         # Payments spreadsheet does not contain transaction field, so assume all payments are APCs
-                        t.coaf_apc_total += row[self.cufs_map.amount_field]
+                        t.coaf_apc_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
                     elif cufs_export_type == 'RCUK':
                         if row[self.cufs_map.transaction_code] == 'EBDU':
-                            t.rcuk_apc_total += row[self.cufs_map.amount_field]
+                            t.rcuk_apc_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
                         elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
-                            t.rcuk_other_total += row[self.cufs_map.amount_field]
+                            t.rcuk_other_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
                         else:
                             # Not a EBDU, EBDV or EBDW payment
                             key = 'not_EBD*_payment_' + str(row_counter)
