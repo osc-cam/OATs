@@ -3,6 +3,7 @@
 %%APC INVOICE DATE: {{ticket.ticket_field_29295508}}
 %%PAGE/COLOUR INVOICE DATE: {{ticket.ticket_field_48023927}}
 %%MEMBERSHIP INVOICE DATE: {{ticket.ticket_field_48024187}}
+%%PUBLISHER: {{ticket.ticket_field_24069543}}
 {% if ticket.ticket_field_24069543 == "American Chemical Society" or ticket.ticket_field_24069543 == "ACS" %}
 \newcommand{\xshift}{-7.5}
 \newcommand{\yshift}{-9}
@@ -64,7 +65,7 @@
 \newcommand{\transaction}{\membership}
 \newcommand{\transactionTWO}{}
 {% elsif ticket.ticket_field_77143828 == 'oasis_page' or (ticket.ticket_field_29294538 == '0' and ticket.ticket_field_48024147 == '0' and ticket.ticket_field_48023887 == '1') %}
-%%THIS IS A AN INVOICE FOR PAGE OF COLOUR CHARGES
+%%THIS IS A AN INVOICE FOR PAGE AND/OR COLOUR CHARGES
 \newcommand{\transaction}{\pagecolour}
 \newcommand{\transactionTWO}{}
 {% elsif ticket.ticket_field_77143828 == 'oasis_apc_and_page' or (ticket.ticket_field_29294538 == '1' and ticket.ticket_field_48024147 == '0' and ticket.ticket_field_48023887 == '1') %}

@@ -19,6 +19,26 @@ from difflib import SequenceMatcher
 import common.zendesk as zendesk
 from common.oatsutils import get_latest_csv
 
+ZENDESK_EXCLUDED_GROUPS = ['Cron Jobs',
+                           'Request a Copy',
+                           'Social Media',
+                           'Thesis',
+                           'Office of Scholarly Communication',
+                           'OPs',
+                           'Research Data',
+                           'Repository'
+                           ]
+
+ZENDESK_EXCLUDED_REQUESTERS = ['Dspace',
+                               'JIRA Integratrion',
+                               'photo',
+                               'Accountdashboard',
+                               'Cs-onlineopen',
+                               'Uptime Robot',
+                               'Authorhelpdesk'
+                               ]
+
+
 class Report():
     '''
     The report object
@@ -38,7 +58,7 @@ class Report():
 
 def valid_date(s):
     try:
-        return datetime.strptime(s, "%Y-%m-%d")
+        return datetime.datetime.strptime(s, "%Y-%m-%d")
     except ValueError:
         msg = "Not a valid date: '{0}'.".format(s)
         raise argparse.ArgumentTypeError(msg)
@@ -77,6 +97,10 @@ parser.add_argument('-e', '--report-end', dest='report_end', type=valid_date,
                     help='The report end date in the format YYYY-MM-DD (default: %(default)s)')
 parser.add_argument('-f', '--frontiers', dest='frontiers', default=True, type=bool, metavar='True or False',
                     help='Include articles approved via Frontiers institutional account (default: %(default)s)')
+parser.add_argument('-g', '--all-groups', dest='all_groups', action='store_true',
+                    help='Include Zendesk tickets in all groups (default: %(default)s). If this option is not'
+                         'specified, Zendesk tickets in the following groups will be ignored after the first'
+                         ' run: {}'.format(ZENDESK_EXCLUDED_GROUPS))
 parser.add_argument('-l', '--cottage-labs', dest='cottage-labs', default=False, type=bool, metavar='True or False',
                     help='Include results of Cottage Labs search in output report (default: %(default)s)')
 parser.add_argument('-r', '--rcuk', dest='rcuk', default=True, type=bool, metavar='True or False',
@@ -95,15 +119,24 @@ parser.add_argument('-z', '--zendesk-export', dest='zenexport', type=str, metava
                     default=os.path.join(datasources, 'ZendeskExports'),
                     help='Path to csv file containing ticket data exported from zendesk. If <path> is a folder, '
                          'the most recently modified file in that folder will be used (default: %(default)s)')
-arguments = parser.parse_args()
 
-working_folder = arguments.working_folder
-if not os.path.exists(working_folder):
-    os.makedirs(working_folder)
+if __name__ == '__main__':
+    arguments = parser.parse_args()
 
-if os.path.isdir(arguments.zenexport):
-    zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
-else:
-    zenexport = arguments.zenexport
+    working_folder = arguments.working_folder
+    if not os.path.exists(working_folder):
+        os.makedirs(working_folder)
 
-rep = Report()
+    if os.path.isdir(arguments.zenexport):
+        zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
+    else:
+        zenexport = arguments.zenexport
+
+    zen_path, zen_ext = os.path.splitext(zenexport)
+    filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
+    if not arguments.all_groups:
+        if not os.path.exists(filtered_zenexport):
+            zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group':ZENDESK_EXCLUDED_GROUPS})
+        zenexport = filtered_zenexport
+
+    rep = Report()

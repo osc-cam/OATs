@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import csv
 import os
 import sys
 import re
@@ -9,6 +10,8 @@ import subprocess
 
 from common.oatsutils import oatslogger
 from pdfapps.helpers import oats_copy, oats_move
+
+start_time = time.time()
 
 logfile = os.path.splitext(os.path.realpath(__file__))[0] + '.log'
 logger = oatslogger(logfile)
@@ -35,10 +38,10 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     return (open_cmd, rm_cmd, username, home, pdftk, texworks)
 
 print(
-'''OASIS 1.0
+'''OASIS 1.1
 
 Author: André Sartori
-Copyright (c) 2017
+Copyright (c) 2017-2018
 
 OASIS is part of OATs. The source code and documentation can be found at
 https://github.com/osc-cam/OATs
@@ -125,6 +128,7 @@ if not os.path.exists(invoicevarfile):
         f.write("OVERWRITE THIS WITH INVOICE INFO COPIED AND PASTED FROM ZENDESK")
 overlayfile = os.path.join(oasisfolder, "overlay.tex")
 filingfolder = os.path.join(remoteinvoicefolder, "Invoices to be checked")
+logcsv = os.path.join(remoteinvoicefolder, 'LST_OasisProcessingTimes_V1_20180524.csv')
 
 # GET RID OF TEMPORARY FILES FROM PREVIOUS RUN
 logger.plog("OASIS: Deleting temporary files from previous run")
@@ -259,6 +263,29 @@ src = stampedinvoice
 dst = os.path.join(oasisfolder, invfilename)
 oats_move(src, dst)
 
+tpublisher = re.compile('%%PUBLISHER: .+')
+mpublisher = tpublisher.search(varcontent)
+publisher = ''
+if mpublisher:
+    publisher = mpublisher.group().replace('%%PUBLISHER: ', '').strip()
+
+if 'APC INVOICE' in varcontent:
+    invtype = 'APC'
+elif 'MEMBERSHIP INVOICE' in varcontent:
+    invtype = 'membership'
+elif 'PAGE AND/OR COLOUR CHARGES' in varcontent:
+    invtype = 'page and colour'
+elif 'BOTH APC AND PAGE/COLOUR CHARGES' in varcontent:
+    invtype = 'APC and page/colour'
+else:
+    invtype = 'unrecognised'
+
+tagent = re.compile(r'\\newcommand\{\\currentagent\}\{ ([\w ]+) \}')
+magent = tagent.search(varcontent)
+agent = ''
+if magent:
+    agent = magent.group(1)
+
 # COPY FILE TO PRINTFOLDERS AND FILE IT ON THE O: DRIVE
 if invfilename not in os.listdir(printfolder):
     src = os.path.join(oasisfolder, invfilename)
@@ -321,8 +348,16 @@ if oldestinvoicemodtime + maxprintdelaysecs < timenow:
     logger.plog("Don't forget to print old invoices at some point!")
     warning_counter += 1
 
+end_time = time.time()
+processing_time = end_time - start_time
+with open(logcsv, 'a') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow([refno, invno, publisher, invtype, agent, start_time, end_time, processing_time])
+
 if warning_counter > 0:
     logger.plog("\nOASIS: Processing finished with", warning_counter, "warnings.")
     logger.plog("Please review the log above carefully for details")
 else:
     logger.plog("\nThank you for using the Open Access Service Invoice Stamper!")
+
+

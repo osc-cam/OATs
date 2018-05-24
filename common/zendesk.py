@@ -3,6 +3,7 @@ import datetime
 import dateutil.parser
 import logging
 import os
+import pandas as pd
 import re
 import sys
 from . import cufs
@@ -23,6 +24,28 @@ manual_oa2zd_dict = {
 unmatched_payment_file_prefix = 'Midas_debug_payments_not_matched_to_zd_numbers__'
 nonJUDB_payment_file_prefix = 'Midas_debug_non_JUDB_payments__'
 nonEBDU_payment_file_prefix = 'Midas_debug_non_EBDU_EBDV_or_EBDW_payments__'
+
+def output_pruned_zendesk_export(zenexport, output_filename, **kwargs):
+    '''
+    This function filters a CSV export from Zendesk, excluding any tickets matching kwargs
+    :param zenexport: the CSV file exported from Zendesk
+    :param output_filename: the name of the file we will save pruned data to
+    :param kwargs: a dictionary where k are Zendesk field names and v are lists of values to exclude
+    '''
+    p = Parser()
+    p.index_zd_data(zenexport)
+    fieldnames = p.zenexport_fieldnames
+    with open(output_filename, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames)
+        writer.writeheader()
+        for _, ticket in p.zd_dict.items():
+            output_ticket = False
+            for field, values in kwargs.items():
+                for value in values:
+                    if ticket.zd_data[field] != value:
+                        output_ticket = True
+            if output_ticket:
+                writer.writerow(ticket.zd_data)
 
 class ZdFieldsMapping():
     '''
@@ -46,6 +69,250 @@ class ZdFieldsMapping():
         self.rcuk_payment = 'RCUK payment [flag]'
         self.rcuk_policy = 'RCUK policy [flag]'
         self.repository_link = 'Repository link [txt]'
+
+        self.summation_column = 'Summation column'
+        self.requester = 'Requester'
+        self.requester_id = 'Requester id'
+        self.requester_external_id = 'Requester external id'
+        self.requester_email = 'Requester email'
+        self.requester_domain = 'Requester domain'
+        self.submitter = 'Submitter'
+        self.assignee = 'Assignee'
+        self.group = 'Group'
+        self.subject = 'Subject'
+        self.tags = 'Tags'
+        self.status = 'Status'
+        self.priority = 'Priority'
+        self.via = 'Via'
+        self.ticket_type = 'Ticket type'
+        self.created_at = 'Created at'
+        self.updated_at = 'Updated at'
+        self.assigned_at = 'Assigned at'
+        self.organization = 'Organization'
+        self.due_date = 'Due date'
+        self.initially_assigned_at = 'Initially assigned at'
+        self.solved_at = 'Solved at'
+        self.resolution_time = 'Resolution time'
+        self.satisfaction_score = 'Satisfaction Score'
+        self.group_stations = 'Group stations'
+        self.assignee_stations = 'Assignee stations'
+        self.reopens = 'Reopens'
+        self.replies = 'Replies'
+        self.first_reply_time_in_minutes = 'First reply time in minutes'
+        self.first_reply_time_in_minutes_within_business_hours = 'First reply time in minutes within business hours'
+        self.first_resolution_time_in_minutes = 'First resolution time in minutes'
+        self.first_resolution_time_in_minutes_within_business_hours = 'First resolution time in minutes within business hours'
+        self.full_resolution_time_in_minutes = 'Full resolution time in minutes'
+        self.full_resolution_time_in_minutes_within_business_hours = 'Full resolution time in minutes within business hours'
+        self.agent_wait_time_in_minutes = 'Agent wait time in minutes'
+        self.agent_wait_time_in_minutes_within_business_hours = 'Agent wait time in minutes within business hours'
+        self.requester_wait_time_in_minutes = 'Requester wait time in minutes'
+        self.requester_wait_time_in_minutes_within_business_hours = 'Requester wait time in minutes within business hours'
+        self.on_hold_time_in_minutes = 'On hold time in minutes'
+        self.on_hold_time_in_minutes_within_business_hours = 'On hold time in minutes within business hours'
+        self.jira_sharing = 'JIRA Sharing [list]'
+        self.query = 'Query [flag]'
+        self.wrong_version = 'Wrong version [flag]'
+        self.department = 'Department [txt]'
+        self.corresponding_author = 'Corresponding author [txt]'
+        self.corresponding_author_institution = 'Corresponding author institution [txt]'
+        self.journal_title = 'Journal title [txt]'
+        self.publisher = 'Publisher [txt]'
+        self.other_funder_policies = 'Other funder policies [flag]'
+        self.other_institution_payment = 'Other institution payment [flag]'
+        self.grant_payment = 'Grant payment [flag]'
+        self.vouchermembershipoffset_payment = 'Voucher/membership/offset payment [flag]'
+        self.authordepartment_payment = 'Author/department payment [flag]'
+        self.repository_status = 'Repository status [list]'
+        self.manuscript_deposit_apollo = 'Manuscript deposit (Apollo) [flag]'
+        self.manuscript_deposit_pmc_other = 'Manuscript deposit (PMC; other) [flag]'
+        self.apc_payment_from_block_grants = 'APC payment from block grants [flag]'
+        self.hefce_exception = 'HEFCE exception [flag]'
+        self.hefce_failure = 'HEFCE failure [flag]'
+        self.retrospective_accepted_preapril_2016 = 'Retrospective (accepted pre-April 2016) [flag]'
+        self.no_further_action = 'No further action [flag]'
+        self.apc_charged_to_rcuk_ebdu = 'APC charged to RCUK (EBDU) [dec]'
+        self.apc_charged_to_coaf_ebdu = 'APC charged to COAF (EBDU) [dec]'
+        self.pagecolour_charges__rcuk_ebdw = 'Page/colour charges - RCUK (EBDW) [dec]'
+        self.membership_fees__rcuk_ebdv = 'Membership fees - RCUK (EBDV) [dec]'
+        self.purchase_order_number = 'Purchase order number [txt]'
+        self.total_amount_invoiced_apc = 'Total amount invoiced (APC) [dec]'
+        self.total_amount_invoiced_pagecolour = 'Total amount invoiced (Page/Colour) [dec]'
+        self.apc_invoice_number = 'APC invoice number [txt]'
+        self.oa_approved_via_prepayment_deal = 'OA approved via prepayment deal [flag]'
+        self.original_commitment__rcuk = 'Original commitment - RCUK [dec]'
+        self.original_commitment__coaf = 'Original commitment - COAF [dec]'
+        self.outstanding_commitment__rcuk__inc_vat = 'Outstanding commitment - RCUK (£ inc. VAT) [dec]'
+        self.outstanding_commitment__coaf__inc_vat = 'Outstanding commitment - COAF (£ inc. VAT) [dec]'
+        self.amount_paid__rcuk = 'Amount paid - RCUK [dec]'
+        self.amount_paid__coaf = 'Amount paid - COAF [dec]'
+        self.total_expenditure__rcuk = 'Total expenditure - RCUK [dec]'
+        self.total_expenditure__coaf = 'Total expenditure - COAF [dec]'
+        self.total_expenditure__wellcome = 'Total expenditure - Wellcome [dec]'
+        self.published = 'Published [flag]'
+        self.published_online = 'Published online [flag]'
+        self.compliant__coaf = 'Compliant - COAF [flag]'
+        self.compliant__hefce = 'Compliant - HEFCE [flag]'
+        self.compliant__rcuk = 'Compliant - RCUK [flag]'
+        self.compliant__other = 'Compliant - Other [flag]'
+        self.open_access_on_publishers_site = "Open access on publisher's site? [flag]"
+        self.is_open_access_obvious = 'Is Open Access obvious? [list]'
+        self.correct_licence_clearly_labelled = 'Correct licence clearly labelled? [flag]'
+        self.awaiting_author_response = 'Awaiting author response [flag]'
+        self.manuscript_download_link = 'Manuscript download link [txt]'
+        self.awaiting_publisher_response = 'Awaiting publisher response [flag]'
+        self.invoicing = 'Invoicing [flag]'
+        self.test = 'Test [flag]'
+        self.accepted_in_last_3_months = 'Accepted in last 3 months [flag]'
+        self.not_yet_accepted = 'Not Yet Accepted [flag]'
+        self.wellcome_payment = 'Wellcome payment [flag]'
+        self.selfbilled_vat__wellcome = 'Self-billed VAT - Wellcome [dec]'
+        self.erc = 'ERC [flag]'
+        self.awarding_institution = 'Awarding institution [txt]'
+        self.impersonator_email_address = 'Impersonator email address [txt]'
+        self.internal_item_id_apollo = 'Internal Item ID (Apollo) [txt]'
+        self.symplectic_acceptance_date_yyyymmdd = 'Symplectic acceptance date (YYYY-MM-DD) [txt]'
+        self.nspn_dataset = 'NSPN Dataset [flag]'
+        self.arthritis_research_uk = 'Arthritis Research UK [flag]'
+        self.date_deposit_completed_yyyymmdd = 'Date deposit completed (YYYY-MM-DD) [txt]'
+        self.oasis_type = 'OASIS type [list]'
+        self.legacy_thesis = 'Legacy Thesis [flag]'
+        self.breast_cancer_now_breast_cancer_campaign = 'Breast Cancer Now (Breast Cancer Campaign) [flag]'
+        self.college = 'College [txt]'
+        self.thesis_access_level = 'Thesis access level [list]'
+        self.date_publisher_fulfilled_funder_requirements_yyyymmdd = 'Date publisher fulfilled funder requirements (YYYY-MM-DD) [txt]'
+        self.apc_charged_to_wellcome_supplement_ebdu = 'APC Charged to Wellcome Supplement (EBDU) [dec]'
+        self.date_compliance_first_checked_yyyymmdd = 'Date compliance first checked (YYYY-MM-DD) [txt]'
+        self.rcuk_cost_centre = 'RCUK cost centre [list]'
+        self.membership_fee_paid_on_cufs = 'Membership fee paid on CUFS [flag]'
+        self.parkinsons_uk = 'Parkinson's UK [flag]'
+        self.hero_thesis = 'Hero Thesis [flag]'
+        self.dspace_tickets = 'DSpace Tickets [flag]'
+        self.zd_ticket_number_of_original_submission_zd123456 = 'ZD ticket number of original submission (ZD-123456) [txt]'
+        self.crsid = 'CRSid [txt]'
+        self.thesis_deposit_status = 'Thesis deposit status [list]'
+        self.new_thesis = 'New Thesis [flag]'
+        self.outstanding_commitment_wellcome_supplement = 'Outstanding Commitment (Wellcome Supplement) [dec]'
+        self.access_exception_type = 'Access exception type [list]'
+        self.apc_already_paid = 'APC already paid? [flag]'
+        self.esrc = 'ESRC [flag]'
+        self.coaf_failure = 'COAF failure [flag]'
+        self.exception_type = 'Exception type [list]'
+        self.request_a_copy_article = 'Request a Copy (Article) [flag]'
+        self.data_deposition_status = 'Data deposition status [list]'
+        self.request_a_copy_action = 'Request a Copy Action [list]'
+        self.nerc = 'NERC [flag]'
+        self.thesis_request__digitised_nonpublic = 'Thesis Request - digitised, non-public [flag]'
+        self.rcuk_funding = 'RCUK Funding [flag]'
+        self.bloodwise_leukaemia__lymphoma_research = 'Bloodwise (Leukaemia & Lymphoma Research) [flag]'
+        self.technical_exception_type = 'Technical exception type [list]'
+        self.rcukcoaf_failure_action = 'RCUK/COAF failure action [list]'
+        self.edit_existing_repository_record = 'Edit existing repository record [flag]'
+        self.pagecolour_invoice_processed = 'Page/colour invoice processed [flag]'
+        self.epsrc_data_requirement = 'EPSRC Data Requirement [flag]'
+        self.membership_invoice_processed = 'Membership invoice processed [flag]'
+        self.unmediated_deposit_type = 'Unmediated deposit type [list]'
+        self.thesis_embargo_reason_other = 'Thesis embargo reason other [txt]'
+        self.hefce_transitional_deadline_met = 'HEFCE transitional deadline met [flag]'
+        self.dspace_done__needs_email = 'DSpace done - needs email [flag]'
+        self.wrong_version_type = 'Wrong version type [list]'
+        self.published = 'published [flag]'
+        self.corresponding_authors_affiliations = "Corresponding author(s)' affiliation(s) [list]"
+        self.promote_on_twitter = 'Promote on Twitter? [flag]'
+        self.sensitive_information_clearance = 'Sensitive information clearance [list]'
+        self.external_email_address = 'External email address [txt]'
+        self.pagecolour_invoice_number = 'Page/colour invoice number [txt]'
+        self.any_problems_with_the_publisher = 'Any problems with the publisher? [flag]'
+        self.membership_invoice_number = 'Membership invoice number [txt]'
+        self.bbsrc_data_requirement = 'BBSRC Data Requirement [flag]'
+        self.fp7 = 'FP7 [flag]'
+        self.thesis_request__not_digitised = 'Thesis Request - not digitised [flag]'
+        self.what_did_the_publisher_do_wrong = 'What did the publisher do wrong? [txt]'
+        self.university_student_number_usn = 'University Student Number (USN) [txt]'
+        self.apc_fee_paid_on_cufs = 'APC fee paid on CUFS [flag]'
+        self.online_publication_date_yyyymmdd = 'Online Publication Date (YYYY-MM-DD) [txt]'
+        self.dataset_embargoed = 'Dataset embargoed [flag]'
+        self.degree = 'Degree [txt]'
+        self.nihr = 'NIHR [flag]'
+        self.apc_invoice_paid = 'APC invoice paid [flag]'
+        self.tweeted = 'Tweeted [flag]'
+        self.technical_issue = 'Technical Issue [flag]'
+        self.other_exception_type = 'Other exception type [list]'
+        self.commitment_note = 'Commitment note [txt]'
+        self.publication_type = 'publication type [list]'
+        self.pagecolour_fee_paid_on_cufs = 'Page/colour fee paid on CUFS [flag]'
+        self.date_added_to_apollo_yyyymmdd = 'Date added to Apollo (YYYY-MM-DD) [txt]'
+        self.placeholder_dataset = 'Placeholder dataset [flag]'
+        self.data__sensitiveconfidential_information = 'Data - sensitive/confidential information? [flag]'
+        self.compliance_checking_status = 'Compliance checking status [list]'
+        self.no_raw_data_included = 'No raw data included [flag]'
+        self.invoice_date_yyyymmdd = 'Invoice date (YYYY-MM-DD) [txt]'
+        self.repository_feature_request = 'Repository feature request [flag]'
+        self.type_of_request = 'Type of request? [list]'
+        self.h2020 = 'H2020 [flag]'
+        self.gold_team = 'Gold team [list]'
+        self.hefce_out_of_scope = 'HEFCE Out of Scope [flag]'
+        self.thesis_embargo_reason = 'Thesis embargo reason [txt]'
+        self.twitter_handles = 'Twitter handles [txt]'
+        self.thesis_contains_sensitive_information = 'Thesis contains sensitive information [flag]'
+        self.in_dark_collection = 'In Dark Collection [flag]'
+        self.data_supporting_a_publication = 'Data supporting a publication? [flag]'
+        self.rcuk_failure = 'RCUK failure [flag]'
+        self.thesis_title = 'Thesis title [txt]'
+        self.ahrc = 'AHRC [flag]'
+        self.licence_applied_by_publisher = 'Licence applied by publisher [list]'
+        self.publication_in_apollo = 'Publication in Apollo [flag]'
+        self.sword_deposit_thesis = 'SWORD Deposit Thesis [flag]'
+        self.coaf_cost_centre = 'COAF cost centre [list]'
+        self.membership_fees__coaf_ebdv = 'Membership fees - COAF (EBDV) [dec]'
+        self.bbsrc = 'BBSRC [flag]'
+        self.accessible_to_peerreviewers = 'Accessible to peer-reviewers? [flag]'
+        self.autoreply_options = 'Auto-reply options [flag]'
+        self.coaf_grant_numbers = 'COAF Grant Numbers [txt]'
+        self.epsrc = 'EPSRC [flag]'
+        self.request_a_copy_link = 'Request a copy link [txt]'
+        self.wellcome_supplement_payment = 'Wellcome Supplement Payment [flag]'
+        self.qualification_level = 'Qualification level [list]'
+        self.mrc = 'MRC [flag]'
+        self.apc_invoice_processed = 'APC invoice processed [flag]'
+        self.is_this_an_ethics_query = 'Is this an ethics query? [flag]'
+        self.dark_collection_status = 'Dark collection status [list]'
+        self.supporting_article_doi = 'Supporting article DOI [txt]'
+        self.thesis_source = 'Thesis source [list]'
+        self.deposit_exception_type = 'Deposit exception type [list]'
+        self.gates_foundation = 'Gates Foundation [flag]'
+        self.stfc = 'STFC [flag]'
+        self.request_a_copy_thesis = 'Request a Copy (Thesis) [flag]'
+        self.thesis_embargo = 'Thesis Embargo [list]'
+        self.degree_title = 'Degree title [txt]'
+        self.feedback = 'Feedback [flag]'
+        self.cancer_research_uk = 'Cancer Research UK [flag]'
+        self.mrc_core_grant_payment = 'MRC core grant payment [flag]'
+        self.dataset_title = 'Dataset title [txt]'
+        self.symplectic_item_type = 'Symplectic item type [txt]'
+        self.symplectic_impersonator = 'Symplectic impersonator [flag]'
+        self.wellcome_trust = 'Wellcome Trust [flag]'
+        self.british_heart_foundation = 'British Heart Foundation [flag]'
+        self.repository_workflow_task = 'Repository workflow task [flag]'
+        self.request_a_copy_data = 'Request a Copy (Data) [flag]'
+
+    def parse_zd_fieldnames(zenexport):
+        '''
+        Parse fieldnames in zenexport and output a text file mapping fields to suggested class attributes.
+        Used as a one-off aid when writing class ZdFieldsMapping
+        '''
+        regex = re.compile(r'\[\w+\]')
+        symbols = re.compile(r'[^a-zA-Z0-9_ ]')
+        with open('parsed_fieldnames.txt', 'w') as out:
+            with open(zenexport) as csvfile:
+                reader = csv.reader(csvfile)
+                header = next(reader)
+                for field in header:
+                    a = re.sub(regex, '', field)
+                    b = re.sub(symbols, '', a)
+                    out_str = "    self.{} = '{}'\n".format(b.replace(' ', '_').lower().rstrip('_'), field)
+                    out.write(out_str)
+
 
 class Ticket():
     '''
@@ -103,6 +370,7 @@ class Parser():
         self.zd_dict_COAF = {}
         self.zd_dict_RCUK = {}
         self.zd_fields = ZdFieldsMapping()
+        self.zenexport_fieldnames = None
 
     def index_zd_data(self, zenexport):
         """ This function parses a csv file exported from the UoC OSC zendesk account
@@ -144,6 +412,7 @@ class Parser():
 
         with open(zenexport, encoding = "utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
+            self.zenexport_fieldnames = next(reader).keys()
             for row in reader:
                 t = Ticket()  # create a new Ticket object
                 t.number = row[self.zd_fields.id]
