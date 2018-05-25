@@ -23,7 +23,8 @@ from difflib import SequenceMatcher
 
 ### SET UP WORKING FOLDER
 home = os.path.expanduser("~")
-working_folder = os.path.join(home, 'OATs', 'ART-wd')
+#working_folder = os.path.join(home, 'OATs', 'ART-wd')
+working_folder = os.path.join(home, 'Dropbox', 'OSC', 'ART-wd')
 
 DOI_CLEANUP = ['http://dx.doi.org/', 'https://doi.org/', 'http://dev.biologists.org/lookup/doi/', 'http://www.hindawi.com/journals/jdr/aip/2848759/']
 DOI_FIX = {'0.1136/jmedgenet-2016-104295':'10.1136/jmedgenet-2016-104295'}
@@ -1037,21 +1038,21 @@ def action_index_zendesk_data_general(zenexport, zd_dict={}, title2zd_dict={}, d
         reader = csv.DictReader(csvfile)
         for row in reader:
             zd_number = row['Id']
-            oa_number = row['externalID [txt]']
-            article_title = row['Manuscript title [txt]']
+            oa_number = row['#externalID [txt]']
+            article_title = row['#Manuscript title [txt]']
     #        rcuk_payment = row['RCUK payment [flag]']
     #        rcuk_policy = row['RCUK policy [flag]']
     #        apc_payment = row['Is there an APC payment? [list]']
     #        green_version = 'Green allowed version [list]'
     #        embargo = 'Embargo duration [list]'
     #        green_licence = 'Green licence [list]',
-            apollo_handle = row['Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
-            doi = prune_and_cleanup_string(row['DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
-            row['DOI (like 10.123/abc456) [txt]'] = doi
+            apollo_handle = row['#Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
+            doi = prune_and_cleanup_string(row['#DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
+            row['#DOI (like 10.123/abc456) [txt]'] = doi
             try:
                 dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
-                publication_date = convert_date_str_to_yyyy_mm_dd(row['Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
-                row['Publication date (YYYY-MM-DD) [txt]'] = publication_date
+                publication_date = convert_date_str_to_yyyy_mm_dd(row['#Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
+                row['#Publication date (YYYY-MM-DD) [txt]'] = publication_date
             except NameError:
                 # dateutil module could not be imported (not installed)
                 pass
@@ -1224,10 +1225,10 @@ def action_index_zendesk_data():
         reader = csv.DictReader(csvfile)
         for row in reader:
             zd_number = row['Id']
-            dup_of = row['Duplicate of [txt]']
+            dup_of = row['Duplicate of (ZD-123456) [txt]']
             if (row['Duplicate [flag]'] in ['no', '-', '']) or (zd_number in manual_zendesk_duplicates_to_include):
-                oa_number = row['externalID [txt]']
-                article_title = row['Manuscript title [txt]'].upper()
+                oa_number = row['#externalID [txt]']
+                article_title = row['#Manuscript title [txt]'].upper()
                 rcuk_payment = row['RCUK payment [flag]']
                 rcuk_policy = row['RCUK policy [flag]']
                 coaf_payment = row['COAF payment [flag]']
@@ -1236,12 +1237,12 @@ def action_index_zendesk_data():
         #        green_version = 'Green allowed version [list]'
         #        embargo = 'Embargo duration [list]'
         #        green_licence = 'Green licence [list]',
-                apollo_handle = row['Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
-                doi = prune_and_cleanup_string(row['DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
-                row['DOI (like 10.123/abc456) [txt]'] = doi
+                apollo_handle = row['#Repository link [txt]'].replace('https://www.repository.cam.ac.uk/handle/' , '')
+                doi = prune_and_cleanup_string(row['#DOI (like 10.123/abc456) [txt]'], DOI_CLEANUP, DOI_FIX)
+                row['#DOI (like 10.123/abc456) [txt]'] = doi
                 dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
-                publication_date = convert_date_str_to_yyyy_mm_dd(row['Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
-                row['Publication date (YYYY-MM-DD) [txt]'] = publication_date
+                publication_date = convert_date_str_to_yyyy_mm_dd(row['#Publication date (YYYY-MM-DD) [txt]'], dateutil_options)
+                row['#Publication date (YYYY-MM-DD) [txt]'] = publication_date
                 if article_title not in ['', '-']:
                     if article_title in title2zd_dict.keys():
                         title2zd_dict[article_title].append(zd_number)
@@ -1487,32 +1488,32 @@ rcuk_vejj = os.path.join(working_folder, "VEJJ_2017-10-31.csv")
 rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
-# coaf_last_year = os.path.join(working_folder, 'veag45.csv')
-# coaf_this_year = os.path.join(working_folder, 'veag50.csv')
-coaf_paymentsfilename = "VEAG50_Dec2017_edited.csv"#"VEAG050_2017-10-31_edited.csv"
+coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12.csv')
+coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-04-12.csv')
+coaf_paymentsfilename = "COAF_merged_payments_file.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
-# merge_csv_files([coaf_last_year, coaf_this_year], coaf_paymentsfile)
-zenexport = os.path.join(working_folder, "export-2017-11-09-2150-5703871969.csv")
-zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2017-11-13-2307.csv")
-apolloexport = os.path.join(working_folder, "Apollo_all_items-20171110.csv")
+merge_csv_files([coaf_veag050, coaf_veag052], coaf_paymentsfile)
+zenexport = os.path.join(working_folder, "export-2018-05-11-2224-234063-360000059214d5cd.csv")
+zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-05-25-2207.csv")
+apolloexport = os.path.join(working_folder, "Apollo_all_items-20180525.csv")
 cottagelabsDoisResult = os.path.join(working_folder, "DOIs_for_cottagelabs_2017-11-21_results_edited.csv")
 cottagelabsTitlesResult =  os.path.join(working_folder, "Titles_for_cottagelabs_2017-11-21_results_edited.csv")
 cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
-merge_csv_files([cottagelabsDoisResult, cottagelabsTitlesResult], cottagelabsexport)
+# merge_csv_files([cottagelabsDoisResult, cottagelabsTitlesResult], cottagelabsexport)
 # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
 # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
-springercompactexport = os.path.join(working_folder, "article_approval_2016-01-01_to_2017-11-10.csv")
+springercompactexport = os.path.join(working_folder, "article_approval_2017-04-01_to_2018-03-31.csv")
 # merge_csv_files([springercompact_last_year, springercompact_this_year], springercompactexport)
 wileyrcukcoaf = os.path.join(working_folder, "Wiley_RCUK_COAF_ArticleHistoryReport.csv")
 wileycredit = os.path.join(working_folder, "Wiley_CREDIT_ArticleHistoryReport.csv")
 wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
-merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
+# merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
 oupexport = os.path.join(working_folder, "OUP OA Charge Data.csv")
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
-report_start_date = datetime.datetime(2016, 10, 1)
-report_end_date = datetime.datetime(2017, 9, 30, hour = 23, minute = 59, second = 59)
-green_start_date = datetime.datetime(2016, 1, 1)#Using 1 Jan 2016 to 31 Dec 2016 for green compliance estimate to match WoS period
-green_end_date = datetime.datetime(2016, 12, 31, hour = 23, minute = 59, second = 59)
+report_start_date = datetime.datetime(2017, 4, 1) #(2016, 10, 1) COAF
+report_end_date = datetime.datetime(2018, 3, 31, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
+green_start_date = datetime.datetime(2017, 1, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
+green_end_date = datetime.datetime(2017, 12, 31, hour = 23, minute = 59, second = 59)
 
 unmatched_payment_file_prefix = 'ART_debug_payments_not_matched_to_zd_numbers__'
 nonJUDB_payment_file_prefix = 'ART_debug_non_JUDB_payments__'
@@ -1522,13 +1523,13 @@ nonEBDU_payment_file_prefix = 'ART_debug_non_EBDU_EBDV_or_EBDW_payments__'
 rep2zd = [
 ('Date of acceptance', ['Symplectic acceptance date (YYYY-MM-DD) [txt]', 'Acceptance date', 'dcterms.dateAccepted']),
 ('PubMed ID', ['PMID']), #from cottagelabs
-('DOI', ['DOI (like 10.123/abc456) [txt]', 'rioxxterms.versionofrecord', 'dc.identifier.uri']), #dc.identifier.uri often contains DOIs that are not in rioxxterms.versionofrecord, but it needs cleaning up (e.g. http://dx.doi.org/10.1111/oik.02622,https://www.repository.cam.ac.uk/handle/1810/254674 ); use only if the DOI cannot be found elsewhere
+('DOI', ['#DOI (like 10.123/abc456) [txt]', 'rioxxterms.versionofrecord', 'dc.identifier.uri']), #dc.identifier.uri often contains DOIs that are not in rioxxterms.versionofrecord, but it needs cleaning up (e.g. http://dx.doi.org/10.1111/oik.02622,https://www.repository.cam.ac.uk/handle/1810/254674 ); use only if the DOI cannot be found elsewhere
 ('Publisher', ['Publisher [txt]', 'dc.publisher']),
-('Journal', ['Journal title [txt]', 'prism.publicationName']),
+('Journal', ['#Journal title [txt]', 'prism.publicationName']),
 ('E-ISSN', ['ISSN']), #from cottagelabs
-('Type of publication', ['Symplectic item type [txt]', 'dc.type']),
-('Article title', ['Manuscript title [txt]', 'dc.title']),
-('Date of publication', ['Publication date (YYYY-MM-DD) [txt]', 'dc.date.issued']),
+('Type of publication', ['#Symplectic item type [txt]', 'dc.type']),
+('Article title', ['#Manuscript title [txt]', 'dc.title']),
+('Date of publication', ['#Publication date (YYYY-MM-DD) [txt]', 'dc.date.issued']),
 ('Date of APC payment', [paydate_field]),
 #('APC paid (actual currency) excluding VAT', NA ##COULD PROBABLY OBTAIN FROM CUFS IF REALLY NECESSARY
 #('Currency of APC', NA ##COULD PROBABLY OBTAIN FROM CUFS IF REALLY NECESSARY
@@ -1592,7 +1593,10 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-
+    parse_invoice_data = False
+    parse_springer_compact = True
+    parse_wiley_dashboard = False
+    parse_oup_prepayment = False
     ############################ACTION STARTS HERE##################################
 
     #~ tempfieldnames = extract_csv_header(zenexport)
@@ -1605,9 +1609,12 @@ if __name__ == '__main__':
     coaffieldnames = extract_csv_header(coaf_paymentsfile, "utf-8")
     apollofieldnames = extract_csv_header(apolloexport, "utf-8")
     # cottagelabsfieldnames = extract_csv_header(cottagelabsexport, "utf-8")
-    springerfieldnames = extract_csv_header(springercompactexport, enc="utf-8", delim=';')
-    wileyfieldnames = extract_csv_header(wileyrcukcoaf, "utf-8")
-    oupfieldnames = extract_csv_header(oupexport, "utf-8")
+    if parse_springer_compact:
+        springerfieldnames = extract_csv_header(springercompactexport, enc="utf-8", delim=';')
+    if parse_wiley_dashboard:
+        wileyfieldnames = extract_csv_header(wileyrcukcoaf, "utf-8")
+    if parse_oup_prepayment:
+        oupfieldnames = extract_csv_header(oupexport, "utf-8")
     rejection_reason_field = 'Reason for exclusion'
 
     allfieldnames = zendeskfieldnames + zendatefieldnames + rcuk_paymentsfieldnames + apollofieldnames + coaffieldnames
@@ -1695,12 +1702,13 @@ if __name__ == '__main__':
     # #~ raise
 
     #### PLUGGING IN DATA FROM THE RCUK AND COAF PAYMENTS SPREADSHEETS
-    plug_in_payment_data(rcuk_paymentsfile, rcuk_paymentsfieldnames, 'Description', total_rcuk_payamount_field,
-                         'Page, colour or membership amount', amount_field = rcuk_payamount_field,
-                         file_encoding = 'utf-8', transaction_code_field = 'Tran', funder = 'RCUK')
-    plug_in_payment_data(coaf_paymentsfile, coaffieldnames, 'Comment', total_coaf_payamount_field,
-                         'COAF Page, colour or membership amount', invoice_field = 'Invoice',
-                         amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder = 'COAF')
+    if parse_invoice_data:
+        plug_in_payment_data(rcuk_paymentsfile, rcuk_paymentsfieldnames, 'Description', total_rcuk_payamount_field,
+                             'Page, colour or membership amount', amount_field = rcuk_payamount_field,
+                             file_encoding = 'utf-8', transaction_code_field = 'Tran', funder = 'RCUK')
+        plug_in_payment_data(coaf_paymentsfile, coaffieldnames, 'Comment', total_coaf_payamount_field,
+                             'COAF Page, colour or membership amount', invoice_field = 'Invoice',
+                             amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder = 'COAF')
 
     #### PLUGGING IN DATA FROM APOLLO
     ###NEED TO MAP THIS DATA USING REPOSITORY HANDLE, BECAUSE APOLLO DOES
@@ -1717,7 +1725,7 @@ if __name__ == '__main__':
 
     #### MAUALLY FIX SOME PROBLEMS
     zd_dict['3743']['DOI'] = '10.1088/0953-2048/27/8/082001'
-    zd_dict['3743']['externalID [txt]'] = 'OA-1128'
+    zd_dict['3743']['#externalID [txt]'] = 'OA-1128'
     zd_dict['3743']['Date of acceptance'] = '2014-06-11'
     zd_dict['3743']['Publisher'] = 'IOP'
     zd_dict['3743']['Journal'] = 'Superconductor Science and Technology'
@@ -1729,51 +1737,51 @@ if __name__ == '__main__':
     zd_dict['3743']['Grant ID (1)'] = 'EP/K02910X/1'
     zd_dict['3743']['Licence'] = 'CC BY'
 
-    #### NOW THAT WE PLUGGED IN ALL DATA SOURCES INTO THE ZENDESK EXPORT,
-    #### PRODUCE THE FIRST PART OF THE REPORT (PAYMENTS LINKED TO ZENDESK)
-    report_dict = {}
-    ### START BY FILTERING WHAT WE NEED
-    action_populate_report_dict()
-
-    #### EXPORT PAYMENTS IN ORIGINAL FORMAT WITH AN EXTRA COLUMN "INCLUDED/EXCLUDED FROM REPORT"
-    #### FOR RECONCILIATION/DEBUGGING:
-    action_export_payments_reconciliation()
-
-    #### NOW ADJUST TOTAL APC VALUES FOR TICKETS WHERE THE APC WAS SPLIT BETWEEN
-    #### RCUK AND COAF
-    action_adjust_total_apc_values()
-
-    ### POPULATE REPORT FIELDS WITH DATA FROM ZD/APOLLO/PAYMENT FIELDS
-    ### CONVERT DATA WHEN NEEDED
-    action_populate_report_fields()
-
-    excluded_recs = {}
     included_in_report = {}
-
     report_fields = extract_csv_header(report_template, "utf-8")
-    custom_rep_fields = ['id',                      # ZD number from zd
-                         'externalID [txt]',        # OA number from zd
-                         'Reason for exclusion',    # field calculated and appended by ART
+    custom_rep_fields = ['id',  # ZD number from zd
+                         '#externalID [txt]',  # OA number from zd
+                         'Reason for exclusion',  # field calculated and appended by ART
                          # 'Description',             # field from CUFS (RCUK)
                          # 'Ref 1',                   # field from CUFS (RCUK)
                          # 'Ref 5',                   # field from CUFS (RCUK)
-                         'Comment',                 # field from CUFS (COAF)
-                         'Invoice',                 # field from CUFS (COAF)
-                         'RCUK policy [flag]',      # from zd
-                         'RCUK payment [flag]',     # from zd
-                         'COAF policy [flag]',      # from zd
-                         'COAF payment [flag]',     # from zd
-                         'handle'                   # from Apollo
+                         'Comment',  # field from CUFS (COAF)
+                         'Invoice',  # field from CUFS (COAF)
+                         'RCUK policy [flag]',  # from zd
+                         'RCUK payment [flag]',  # from zd
+                         'COAF policy [flag]',  # from zd
+                         'COAF payment [flag]',  # from zd
+                         'handle'  # from Apollo
                          ]
-    report_fieldnames = report_fields + custom_rep_fields #+ rcuk_paymentsfieldnames
-#    report_fieldnames = report_fields ###UNCOMMENT THIS LINE FOR FINAL VERSION
+    report_fieldnames = report_fields + custom_rep_fields  # + rcuk_paymentsfieldnames
+    #    report_fieldnames = report_fields ###UNCOMMENT THIS LINE FOR FINAL VERSION
+    if parse_invoice_data:
+        #### NOW THAT WE PLUGGED IN ALL DATA SOURCES INTO THE ZENDESK EXPORT,
+        #### PRODUCE THE FIRST PART OF THE REPORT (PAYMENTS LINKED TO ZENDESK)
+        report_dict = {}
+        ### START BY FILTERING WHAT WE NEED
+        action_populate_report_dict()
 
-    ### THEN EXPORT THE INCLUDED TICKETS TO THE REPORT CSV
-    action_manually_filter_and_export_to_report_csv()
+        #### EXPORT PAYMENTS IN ORIGINAL FORMAT WITH AN EXTRA COLUMN "INCLUDED/EXCLUDED FROM REPORT"
+        #### FOR RECONCILIATION/DEBUGGING:
+        action_export_payments_reconciliation()
 
-    ### EXPORT EXCLUDED RECORDS TO CSVs
-    excluded_debug_file = os.path.join(working_folder, 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv')
-    debug_export_excluded_records(excluded_debug_file, excluded_recs_logfile, excluded_recs)
+        #### NOW ADJUST TOTAL APC VALUES FOR TICKETS WHERE THE APC WAS SPLIT BETWEEN
+        #### RCUK AND COAF
+        action_adjust_total_apc_values()
+
+        ### POPULATE REPORT FIELDS WITH DATA FROM ZD/APOLLO/PAYMENT FIELDS
+        ### CONVERT DATA WHEN NEEDED
+        action_populate_report_fields()
+
+        excluded_recs = {}
+
+        ### THEN EXPORT THE INCLUDED TICKETS TO THE REPORT CSV
+        action_manually_filter_and_export_to_report_csv()
+
+        ### EXPORT EXCLUDED RECORDS TO CSVs
+        excluded_debug_file = os.path.join(working_folder, 'ART_debug_payments_matched_to_zd_tickets_excluded_from_report.csv')
+        debug_export_excluded_records(excluded_debug_file, excluded_recs_logfile, excluded_recs)
 
     #### ADD DATA FROM PUBLISHER DEALS TO THE END OF THE REPORT
     institution_filter = ['University of Cambridge']
@@ -1786,258 +1794,285 @@ if __name__ == '__main__':
                                ]
 
 
-    ### SPRINGER
-    ### MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
-    rep2springer = [
-    ('Date of acceptance', ['acceptance date']),
-    #('PubMed ID', #NA
-    ('DOI', ['DOI']),
-    #('Publisher', #NOT A VARIABLE; DEFAULT TO SPRINGER
-    ('Journal', ['journal title']),
-    ('E-ISSN', ['eISSN']),
-    #('Type of publication', #NOT A VARIABLE; DEFAULT TO ARTICLE
-    ('Article title', ['article title']),
-    ('Date of publication', ['online first publication date', 'online issue publication date']),
-    #('Date of APC payment', #NA
-    ('APC paid (actual currency) excluding VAT', ['APC']),
-    ('Currency of APC', ['currency']),
-    #('APC paid (£) including VAT if charged', #NA
-    #('Additional publication costs (£)', #NA
-    #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO SPRINGER COMPACT?
-    #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
-    #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
-    ('Licence', ['license type']),
-    ('Notes', ['FundNames'])
-    ]
-    rep2springer = collections.OrderedDict(rep2springer)
-
-    springer_dict = {}
-    rejection_dict_springer = {}
-    dateutil_springer = dateutil.parser.parserinfo() ## this used to be dateutil.parser.parserinfo(dayfirst=True) for old Springer Compact reports
-    exclude_titles_springer = [
-        ### RCUK REPORT 2017
-        # 'Clinical Trials in Vasculitis',
-        # 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology',
-        # 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444',
-        # 'Hunter-Gatherers and the Origins of Religion',
-        # 'A 2-adic automorphy lifting theorem for unitary groups over CM fields',
-        # 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot',
-        # 'Hohfeldian Infinities: Why Not to Worry',
-        # 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion',
-        # 'Data processing for the sandwiched Rényi divergence: a condition for equality',
-        # 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)',
-        # 'Gender patterns in academic entrepreneurship'
-        ### COAF REPORT 2017
-        ## NOT FOUND IN ZENDESK
-        '''Do Gang Injunctions Reduce Violent Crime? Four Tests in Merseyside, UK''',
-        '''"Don't Mind the Gap!" Reflections on improvement science as a paradigm''',
-        '''Paradoxical effects of self-awareness of being observed: Testing the effect of police body-worn cameras on assaults and aggression against officers''',
-        '''KYC Optimization Using Distributed Ledger Technology''', '''Metric ultraproducts of classical groups''',
-        '''Uniformity of the late points of random walk on''',
-        '''Nowhere differentiable functions of analytic type on products of finitely connected planar domains''',
-        '''Advocacy Science: Explaining the term with case studies from biotechnology''',
-        '''Turn-taking in cooperative offspring care: by-product of individual provisioning behavior or active response rule?''',
-        '''Fetal Androgens and Human Sexual Orientation: Searching for the Elusive Link''',
-        '''The Coevolution of Play and the Cortico-Cerebellar System in Primates''',
-        '''Police Attempts to Predict Domestic Murder and Serious Assaults: Is Early Warning Possible Yet?''',
-        '''Does tracking and feedback boost patrol time in hot spots? Two tests.''',
-        '''Finite vs. Small Strain Discrete Dislocation Analysis of Cantilever Bending of Single Crystals''',
-        '''Effect of context on the contribution of individual harmonics to residue pitch''',
-        '''Preferred location for conducting filament formation in thin-film nano-ionic electrolyte: Study of microstructure by atom-probe tomography''',
-        '''Volumetric Growth Rates of Meningioma and its Correlation with Histological Diagnosis and Clinical Outcome: A Systematic Review''',
-        '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
-        '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
-        '''Comparing representations for function spaces in computable analysis''',
-        '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
-        '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-        '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
-        '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+    if parse_springer_compact:
+        ### SPRINGER
+        ### MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
+        rep2springer = [
+        ('Date of acceptance', ['acceptance date']),
+        #('PubMed ID', #NA
+        ('DOI', ['DOI']),
+        #('Publisher', #NOT A VARIABLE; DEFAULT TO SPRINGER
+        ('Journal', ['journal title']),
+        ('E-ISSN', ['eISSN']),
+        #('Type of publication', #NOT A VARIABLE; DEFAULT TO ARTICLE
+        ('Article title', ['article title']),
+        ('Date of publication', ['online first publication date', 'online issue publication date']),
+        #('Date of APC payment', #NA
+        ('APC paid (actual currency) excluding VAT', ['APC']),
+        ('Currency of APC', ['currency']),
+        #('APC paid (£) including VAT if charged', #NA
+        #('Additional publication costs (£)', #NA
+        #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO SPRINGER COMPACT?
+        #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
+        #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
+        ('Licence', ['license type']),
+        ('Notes', ['FundNames'])
         ]
-    import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
-                                          'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
-                                          'approval requested date', # 'Online Publication Date' was previously used, but it was renamed to 'online first publication date' and has blank values for several articles
-                                          'Springer',
-                                          institution_field='membership institute', # this used to be 'Institution',
-                                          dateutil_options=dateutil_springer,
-                                          exclude_titles=exclude_titles_springer,
-                                          delim=';')
+        rep2springer = collections.OrderedDict(rep2springer)
 
-    excluded_debug_file = os.path.join(working_folder, 'ART_debug_Springer_Compact_rejected_records.csv')
-    springer_reject_fieldnames = [rejection_reason_field]
-    for a in prepayment_debug_fields:
-        springer_reject_fieldnames.append(a)
-    for a in springerfieldnames:
-        springer_reject_fieldnames.append(a)
-    #pprint(rejection_dict_springer)
-    debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_springer, springer_reject_fieldnames)
-
-    springer_out_dict = match_datasource_fields_to_report_fields(springer_dict, rep2springer,
-                                                                 'Springer', 'Article', 'Springer Compact',
-                                                                 'Springer Compact')
-
-    report_fieldnames += ['Is there an APC payment? [list]']
-    with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
-        writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
-        #~ writer.writeheader()
-        for doi in springer_out_dict:
-            if 'Date of publication' in springer_out_dict[doi].keys():
-                publication_date = springer_out_dict[doi]['Date of publication']
-                publication_date = dateutil.parser.parse(publication_date, dateutil_springer)
-                springer_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
-            if 'Date of acceptance' in springer_out_dict[doi].keys():
-                acceptance_date = dateutil.parser.parse(springer_out_dict[doi]['Date of acceptance'], dateutil_springer)
-                springer_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
-            writer.writerow(springer_out_dict[doi])
-
-    plog('STATUS: Finished processing Springer Compact entries')
-
-    ### WILEY
-    ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
-    rep2wiley = [
-    ('Date of acceptance', ['Article Accepted Date']),
-    #('PubMed ID', #NA
-    ('DOI', ['Wiley DOI']),             ## Fields in Wiley report are 'DOI' and 'Publisher', but I had to append 'Wiley ' to these two lines
-    ('Publisher', ['Wiley Publisher']), ## because ART has a mechanism that prevents existing fields (e.g. comming from zd) from being overwritten
-    ('Journal', ['Journal']),           ## by data from prepayment deals; this is something that probably needs revising because it is confusing, not obvious
-    #('E-ISSN', ['eISSN']), #NA
-    ('Type of publication', ['Article Type']),
-    ('Article title', ['Article Title']),
-    #('Date of publication', ['Online Publication Date']), #NA
-    #('Date of APC payment', #NA
-    ('APC paid (actual currency) excluding VAT', ['Full APC']),
-    #('Currency of APC', #NA
-    #('APC paid (£) including VAT if charged', #NA
-    #('Additional publication costs (£)', #NA
-    #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO OTHER?
-    #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
-    #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
-    ('Licence', ['License Type']),
-    #('Notes', ['Comments']) #DEFAULT TO "WILEY PREPAYMENT DEAL | Discount:" + 'Discount'
-    ]
-    rep2wiley = collections.OrderedDict(rep2wiley)
-
-    wiley_dict = {}
-    rejection_dict_wiley = {}
-    dateutil_wiley = dateutil.parser.parserinfo(dayfirst=True)
-    filter_date_field_wiley = 'Date'
-    request_status_field_wiley = 'Request Status'
-    exclude_titles_wiley = [
-        ## RCUK REPORT 2017
-        # 'Chromatin determinants impart camptothecin sensitivity'
-        ## COAF REPORT 2017
-        # '''Incremental Material Flow Analysis with Bayesian Inference''',
-        # '''Assessing the Impact of Germination and Sporulation Conditions on the Adhesion of Bacillus Spores to Glass and Stainless Steel by Fluid Dynamic Gauging''',
-        # '''A new Mississippian tetrapod from Fife, Scotland, and its environmental context.''',
-        # '''Causal narratives in public health: the difference between mechanisms of aetiology and mechanisms of prevention in non-communicable diseases''',
-        # '''High imensional change point estimation via sparse projection''',
-        # '''Random projection ensemble classification''',
+        springer_dict = {}
+        rejection_dict_springer = {}
+        dateutil_springer = dateutil.parser.parserinfo() ## this used to be dateutil.parser.parserinfo(dayfirst=True) for old Springer Compact reports
+        exclude_titles_springer = [
+            ### RCUK REPORT 2017
+            # 'Clinical Trials in Vasculitis',
+            # 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology',
+            # 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444',
+            # 'Hunter-Gatherers and the Origins of Religion',
+            # 'A 2-adic automorphy lifting theorem for unitary groups over CM fields',
+            # 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot',
+            # 'Hohfeldian Infinities: Why Not to Worry',
+            # 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion',
+            # 'Data processing for the sandwiched Rényi divergence: a condition for equality',
+            # 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)',
+            # 'Gender patterns in academic entrepreneurship'
+            ### COAF REPORT 2017
+            ## NOT FOUND IN ZENDESK
+            '''Do Gang Injunctions Reduce Violent Crime? Four Tests in Merseyside, UK''',
+            '''"Don't Mind the Gap!" Reflections on improvement science as a paradigm''',
+            '''Paradoxical effects of self-awareness of being observed: Testing the effect of police body-worn cameras on assaults and aggression against officers''',
+            '''KYC Optimization Using Distributed Ledger Technology''', '''Metric ultraproducts of classical groups''',
+            '''Uniformity of the late points of random walk on''',
+            '''Nowhere differentiable functions of analytic type on products of finitely connected planar domains''',
+            '''Advocacy Science: Explaining the term with case studies from biotechnology''',
+            '''Turn-taking in cooperative offspring care: by-product of individual provisioning behavior or active response rule?''',
+            '''Fetal Androgens and Human Sexual Orientation: Searching for the Elusive Link''',
+            '''The Coevolution of Play and the Cortico-Cerebellar System in Primates''',
+            '''Police Attempts to Predict Domestic Murder and Serious Assaults: Is Early Warning Possible Yet?''',
+            '''Does tracking and feedback boost patrol time in hot spots? Two tests.''',
+            '''Finite vs. Small Strain Discrete Dislocation Analysis of Cantilever Bending of Single Crystals''',
+            '''Effect of context on the contribution of individual harmonics to residue pitch''',
+            '''Preferred location for conducting filament formation in thin-film nano-ionic electrolyte: Study of microstructure by atom-probe tomography''',
+            '''Volumetric Growth Rates of Meningioma and its Correlation with Histological Diagnosis and Clinical Outcome: A Systematic Review''',
+            '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
+            '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
+            '''Comparing representations for function spaces in computable analysis''',
+            '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            ### RCUK REPORT 2018
+            ## NOT FOUND IN ZENDESK
+            '''Thermally-stable nanocrystalline steel''',
+            '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
+            '''Harvesting the Commons''',
+            '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
+            '''The fate of the method of 'paradigms' in paleobiology''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
+            '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
+            '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
+            '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
+            '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
+            '''Thermally-stable nanocrystalline steel''',
+            '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
+            '''Harvesting the Commons''',
+            '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
+            '''The fate of the method of 'paradigms' in paleobiology''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
+            '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
+            '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
+            '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
+            '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
         ]
-    import_prepayment_data_and_link_to_zd(wileyexport, wiley_dict, rejection_dict_wiley, 'DOI', 'Article Title',
-                                          filter_date_field_wiley, 'Wiley',
-                                          field_renaming_list = [('Journal Type', 'Wiley Journal Type'),
-                                                                 ('DOI', 'Wiley DOI'), ('Publisher', 'Wiley Publisher')],
-                                          dateutil_options=dateutil_wiley, exclude_titles=exclude_titles_wiley,
-                                          request_status_field=request_status_field_wiley) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
+        import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
+                                              'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
+                                              'approval requested date', # 'Online Publication Date' was previously used, but it was renamed to 'online first publication date' and has blank values for several articles
+                                              'Springer',
+                                              institution_field='membership institute', # this used to be 'Institution',
+                                              dateutil_options=dateutil_springer,
+                                              exclude_titles=exclude_titles_springer,
+                                              delim=';')
 
-    excluded_debug_file = os.path.join(working_folder, 'ART_debug_Wiley_Dashboard_rejected_records.csv')
-    wiley_reject_fieldnames = [rejection_reason_field]
-    for a in prepayment_debug_fields:
-        wiley_reject_fieldnames.append(a)
-    for a in wileyfieldnames:
-        wiley_reject_fieldnames.append(a)
-    debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_wiley, wiley_reject_fieldnames)
+        excluded_debug_file = os.path.join(working_folder, 'ART_debug_Springer_Compact_rejected_records.csv')
+        springer_reject_fieldnames = [rejection_reason_field]
+        for a in prepayment_debug_fields:
+            springer_reject_fieldnames.append(a)
+        for a in springerfieldnames:
+            springer_reject_fieldnames.append(a)
+        #pprint(rejection_dict_springer)
+        debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_springer, springer_reject_fieldnames)
 
-    wiley_out_dict = match_datasource_fields_to_report_fields(wiley_dict, rep2wiley, default_deal = 'Other', default_notes = 'Wiley prepayment discount')
+        springer_out_dict = match_datasource_fields_to_report_fields(springer_dict, rep2springer,
+                                                                     'Springer', 'Article', 'Springer Compact',
+                                                                     'Springer Compact')
 
-    # for a in wiley_dict:
-    #     print(wiley_dict[a].keys())
-    #     print('DOI', wiley_dict[a]['Wiley DOI'])
-    #     print('Publisher:', wiley_dict[a]['Wiley Publisher'])
+        report_fieldnames += ['Is there an APC payment? [list]']
+        with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
+            writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
+            #~ writer.writeheader()
+            for doi in springer_out_dict:
+                if 'Date of publication' in springer_out_dict[doi].keys():
+                    publication_date = springer_out_dict[doi]['Date of publication']
+                    publication_date = dateutil.parser.parse(publication_date, dateutil_springer)
+                    springer_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
+                if 'Date of acceptance' in springer_out_dict[doi].keys():
+                    acceptance_date = dateutil.parser.parse(springer_out_dict[doi]['Date of acceptance'], dateutil_springer)
+                    springer_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
+                writer.writerow(springer_out_dict[doi])
 
-    with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
-        writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
-        #~ writer.writeheader()
-        for doi in wiley_out_dict:
-            if 'Date of acceptance' in wiley_out_dict[doi].keys():
-                acceptance_date = dateutil.parser.parse(wiley_out_dict[doi]['Date of acceptance'], dateutil_wiley)
-                wiley_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
-            writer.writerow(wiley_out_dict[doi])
+        plog('STATUS: Finished processing Springer Compact entries')
 
-    plog('STATUS: Finished processing Wiley Dashboard entries')
-
-    ###OUP
-    ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
-    rep2oup = [
-    ('Date of acceptance', ['Accepted For Publication', 'Approved For Publication']),
-    #('PubMed ID', #NA
-    ('DOI', ['Doi']),
-    #('Publisher', #NOT A VARIABLE; DEFAULT TO OUP
-    ('Journal', ['Journal Name']),
-    #('E-ISSN', ['eISSN']), #NA
-    #('Type of publication', #NOT A VARIABLE; DEFAULT TO ARTICLE
-    ('Article title', ['Manuscript Title']),
-    ('Date of publication', ['Issue Online']),
-    ('Date of APC payment', ['Referral Date']),
-    #('APC paid (actual currency) excluding VAT', ['Journal APC']), #NA COULD BE CALCULATED
-    ('Currency of APC', ['Currency']),
-    ('APC paid (£) including VAT if charged', ['Charge Amount']),
-    #('Additional publication costs (£)', #NA
-    #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO OTHER
-    #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
-    #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
-    ('Licence', ['OUP Licence', 'Licence']),
-    #('Notes', ['Comments']) #DEFAULT TO OUP PREPAYMENT DEAL
-    ]
-    rep2oup = collections.OrderedDict(rep2oup)
-
-    oup_dict = {}
-    rejection_dict_oup = {}
-    dateutil_oup = dateutil.parser.parserinfo() # Used for RCUK report but no longer valid: dateutil.parser.parserinfo(dayfirst=True)
-    filter_date_field_oup = 'Referral Date'
-    request_status_field_oup = 'Status'
-    exclude_titles_oup = [
-        ## RCUK REPORT 2017
-        # 'A RELIGION OF LIFE?', 'MendelianRandomization: an R package for performing Mendelian randomization analyses using summarized data',
-        # 'Being Well, Looking Ill: Childbirth and the Return to Health in Seventeenth-Century England'
-        ## COAF REPORT 2017
-        # '''Rethinking folk culture in twentieth-century Britain''',
-        # '''The thickness of the mushy layer on the floor of the Skaergaard magma chamber at apatite saturation''',
-        # '''?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark''',
-        # '''Blocking Strategies and Stability of Particle Gibbs Samplers''',
-        # '''A.J. Nickerson on Hardy''',
+    if parse_wiley_dashboard:
+        ### WILEY
+        ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
+        rep2wiley = [
+        ('Date of acceptance', ['Article Accepted Date']),
+        #('PubMed ID', #NA
+        ('DOI', ['Wiley DOI']),             ## Fields in Wiley report are 'DOI' and 'Publisher', but I had to append 'Wiley ' to these two lines
+        ('Publisher', ['Wiley Publisher']), ## because ART has a mechanism that prevents existing fields (e.g. comming from zd) from being overwritten
+        ('Journal', ['Journal']),           ## by data from prepayment deals; this is something that probably needs revising because it is confusing, not obvious
+        #('E-ISSN', ['eISSN']), #NA
+        ('Type of publication', ['Article Type']),
+        ('Article title', ['Article Title']),
+        #('Date of publication', ['Online Publication Date']), #NA
+        #('Date of APC payment', #NA
+        ('APC paid (actual currency) excluding VAT', ['Full APC']),
+        #('Currency of APC', #NA
+        #('APC paid (£) including VAT if charged', #NA
+        #('Additional publication costs (£)', #NA
+        #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO OTHER?
+        #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
+        #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
+        ('Licence', ['License Type']),
+        #('Notes', ['Comments']) #DEFAULT TO "WILEY PREPAYMENT DEAL | Discount:" + 'Discount'
         ]
-    import_prepayment_data_and_link_to_zd(oupexport, oup_dict, rejection_dict_oup, 'Doi', 'Manuscript Title',
-                                          filter_date_field_oup, 'OUP',
-                                          field_renaming_list = [('Status', 'OUP Status'), ('Licence', 'OUP Licence')],
-                                          dateutil_options=dateutil_oup, exclude_titles=exclude_titles_oup,
-                                          request_status_field=request_status_field_oup) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
+        rep2wiley = collections.OrderedDict(rep2wiley)
 
-    excluded_debug_file = os.path.join(working_folder, 'ART_debug_OUP_Prepayment_rejected_records.csv')
-    oup_reject_fieldnames = [rejection_reason_field]
-    for a in prepayment_debug_fields:
-        oup_reject_fieldnames.append(a)
-    for a in oupfieldnames:
-        oup_reject_fieldnames.append(a)
-    debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_oup, oup_reject_fieldnames)
+        wiley_dict = {}
+        rejection_dict_wiley = {}
+        dateutil_wiley = dateutil.parser.parserinfo(dayfirst=True)
+        filter_date_field_wiley = 'Date'
+        request_status_field_wiley = 'Request Status'
+        exclude_titles_wiley = [
+            ## RCUK REPORT 2017
+            # 'Chromatin determinants impart camptothecin sensitivity'
+            ## COAF REPORT 2017
+            # '''Incremental Material Flow Analysis with Bayesian Inference''',
+            # '''Assessing the Impact of Germination and Sporulation Conditions on the Adhesion of Bacillus Spores to Glass and Stainless Steel by Fluid Dynamic Gauging''',
+            # '''A new Mississippian tetrapod from Fife, Scotland, and its environmental context.''',
+            # '''Causal narratives in public health: the difference between mechanisms of aetiology and mechanisms of prevention in non-communicable diseases''',
+            # '''High imensional change point estimation via sparse projection''',
+            # '''Random projection ensemble classification''',
+            ]
+        import_prepayment_data_and_link_to_zd(wileyexport, wiley_dict, rejection_dict_wiley, 'DOI', 'Article Title',
+                                              filter_date_field_wiley, 'Wiley',
+                                              field_renaming_list = [('Journal Type', 'Wiley Journal Type'),
+                                                                     ('DOI', 'Wiley DOI'), ('Publisher', 'Wiley Publisher')],
+                                              dateutil_options=dateutil_wiley, exclude_titles=exclude_titles_wiley,
+                                              request_status_field=request_status_field_wiley) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
 
-    oup_out_dict = match_datasource_fields_to_report_fields(oup_dict, rep2oup, 'Oxford University Press', 'Article', 'Other', 'Oxford University Press prepayment discount')
+        excluded_debug_file = os.path.join(working_folder, 'ART_debug_Wiley_Dashboard_rejected_records.csv')
+        wiley_reject_fieldnames = [rejection_reason_field]
+        for a in prepayment_debug_fields:
+            wiley_reject_fieldnames.append(a)
+        for a in wileyfieldnames:
+            wiley_reject_fieldnames.append(a)
+        debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_wiley, wiley_reject_fieldnames)
 
-    with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
-        writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
-        #~ writer.writeheader()
-        for doi in oup_out_dict:
-            if 'Date of acceptance' in oup_out_dict[doi].keys():
-                acceptance_date = dateutil.parser.parse(oup_out_dict[doi]['Date of acceptance'], dateutil_oup)
-                oup_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
-            if 'Date of publication' in oup_out_dict[doi].keys():
-                publication_date = dateutil.parser.parse(oup_out_dict[doi]['Date of publication'])
-                oup_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
-            if 'Date of APC payment' in oup_out_dict[doi].keys():
-                payment_date = dateutil.parser.parse(oup_out_dict[doi]['Date of APC payment'])
-                oup_out_dict[doi]['Date of APC payment'] = payment_date.strftime('%Y-%m-%d')
-            writer.writerow(oup_out_dict[doi])
+        wiley_out_dict = match_datasource_fields_to_report_fields(wiley_dict, rep2wiley, default_deal = 'Other', default_notes = 'Wiley prepayment discount')
 
-    plog('STATUS: Finished processing OUP Prepayment entries')
+        # for a in wiley_dict:
+        #     print(wiley_dict[a].keys())
+        #     print('DOI', wiley_dict[a]['Wiley DOI'])
+        #     print('Publisher:', wiley_dict[a]['Wiley Publisher'])
+
+        with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
+            writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
+            #~ writer.writeheader()
+            for doi in wiley_out_dict:
+                if 'Date of acceptance' in wiley_out_dict[doi].keys():
+                    acceptance_date = dateutil.parser.parse(wiley_out_dict[doi]['Date of acceptance'], dateutil_wiley)
+                    wiley_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
+                writer.writerow(wiley_out_dict[doi])
+
+        plog('STATUS: Finished processing Wiley Dashboard entries')
+
+    if parse_oup_prepayment:
+        ###OUP
+        ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
+        rep2oup = [
+        ('Date of acceptance', ['Accepted For Publication', 'Approved For Publication']),
+        #('PubMed ID', #NA
+        ('DOI', ['Doi']),
+        #('Publisher', #NOT A VARIABLE; DEFAULT TO OUP
+        ('Journal', ['Journal Name']),
+        #('E-ISSN', ['eISSN']), #NA
+        #('Type of publication', #NOT A VARIABLE; DEFAULT TO ARTICLE
+        ('Article title', ['Manuscript Title']),
+        ('Date of publication', ['Issue Online']),
+        ('Date of APC payment', ['Referral Date']),
+        #('APC paid (actual currency) excluding VAT', ['Journal APC']), #NA COULD BE CALCULATED
+        ('Currency of APC', ['Currency']),
+        ('APC paid (£) including VAT if charged', ['Charge Amount']),
+        #('Additional publication costs (£)', #NA
+        #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO OTHER
+        #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
+        #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
+        ('Licence', ['OUP Licence', 'Licence']),
+        #('Notes', ['Comments']) #DEFAULT TO OUP PREPAYMENT DEAL
+        ]
+        rep2oup = collections.OrderedDict(rep2oup)
+
+        oup_dict = {}
+        rejection_dict_oup = {}
+        dateutil_oup = dateutil.parser.parserinfo() # Used for RCUK report but no longer valid: dateutil.parser.parserinfo(dayfirst=True)
+        filter_date_field_oup = 'Referral Date'
+        request_status_field_oup = 'Status'
+        exclude_titles_oup = [
+            ## RCUK REPORT 2017
+            # 'A RELIGION OF LIFE?', 'MendelianRandomization: an R package for performing Mendelian randomization analyses using summarized data',
+            # 'Being Well, Looking Ill: Childbirth and the Return to Health in Seventeenth-Century England'
+            ## COAF REPORT 2017
+            # '''Rethinking folk culture in twentieth-century Britain''',
+            # '''The thickness of the mushy layer on the floor of the Skaergaard magma chamber at apatite saturation''',
+            # '''?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark''',
+            # '''Blocking Strategies and Stability of Particle Gibbs Samplers''',
+            # '''A.J. Nickerson on Hardy''',
+            ]
+        import_prepayment_data_and_link_to_zd(oupexport, oup_dict, rejection_dict_oup, 'Doi', 'Manuscript Title',
+                                              filter_date_field_oup, 'OUP',
+                                              field_renaming_list = [('Status', 'OUP Status'), ('Licence', 'OUP Licence')],
+                                              dateutil_options=dateutil_oup, exclude_titles=exclude_titles_oup,
+                                              request_status_field=request_status_field_oup) #field_renaming_list is a list of tuples in the form (<original field in inputfile>, <new name for field in inputfile to avoid conflict with fieldnames in zd_dict>)
+
+        excluded_debug_file = os.path.join(working_folder, 'ART_debug_OUP_Prepayment_rejected_records.csv')
+        oup_reject_fieldnames = [rejection_reason_field]
+        for a in prepayment_debug_fields:
+            oup_reject_fieldnames.append(a)
+        for a in oupfieldnames:
+            oup_reject_fieldnames.append(a)
+        debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_oup, oup_reject_fieldnames)
+
+        oup_out_dict = match_datasource_fields_to_report_fields(oup_dict, rep2oup, 'Oxford University Press', 'Article', 'Other', 'Oxford University Press prepayment discount')
+
+        with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
+            writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
+            #~ writer.writeheader()
+            for doi in oup_out_dict:
+                if 'Date of acceptance' in oup_out_dict[doi].keys():
+                    acceptance_date = dateutil.parser.parse(oup_out_dict[doi]['Date of acceptance'], dateutil_oup)
+                    oup_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
+                if 'Date of publication' in oup_out_dict[doi].keys():
+                    publication_date = dateutil.parser.parse(oup_out_dict[doi]['Date of publication'])
+                    oup_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
+                if 'Date of APC payment' in oup_out_dict[doi].keys():
+                    payment_date = dateutil.parser.parse(oup_out_dict[doi]['Date of APC payment'])
+                    oup_out_dict[doi]['Date of APC payment'] = payment_date.strftime('%Y-%m-%d')
+                writer.writerow(oup_out_dict[doi])
+
+        plog('STATUS: Finished processing OUP Prepayment entries')
 
     # NOW LET'S EXPORT A CSV OF DOIS TO UPLOAD TO https://compliance.cottagelabs.com
     # FIX THIS ONE MANUALLY ON THE OUTPUT CSV: http:/​/​dx.​doi.​org/​10.​1104/​pp.​16.​00539
