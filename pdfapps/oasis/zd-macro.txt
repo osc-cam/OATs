@@ -94,6 +94,7 @@
         {% elsif ticket.ticket_field_46241307 == 'vejf_judb_iop_fund' %}{\mbox{\begin{tabular}{ll}\VEJFJUDB\transactionTWO \\ \VEJFJUDB\transaction\end{tabular}}}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejj_judb' %}{\mbox{\begin{tabular}{ll}\VEJJJUDB\transactionTWO \\ \VEJJJUDB\transaction\end{tabular}}}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejk_judb' %}{\mbox{\begin{tabular}{ll}\VEJKJUDB\transactionTWO \\ \VEJKJUDB\transaction\end{tabular}}}
+        {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_054_rg96299' %}{\mbox{\begin{tabular}{ll}\RCUKeighteen\transactionTWO \\ \RCUKeighteen\transaction\end{tabular}}}
         {% else%}{\ERROR{RCUK cost centre not recognized}}{% endif %}
     {% else %}
         {% if ticket.ticket_field_46241307 == 'rcuk_cost_centre_veje_judb' %}{\VEJEJUDB\transaction}
@@ -101,6 +102,7 @@
         {% elsif ticket.ticket_field_46241307 == 'vejf_judb_iop_fund' %}{\VEJFJUDB\transaction}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejj_judb' %}{\VEJJJUDB\transaction}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejk_judb' %}{\VEJKJUDB\transaction}
+        {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_054_rg96299' %}{\RCUKeighteen\transaction}
         {% else%}{\ERROR{RCUK cost centre not recognized}}{% endif %}
     {% endif %}
 }{% else %}{}

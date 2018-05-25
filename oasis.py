@@ -194,7 +194,7 @@ while a not in ["y", "Y", "yes", "YES"]:
     a = input("Have you finished stamping the invoice? (y/n) (or q to quit)")
 
 # EXTRACT INVOICE DATE AND ADD WARNING ABOUT OLD INVOICE IF NEEDED
-varinput = open(invoicevarfile, 'r')
+varinput = open(invoicevarfile, 'r', encoding='utf-8')
 varcontent = varinput.read()
 varinput.close()
 tinvdate = re.compile("INVOICE DATE: .+")
@@ -350,7 +350,7 @@ if oldestinvoicemodtime + maxprintdelaysecs < timenow:
 
 end_time = time.time()
 processing_time = end_time - start_time
-with open(logcsv, 'a') as csvfile:
+with open(logcsv, 'a', encoding='utf-8', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow([refno, invno, publisher, invtype, agent, start_time, end_time, processing_time])
 
