@@ -225,7 +225,7 @@ def output_debug_info(outcsv, row_dict, csvheader = []):
     :param csvheader: the header of the CSV file
     '''
     with open(outcsv, 'a') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=csvheader)
+        writer = csv.DictWriter(csvfile, fieldnames=csvheader, extrasaction='ignore')
         writer.writerow(row_dict)
 
 rejected_rcuk_payment_dict = {}
@@ -381,7 +381,7 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                         key = 'not_JUDB_payment_' + str(row_counter)
                         if funder == 'RCUK':
                             rejected_rcuk_payment_dict[key] = row
-                        debug_filename = nonJUDB_payment_file_prefix + paymentsfile
+                        debug_filename = os.path.join(working_folder, nonJUDB_payment_file_prefix + paymentsfile.split('/')[-1])
                         output_debug_info(debug_filename, row, fileheader)
                 else:
                 ##PAYMENTS SPREADSHEET DOES NOT CONTAIN TRANSACTION FIELD
@@ -1364,7 +1364,7 @@ def action_populate_report_fields():
 
     zd_fund_field_list = ['RCUK payment [flag]', 'COAF payment [flag]', 'Other institution payment [flag]',
                           'Grant payment [flag]', 'Voucher/membership/offset payment [flag]',
-                          'Author/department payment [flag]', 'Wellcome payment [flag]',
+                          'Author/department payment [flag]', #'Wellcome payment [flag]',
                           'Wellcome Supplement Payment [flag]']
 
     rep_funders = ['Funder of research (1)', 'Funder of research (2)', 'Funder of research (3)']
@@ -1432,7 +1432,20 @@ def action_manually_filter_and_export_to_report_csv():
 ###MANUAL FIXES FOR PAYMENT FILES
 zd_number_typos = {'30878':'50878'}
 oa_number_typos = {'OA 10768':'OA 10468'}
-description2zd_number = {"OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490', 'REV CHRG/ACQ TAX PD 04/16;  INV NO:Polymers-123512SUPPLIER:  MDPI AG' : '15589'}
+description2zd_number = {
+    "OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490',
+    'REV CHRG/ACQ TAX PD 04/16;  INV NO:Polymers-123512SUPPLIER:  MDPI AG' : '15589',
+    'REV CHARGE AUG17  Supplier:  MDPI AG   Inv no:  remotesensing-207827' : '105991',
+    'Rev chrg Dec 17  Supplier:  MDPI AG   Inv no:  ijerph-227528' : '138201',
+    'Rev chrg Nov 17  Supplier:  MDPI AG   Inv no:  ijerph-210685' : '128036',
+    'Rev chrg Jan 18  Supplier:  MDPI AG   Inv no:  jdb-242384' : '146827',
+    'Rev chrg Jan 18  Supplier:  MDPI AG   Inv no:  water-235278' : '146445',
+    'Rev chrg Jan 18  Supplier:  PUBLIC LIBRARY OF SCIENCE   Inv no:  PAB214162' : '153727',
+    'PARTIAL REFUND FOR INVOICE 8085013' : '118609',
+    'PARTIAL REFUND FOR INVOICE 1227288' : '156223',
+    'Rev chrg Feb 18  Supplier:  THE JAPAN SOCIETY OF APPLIED PHYSICS   Inv no:  20171061P' : '143646',
+    'Rev chrg Feb 18  Supplier:  THE JAPAN SOCIETY OF APPLIED PHYSICS   Inv no:  20176389' : '143646'
+}
 invoice2zd_number = {
     ##INPUT FOR RCUK 2017 REPORT
     'APC502145176':'48547',
@@ -1484,10 +1497,11 @@ outputfile = os.path.join(working_folder, "RCUK_report_draft.csv")
 excluded_recs_logfile = os.path.join(working_folder, "RCUK_report_excluded_records.csv")
 rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
 rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31.csv")
-rcuk_vejj = os.path.join(working_folder, "VEJJ_2017-10-31.csv")
+rcuk_vejj = os.path.join(working_folder, "VEJJ_2018-05-26.csv")
 rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
-merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
+#merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
+merge_csv_files([rcuk_vejj], rcuk_paymentsfile)
 coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12.csv')
 coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-04-12.csv')
 coaf_paymentsfilename = "COAF_merged_payments_file.csv"
@@ -1593,8 +1607,8 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    parse_invoice_data = False
-    parse_springer_compact = True
+    parse_invoice_data = True
+    parse_springer_compact = False
     parse_wiley_dashboard = False
     parse_oup_prepayment = False
     ############################ACTION STARTS HERE##################################
