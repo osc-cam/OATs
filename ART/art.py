@@ -140,6 +140,25 @@ manual_title2zd_dict = {
     # 'Prognostic models for identifying adults with intellectual disabilities and mealtime support needs who are at greatest risk of respiratory infection and emergency hospitalization' : '74902',
     # 'Using predictions from a joint model for longitudinal and survival data to inform the optimal time of intervention in an abdominal aortic aneurysm screening programme' : '72229',
     # 'Markov models for ocular fixation locations in the pres- ence and absence of colour' : '69352',
+    #INPUT FOR RCUK 2018 REPORT
+    'Anomalous Diffusion-Assisted Brightness in White Cellulose Nanofibril Membranes' : '157022', # matched by ART to wrong ZD ticket (usually dataset supporting...)
+    'A New Versatile Route to Unstable Diazo Compounds via Oxadiazolines and Use In Aryl-Alkyl Cross-Coupling Reactions' : '133470', # matched by ART to wrong ZD ticket (usually dataset supporting...)
+    'On Chip Andreev Devices: hard Superconducting Gap and Quantum Transport in Ballistic Nb-In0.75Ga0.25As quantum well-Nb Josephson junctions' : '96458', # matched by ART to wrong ZD ticket (usually dataset supporting...)
+    'Extracting Crystal Chemistry from Amorphous Carbon Structures' : '69685', # matched by ART to wrong ZD ticket (usually dataset supporting...)
+    'The anti-feminist reconstruction of the midlife crisis: Popular psychology, journalism, and social science in 1970s America' : '153923', # match not found by ART
+    'Kv4.2 channel activity controls intrinsic firing dynamics of arcuate kisspeptin neurons' : '143299', # match not found by ART
+    'Understanding LiOH Chemistry in a Ruthenium Catalyzed Li-O2 Battery' : '130559', # match not found by ART
+    'Enhanced permeability and binding activity of isobutylene-grafted peptides' : '133734', # match not found by ART
+    'A Lewis Base Catalysis Approach for the Photoredox Activation of Boronic Acidsand Esters' : '127851', # match not found by ART
+    'Inkjet printed nanocavities on a photonic crystal template' : '116287', # match not found by ART
+    'Meta Selective C-H Borylation of Benzylamine, Phenethylamine and Phenylpropylamine-Derived Amides Enabled by a Single Anionic Ligand' : '114744', # match not found by ART
+    'A Faustian bargain for universities?' : '109023', # match not found by ART (Wiley error: Article title: LncRNA GAS5 inhibits microglial M2 polarization and exacerbates demyelination)
+    'Strongly Enhanced Photovoltaic Performance and Defect Physics of Air-Stable Bismuth Oxyiodide (BiO' : '91052', # match not found by ART
+    'High imensional change point estimation via sparse projection' : '98711', # match not found by ART
+    'MMP-13 binds to platelet receptors αIIbβ3 and GPVI and impairs aggregation and thrombus formation' : '164103', # match not found by ART
+    'Random projection ensemble classification' : '78583', # match not found by ART
+    'Specificity effects of amino acid substitutions in promiscuous hydrolases-context-dependence of catalytic residue contributions to local fitness landscapes in nearby sequence space' : '71156', # match not found by ART
+    'Lymphotoxin and lipopolysaccharide induce NF‐κB‐p52 generation by a co‐translational mechanism' : '127412', # match not found by ART (Wiley error: Article title: Transposon-driven transcription is a conserved feature of vertebrate spermatogenesis and transcript evolution)
     ###OUP
     'Changes over time in the health and functioning of older people moving into care homes: Analysis of data from the English Longitudinal Study of Ageing' : '76550',
     'Disease-free and overall survival at 3.5 years for neoadjuvant bevacizumab added to docetaxel followed by fluorouracil, epirubicin and cyclophosphamide, for women with HER2 negative early breast cancer: ARTemis Trial.' : '81145',
@@ -1521,7 +1540,7 @@ springercompactexport = os.path.join(working_folder, "article_approval_2017-04-0
 wileyrcukcoaf = os.path.join(working_folder, "Wiley_RCUK_COAF_ArticleHistoryReport.csv")
 wileycredit = os.path.join(working_folder, "Wiley_CREDIT_ArticleHistoryReport.csv")
 wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
-# merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
+merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
 oupexport = os.path.join(working_folder, "OUP OA Charge Data.csv")
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
 report_start_date = datetime.datetime(2017, 4, 1) #(2016, 10, 1) COAF
@@ -1607,9 +1626,9 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    parse_invoice_data = True
+    parse_invoice_data = False
     parse_springer_compact = False
-    parse_wiley_dashboard = False
+    parse_wiley_dashboard = True
     parse_oup_prepayment = False
     ############################ACTION STARTS HERE##################################
 
