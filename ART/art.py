@@ -170,6 +170,9 @@ manual_title2zd_dict = {
     'Cancer Hallmarks Analytics Tool (CHAT): A text mining approach to organise and evaluate scientific literature on cancer' : '100405',
     'A.J. Nickerson on Hardy' : '92942', #Hardy’s Apprehensions
     '?What Utopia Would Feel Like?: Lars Von Trier?s ?Dancer in the Dark' : '39170',
+    #INPUT FOR RCUK 2018 REPORT
+    'Unexpected corporate outcomes from hedge fund activism in Japan' : '156418', # match not found by ART
+    'Dysglycaemia, inflammation and psychosis: findings from the U.K. ALSPAC birth cohort' : '174630', # match not found by ART
     }
 
 
@@ -1449,7 +1452,11 @@ def action_manually_filter_and_export_to_report_csv():
 #################################### VARIABLES ################################
 
 ###MANUAL FIXES FOR PAYMENT FILES
-zd_number_typos = {'30878':'50878'}
+zd_number_typos = {'30878':'50878',
+                   '106512':'109512',
+                   '116243':'119243',
+                   '164388':'164338'
+                   }
 oa_number_typos = {'OA 10768':'OA 10468'}
 description2zd_number = {
     "OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490',
@@ -1529,10 +1536,11 @@ merge_csv_files([coaf_veag050, coaf_veag052], coaf_paymentsfile)
 zenexport = os.path.join(working_folder, "export-2018-05-11-2224-234063-360000059214d5cd.csv")
 zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-05-25-2207.csv")
 apolloexport = os.path.join(working_folder, "Apollo_all_items-20180525.csv")
-cottagelabsDoisResult = os.path.join(working_folder, "DOIs_for_cottagelabs_2017-11-21_results_edited.csv")
+cottagelabsDoisResult = os.path.join(working_folder, "DOIs_for_cottagelabs_results.csv")
 cottagelabsTitlesResult =  os.path.join(working_folder, "Titles_for_cottagelabs_2017-11-21_results_edited.csv")
 cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
 # merge_csv_files([cottagelabsDoisResult, cottagelabsTitlesResult], cottagelabsexport)
+merge_csv_files([cottagelabsDoisResult], cottagelabsexport)
 # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
 # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
 springercompactexport = os.path.join(working_folder, "article_approval_2017-04-01_to_2018-03-31.csv")
@@ -1626,10 +1634,11 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    parse_invoice_data = False
-    parse_springer_compact = False
+    parse_invoice_data = True
+    parse_springer_compact = True
     parse_wiley_dashboard = True
-    parse_oup_prepayment = False
+    parse_oup_prepayment = True
+    estimate_green_compliance = True
     ############################ACTION STARTS HERE##################################
 
     #~ tempfieldnames = extract_csv_header(zenexport)
@@ -1673,66 +1682,67 @@ if __name__ == '__main__':
     plog('STATUS: plugging in data from zendesk date fields into zd_dict', terminal=True)
     plug_in_metadata(zendatefields, 'id', zd2zd_dict)
 
-    # #### ESTIMATE COMPLIANCE VIA GREEN ROUTE
-    # plog('STATUS: estimating compliance via the green route', terminal=True)
-    # ### TAKE A SAMPLE OF OUTPUTS COVERED BY THE RCUK POLICY AND PUBLISHED DURING THE REPORTING PERIOD
-    # ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES OR "WRONG VERSION"
-    # rcuk_dict = {}
-    # for a in zd_dict:
-    #     row = zd_dict[a]
-    #     rcuk_policy = row['RCUK policy [flag]']
-    #     ticket_creation = dateutil.parser.parse(row['Created at'])
-    #     wrong_version = row['Wrong version [flag]']
-    #     dup = row['Duplicate [flag]']
-    #     #~ if not row['Online Publication Date (YYYY-MM-DD) [txt]'] == '-':
-    #         #~ try:
-    #             #~ publication_date = dateutil.parser.parse(row['Online Publication Date (YYYY-MM-DD) [txt]'].replace('--','-'))
-    #         #~ except ValueError:
-    #             #~ print(row['Online Publication Date (YYYY-MM-DD) [txt]'])
-    #             #~ raise
-    #     #~ else:
-    #         #~ try:
-    #             #~ if not row['Publication Date (YYYY-MM-DD) [txt]'] == '-':
-    #                 #~ publication_date = dateutil.parser.parse(row['Publication Date (YYYY-MM-DD) [txt]'])
-    #             #~ else:
-    #                 #~ publication_date = datetime.datetime(2100, 1, 1)
-    #         #~ except KeyError:
-    #             #~ publication_date = datetime.datetime(2100, 1, 1)
-    #     if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (green_start_date <= ticket_creation <= green_end_date):
-    #         rcuk_dict[a] = zd_dict[a]
-    #
-    # ## CHECK HOW MANY OF THOSE ARE GOLD, GREEN OR UNKNOWN
-    # green_dict = {}
-    # gold_dict = {}
-    # green_counter = 0
-    # gold_counter = 0
-    # apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact']
-    # WoS_total = 2400 #From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
-    # for a in rcuk_dict:
-    #     row = rcuk_dict[a]
-    #     apc_payment = row['Is there an APC payment? [list]']
-    #     green_version = row['Green allowed version [list]']
-    #     embargo = row['Embargo duration [list]']
-    #     green_licence = row['Green licence [list]']
-    #     if apc_payment in apc_payment_values:
-    #         gold_counter += 1
-    #         gold_dict[a] = rcuk_dict[a]
-    #     else:
-    #         green_counter += 1
-    #         green_dict[a] = rcuk_dict[a]
-    #
-    # rcuk_papers_total = gold_counter + green_counter
-    #
-    # plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES:', terminal = True)
-    # plog(str(rcuk_papers_total), 'ZD tickets covered by the RCUK open access policy were created during the green reporting period, of which:', terminal=True)
-    # plog(str(gold_counter), '(' + str(gold_counter / rcuk_papers_total) + ') tickets were placed in the GOLD route to comply with the policy', terminal=True)
-    # plog(str(green_counter), '(' + str(green_counter / rcuk_papers_total) + ') tickets were placed in the GREEN route to comply with the policy', terminal=True)
-    # plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES AS A RATIO OF WoS TOTAL:', terminal = True)
-    # plog(str(WoS_total), 'papers (articles, reviews and proceedings papers) acknowledging RCUK funding were published by the University of Cambridge during the green reporting period, of which:', terminal=True)
-    # plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal = True)
-    # plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal = True)
-    #
-    # #~ raise
+
+    #### ESTIMATE COMPLIANCE VIA GREEN ROUTE
+    if estimate_green_compliance:
+        plog('STATUS: estimating compliance via the green route', terminal=True)
+        ### TAKE A SAMPLE OF OUTPUTS COVERED BY THE RCUK POLICY AND PUBLISHED DURING THE REPORTING PERIOD
+        ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES OR "WRONG VERSION"
+        rcuk_dict = {}
+        for a in zd_dict:
+            row = zd_dict[a]
+            rcuk_policy = row['RCUK policy [flag]']
+            ticket_creation = dateutil.parser.parse(row['Created at'])
+            wrong_version = row['Wrong version [flag]']
+            dup = row['Duplicate [flag]']
+            #~ if not row['Online Publication Date (YYYY-MM-DD) [txt]'] == '-':
+                #~ try:
+                    #~ publication_date = dateutil.parser.parse(row['Online Publication Date (YYYY-MM-DD) [txt]'].replace('--','-'))
+                #~ except ValueError:
+                    #~ print(row['Online Publication Date (YYYY-MM-DD) [txt]'])
+                    #~ raise
+            #~ else:
+                #~ try:
+                    #~ if not row['Publication Date (YYYY-MM-DD) [txt]'] == '-':
+                        #~ publication_date = dateutil.parser.parse(row['Publication Date (YYYY-MM-DD) [txt]'])
+                    #~ else:
+                        #~ publication_date = datetime.datetime(2100, 1, 1)
+                #~ except KeyError:
+                    #~ publication_date = datetime.datetime(2100, 1, 1)
+            if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (green_start_date <= ticket_creation <= green_end_date):
+                rcuk_dict[a] = zd_dict[a]
+
+        ## CHECK HOW MANY OF THOSE ARE GOLD, GREEN OR UNKNOWN
+        green_dict = {}
+        gold_dict = {}
+        green_counter = 0
+        gold_counter = 0
+        apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact']
+        WoS_total = 3369 #From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
+        for a in rcuk_dict:
+            row = rcuk_dict[a]
+            apc_payment = row['Is there an APC payment? [list]']
+            green_version = row['Green allowed version [list]']
+            embargo = row['Embargo duration [list]']
+            green_licence = row['Green licence [list]']
+            if apc_payment in apc_payment_values:
+                gold_counter += 1
+                gold_dict[a] = rcuk_dict[a]
+            else:
+                green_counter += 1
+                green_dict[a] = rcuk_dict[a]
+
+        rcuk_papers_total = gold_counter + green_counter
+
+        plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES:', terminal = True)
+        plog(str(rcuk_papers_total), 'ZD tickets covered by the RCUK open access policy were created during the green reporting period, of which:', terminal=True)
+        plog(str(gold_counter), '(' + str(gold_counter / rcuk_papers_total) + ') tickets were placed in the GOLD route to comply with the policy', terminal=True)
+        plog(str(green_counter), '(' + str(green_counter / rcuk_papers_total) + ') tickets were placed in the GREEN route to comply with the policy', terminal=True)
+        plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES AS A RATIO OF WoS TOTAL:', terminal = True)
+        plog(str(WoS_total), 'papers (articles, reviews and proceedings papers) acknowledging RCUK funding were published by the University of Cambridge during the green reporting period, of which:', terminal=True)
+        plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal = True)
+        plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal = True)
+
 
     #### PLUGGING IN DATA FROM THE RCUK AND COAF PAYMENTS SPREADSHEETS
     if parse_invoice_data:
@@ -2095,14 +2105,17 @@ if __name__ == '__main__':
             #~ writer.writeheader()
             for doi in oup_out_dict:
                 if 'Date of acceptance' in oup_out_dict[doi].keys():
-                    acceptance_date = dateutil.parser.parse(oup_out_dict[doi]['Date of acceptance'], dateutil_oup)
-                    oup_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
+                    if oup_out_dict[doi]['Date of acceptance'].strip():
+                        acceptance_date = dateutil.parser.parse(oup_out_dict[doi]['Date of acceptance'], dateutil_oup)
+                        oup_out_dict[doi]['Date of acceptance'] = acceptance_date.strftime('%Y-%m-%d')
                 if 'Date of publication' in oup_out_dict[doi].keys():
-                    publication_date = dateutil.parser.parse(oup_out_dict[doi]['Date of publication'])
-                    oup_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
+                    if oup_out_dict[doi]['Date of publication'].strip():
+                        publication_date = dateutil.parser.parse(oup_out_dict[doi]['Date of publication'])
+                        oup_out_dict[doi]['Date of publication'] = publication_date.strftime('%Y-%m-%d')
                 if 'Date of APC payment' in oup_out_dict[doi].keys():
-                    payment_date = dateutil.parser.parse(oup_out_dict[doi]['Date of APC payment'])
-                    oup_out_dict[doi]['Date of APC payment'] = payment_date.strftime('%Y-%m-%d')
+                    if oup_out_dict[doi]['Date of APC payment'].strip():
+                        payment_date = dateutil.parser.parse(oup_out_dict[doi]['Date of APC payment'])
+                        oup_out_dict[doi]['Date of APC payment'] = payment_date.strftime('%Y-%m-%d')
                 writer.writerow(oup_out_dict[doi])
 
         plog('STATUS: Finished processing OUP Prepayment entries')
