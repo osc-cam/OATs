@@ -9,6 +9,10 @@
 ## - ticket group is open access
 ## - RCUK and/or COAF payment ticked
 
+## Bug: using exclusion_list, this script supresses the output of any articles where 'APC paid (£) including VAT if charged'
+## is zero. This works well in most cases, but it will also exclude papers where funds were used to pay for
+## "Additional publication costs (£)" only.
+
 import os
 import re
 import csv
@@ -1470,7 +1474,11 @@ description2zd_number = {
     'PARTIAL REFUND FOR INVOICE 8085013' : '118609',
     'PARTIAL REFUND FOR INVOICE 1227288' : '156223',
     'Rev chrg Feb 18  Supplier:  THE JAPAN SOCIETY OF APPLIED PHYSICS   Inv no:  20171061P' : '143646',
-    'Rev chrg Feb 18  Supplier:  THE JAPAN SOCIETY OF APPLIED PHYSICS   Inv no:  20176389' : '143646'
+    'Rev chrg Feb 18  Supplier:  THE JAPAN SOCIETY OF APPLIED PHYSICS   Inv no:  20176389' : '143646',
+    'REV CHARGE Pd07/17  Supplier:  IVYSPRING INTERNATIONAL PUBLISHER   Inv no:  19841M2' : '87254',
+    'REV CHARGE Pd07/17  Supplier:  MDPI AG   Inv no:  MICROMACHINES-206199' : '96070',
+    'REV CHARGE Pd07/17  Supplier:  MDPI AG   Inv no:  materials-188050' : '86954',
+    'REV CHARGE Pd07/17  Supplier:  MDPI AG   Inv no:  materials-191161' : '87223',
 }
 invoice2zd_number = {
     ##INPUT FOR RCUK 2017 REPORT
@@ -1482,7 +1490,20 @@ invoice2zd_number = {
     ##INPUT FOR COAF 2017 REPORT
     '19841M2' : '87254',
     '20170117' : '50542',
-    '94189700 BANKCHRG' : '47567'
+    '94189700 BANKCHRG' : '47567',
+    ##INPUT FOR RCUK 2018 REPORT
+    'materias-191161' : '87223',
+    'materias-191161/BANK CHARGE' : '87223',
+    'materials-191161' : '87223',
+    'materials-191161/BANK CHARGE' : '87223',
+    'materials-188050' : '86954',
+    'materials-188050/ BK CHARGE' : '86954',
+    '19841M2/ BK CHRG' : '87254',
+    'MICROMACHINES-206199' : '96070',
+    'MICROMACHINES-206199/BANK CHARGE' : '96070',
+    '95319/CR' : '46300',
+    '20170720' : '98467', # ACS Membership originally linked to ZD-88325; however, it makes more sense to link it to ZD-98467
+    '20170524' : '81146',
 }
 
 lf = os.path.dirname(os.path.realpath(__file__))
@@ -1523,7 +1544,7 @@ outputfile = os.path.join(working_folder, "RCUK_report_draft.csv")
 excluded_recs_logfile = os.path.join(working_folder, "RCUK_report_excluded_records.csv")
 rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
 rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31.csv")
-rcuk_vejj = os.path.join(working_folder, "VEJJ_2018-05-26.csv")
+rcuk_vejj = os.path.join(working_folder, "VEJI_and_VEJJ_1_April_2017_to_31_March_2018_290518.csv")
 rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 #merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
@@ -1635,10 +1656,10 @@ zdfund2funderstr = {
 if __name__ == '__main__':
 
     parse_invoice_data = True
-    parse_springer_compact = True
-    parse_wiley_dashboard = True
-    parse_oup_prepayment = True
-    estimate_green_compliance = True
+    parse_springer_compact = False
+    parse_wiley_dashboard = False
+    parse_oup_prepayment = False
+    estimate_green_compliance = False
     ############################ACTION STARTS HERE##################################
 
     #~ tempfieldnames = extract_csv_header(zenexport)
