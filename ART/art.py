@@ -1695,20 +1695,6 @@ if __name__ == '__main__':
             ticket_creation = dateutil.parser.parse(row['Created at'])
             wrong_version = row['Wrong version [flag]']
             dup = row['Duplicate [flag]']
-            #~ if not row['Online Publication Date (YYYY-MM-DD) [txt]'] == '-':
-                #~ try:
-                    #~ publication_date = dateutil.parser.parse(row['Online Publication Date (YYYY-MM-DD) [txt]'].replace('--','-'))
-                #~ except ValueError:
-                    #~ print(row['Online Publication Date (YYYY-MM-DD) [txt]'])
-                    #~ raise
-            #~ else:
-                #~ try:
-                    #~ if not row['Publication Date (YYYY-MM-DD) [txt]'] == '-':
-                        #~ publication_date = dateutil.parser.parse(row['Publication Date (YYYY-MM-DD) [txt]'])
-                    #~ else:
-                        #~ publication_date = datetime.datetime(2100, 1, 1)
-                #~ except KeyError:
-                    #~ publication_date = datetime.datetime(2100, 1, 1)
             if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (green_start_date <= ticket_creation <= green_end_date):
                 rcuk_dict[a] = zd_dict[a]
 
@@ -1717,7 +1703,7 @@ if __name__ == '__main__':
         gold_dict = {}
         green_counter = 0
         gold_counter = 0
-        apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact']
+        apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact', 'Frontiers Institutional Account']
         WoS_total = 3369 #From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
         for a in rcuk_dict:
             row = rcuk_dict[a]
