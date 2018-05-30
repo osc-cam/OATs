@@ -1541,6 +1541,7 @@ with open(logfile, 'w') as log:
 
 doifile = os.path.join(working_folder, "DOIs_for_cottagelabs.csv")
 outputfile = os.path.join(working_folder, "RCUK_report_draft.csv")
+outputgreen = os.path.join(working_folder, "RCUK_report_draft-green_papers.csv")
 excluded_recs_logfile = os.path.join(working_folder, "RCUK_report_excluded_records.csv")
 rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
 rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31.csv")
@@ -1634,7 +1635,7 @@ zdfund2funderstr = {
     'Wellcome Supplement Payment [flag]' : 'Wellcome Trust',
     'ERC [flag]' : 'ERC',
     'Arthritis Research UK [flag]' : 'Arthritis Research UK',
-    'Breast Cancer Campaign [flag]' : 'Breast Cancer Campaign',
+    'Breast Cancer Now (Breast Cancer Campaign) [flag]' : 'Breast Cancer Campaign',
     "Parkinson's UK [flag]" : "Parkinson's UK",
     'ESRC [flag]' : 'ESRC',
     'NERC [flag]' : 'NERC' ,
@@ -1655,11 +1656,12 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    parse_invoice_data = True
+    parse_invoice_data = False
     parse_springer_compact = False
     parse_wiley_dashboard = False
     parse_oup_prepayment = False
     estimate_green_compliance = False
+    list_green_papers = True
     ############################ACTION STARTS HERE##################################
 
     #~ tempfieldnames = extract_csv_header(zenexport)
@@ -1702,54 +1704,6 @@ if __name__ == '__main__':
     #### PLUGGING IN DATA FROM ZENDESK DATE FIELDS
     plog('STATUS: plugging in data from zendesk date fields into zd_dict', terminal=True)
     plug_in_metadata(zendatefields, 'id', zd2zd_dict)
-
-
-    #### ESTIMATE COMPLIANCE VIA GREEN ROUTE
-    if estimate_green_compliance:
-        plog('STATUS: estimating compliance via the green route', terminal=True)
-        ### TAKE A SAMPLE OF OUTPUTS COVERED BY THE RCUK POLICY AND PUBLISHED DURING THE REPORTING PERIOD
-        ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES OR "WRONG VERSION"
-        rcuk_dict = {}
-        for a in zd_dict:
-            row = zd_dict[a]
-            rcuk_policy = row['RCUK policy [flag]']
-            ticket_creation = dateutil.parser.parse(row['Created at'])
-            wrong_version = row['Wrong version [flag]']
-            dup = row['Duplicate [flag]']
-            if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (green_start_date <= ticket_creation <= green_end_date):
-                rcuk_dict[a] = zd_dict[a]
-
-        ## CHECK HOW MANY OF THOSE ARE GOLD, GREEN OR UNKNOWN
-        green_dict = {}
-        gold_dict = {}
-        green_counter = 0
-        gold_counter = 0
-        apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact', 'Frontiers Institutional Account']
-        WoS_total = 3369 #From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
-        for a in rcuk_dict:
-            row = rcuk_dict[a]
-            apc_payment = row['Is there an APC payment? [list]']
-            green_version = row['Green allowed version [list]']
-            embargo = row['Embargo duration [list]']
-            green_licence = row['Green licence [list]']
-            if apc_payment in apc_payment_values:
-                gold_counter += 1
-                gold_dict[a] = rcuk_dict[a]
-            else:
-                green_counter += 1
-                green_dict[a] = rcuk_dict[a]
-
-        rcuk_papers_total = gold_counter + green_counter
-
-        plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES:', terminal = True)
-        plog(str(rcuk_papers_total), 'ZD tickets covered by the RCUK open access policy were created during the green reporting period, of which:', terminal=True)
-        plog(str(gold_counter), '(' + str(gold_counter / rcuk_papers_total) + ') tickets were placed in the GOLD route to comply with the policy', terminal=True)
-        plog(str(green_counter), '(' + str(green_counter / rcuk_papers_total) + ') tickets were placed in the GREEN route to comply with the policy', terminal=True)
-        plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES AS A RATIO OF WoS TOTAL:', terminal = True)
-        plog(str(WoS_total), 'papers (articles, reviews and proceedings papers) acknowledging RCUK funding were published by the University of Cambridge during the green reporting period, of which:', terminal=True)
-        plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal = True)
-        plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal = True)
-
 
     #### PLUGGING IN DATA FROM THE RCUK AND COAF PAYMENTS SPREADSHEETS
     if parse_invoice_data:
@@ -1843,6 +1797,102 @@ if __name__ == '__main__':
                                "Is there an APC payment? [list]"
                                ]
 
+    #### LIST GREEN PAPERS
+    if list_green_papers or estimate_green_compliance:
+        ## TAKE A SAMPLE OF ZD TICKETS CREATED DURING REPORTING PERIOD, COVERED BY THE RCUK POLICY
+        ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES AND 'APC ALREADY PAID?'
+        rcuk_dict = {}
+        for a in zd_dict:
+            row = zd_dict[a]
+            rcuk_policy = row['RCUK policy [flag]']
+            apc_already_paid = row['APC already paid? [flag]']
+            ticket_creation = dateutil.parser.parse(row['Created at'])
+            dup = row['Duplicate [flag]']
+            apc_payment = row['Is there an APC payment? [list]']
+            apc_payment_values = ['Yes', 'Wiley Dashboard', 'OUP Prepayment Account', 'Springer Compact',
+                                  'Frontiers Institutional Account']
+            if (rcuk_policy == 'yes') and (dup != 'yes') and (apc_already_paid != 'yes') and (
+                apc_payment not in apc_payment_values) and (report_start_date <= ticket_creation <= report_end_date):
+                rcuk_dict[a] = zd_dict[a]
+        ## CHECK AND OUTPUT THOSE THAT ARE NOT MARKED AS NEEDING A PAYMENT
+        # Workaround to obtain valid output using report_fieldnames
+        report_dict = rcuk_dict
+        action_populate_report_fields()
+        # End of Workaround to obtain valid output using report_fieldnames
+        ## INCLUDE ONLY ITEMS PUBLISHED SINCE 2016
+        rcuk_recent_dict = {}
+        for a in report_dict:
+            row = report_dict[a]
+            if row['Date of publication'].strip():
+                publication_date = dateutil.parser.parse(row['Date of publication'])
+                if publication_date >= datetime.datetime(2016, 1, 1):
+                    rcuk_recent_dict[a] = report_dict[a]
+            else:
+                rcuk_recent_dict[a] = report_dict[a]
+        plog('STATUS: Listing green papers', terminal=True)
+        with open(outputgreen, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
+            writer.writeheader()
+            green_counter = 0
+            for a in rcuk_recent_dict:
+                writer.writerow(rcuk_recent_dict[a])
+                green_counter += 1
+        plog('STATUS: number of papers complying via the green route:', terminal=True)
+        plog(str(green_counter), terminal=True)
+
+    #### ESTIMATE COMPLIANCE VIA GREEN ROUTE ## this is the old method, used before 2018 reports
+    if estimate_green_compliance:
+        plog('STATUS: estimating compliance via the green route', terminal=True)
+        ### TAKE A SAMPLE OF OUTPUTS COVERED BY THE RCUK POLICY AND PUBLISHED DURING THE REPORTING PERIOD
+        ### EXCLUDE ZD TICKETS MARKED AS DUPLICATES OR "WRONG VERSION"
+        rcuk_dict = {}
+        for a in zd_dict:
+            row = zd_dict[a]
+            rcuk_policy = row['RCUK policy [flag]']
+            ticket_creation = dateutil.parser.parse(row['Created at'])
+            wrong_version = row['Wrong version [flag]']
+            dup = row['Duplicate [flag]']
+            if (rcuk_policy == 'yes') and (wrong_version != 'yes') and (dup != 'yes') and (
+                    green_start_date <= ticket_creation <= green_end_date):
+                rcuk_dict[a] = zd_dict[a]
+
+        ## CHECK HOW MANY OF THOSE ARE GOLD, GREEN OR UNKNOWN
+        green_dict = {}
+        gold_dict = {}
+        green_counter = 0
+        gold_counter = 0
+        WoS_total = 2580  # From Web of Science: number of University of Cambridge publications (articles, reviews and proceeding papers) acknowledging RCUK funding during the green reporting period
+        for a in rcuk_dict:
+            row = rcuk_dict[a]
+            apc_payment = row['Is there an APC payment? [list]']
+            green_version = row['Green allowed version [list]']
+            embargo = row['Embargo duration [list]']
+            green_licence = row['Green licence [list]']
+            if apc_payment in apc_payment_values:
+                gold_counter += 1
+                gold_dict[a] = rcuk_dict[a]
+            else:
+                green_counter += 1
+                green_dict[a] = rcuk_dict[a]
+
+        rcuk_papers_total = gold_counter + green_counter
+
+        plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES:', terminal=True)
+        plog(str(rcuk_papers_total),
+             'ZD tickets covered by the RCUK open access policy were created during the green reporting period, of which:',
+             terminal=True)
+        plog(str(gold_counter), '(' + str(
+            gold_counter / rcuk_papers_total) + ') tickets were placed in the GOLD route to comply with the policy',
+             terminal=True)
+        plog(str(green_counter), '(' + str(
+            green_counter / rcuk_papers_total) + ') tickets were placed in the GREEN route to comply with the policy',
+             terminal=True)
+        plog('RESULT --- COMPLIANCE VIA GREEN/GOLD ROUTES AS A RATIO OF WoS TOTAL:', terminal=True)
+        plog(str(WoS_total),
+             'papers (articles, reviews and proceedings papers) acknowledging RCUK funding were published by the University of Cambridge during the green reporting period, of which:',
+             terminal=True)
+        plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal=True)
+        plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal=True)
 
     if parse_springer_compact:
         ### SPRINGER
