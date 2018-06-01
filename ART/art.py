@@ -1509,7 +1509,7 @@ invoice2zd_number = {
 lf = os.path.dirname(os.path.realpath(__file__))
 os.chdir(lf)
 
-reporttype = "RCUK" #Report requester. Supported values are: RCUK or COAF
+reporttype = "COAF" #Report requester. Supported values are: RCUK or COAF
 rcuk_paydate_field = 'Posted' #Name of field in rcuk_paymentsfile containing the payment date
 rcuk_payamount_field = 'Amount' #Name of field in rcuk_paymentsfile containing the payment amount
 total_rcuk_payamount_field = 'RCUK APC Amount' #Name of field we want the calculated total RCUK APC to be stored in
@@ -1525,6 +1525,9 @@ if reporttype == "RCUK":
     other_funder = "COAF"
     of_payamount_field = coaf_payamount_field
     total_of_payamount_field = total_coaf_payamount_field
+    outputfile = os.path.join(working_folder, "RCUK_report_draft.csv")
+    outputgreen = os.path.join(working_folder, "RCUK_report_draft-green_papers.csv")
+    excluded_recs_logfile = os.path.join(working_folder, "RCUK_report_excluded_records.csv")
 elif reporttype == "COAF":
     paydate_field = coaf_paydate_field
     payamount_field = coaf_payamount_field
@@ -1532,6 +1535,9 @@ elif reporttype == "COAF":
     other_funder = "RCUK"
     of_payamount_field = rcuk_payamount_field
     total_of_payamount_field = total_rcuk_payamount_field
+    outputfile = os.path.join(working_folder, "COAF_report_draft.csv")
+    outputgreen = os.path.join(working_folder, "COAF_report_draft-green_papers.csv")
+    excluded_recs_logfile = os.path.join(working_folder, "COAF_report_excluded_records.csv")
 else:
     print("ERROR: Could not determine report requester (RCUK or COAF)")
     raise
@@ -1540,17 +1546,15 @@ with open(logfile, 'w') as log:
     log.write('APC Reporting Tool log of last run\n')
 
 doifile = os.path.join(working_folder, "DOIs_for_cottagelabs.csv")
-outputfile = os.path.join(working_folder, "RCUK_report_draft.csv")
-outputgreen = os.path.join(working_folder, "RCUK_report_draft-green_papers.csv")
-excluded_recs_logfile = os.path.join(working_folder, "RCUK_report_excluded_records.csv")
 rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
-rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31.csv")
+rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31_Jan2017_to_Mar2017.csv")
 rcuk_vejj = os.path.join(working_folder, "VEJI_and_VEJJ_1_April_2017_to_31_March_2018_290518.csv")
 rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 #merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
-merge_csv_files([rcuk_vejj], rcuk_paymentsfile)
-coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12.csv')
+merge_csv_files([rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
+#merge_csv_files([rcuk_vejj], rcuk_paymentsfile)
+coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12_Jan2017_to_Sept2017.csv')
 coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-04-12.csv')
 coaf_paymentsfilename = "COAF_merged_payments_file.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
@@ -1573,7 +1577,7 @@ wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
 merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
 oupexport = os.path.join(working_folder, "OUP OA Charge Data.csv")
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
-report_start_date = datetime.datetime(2017, 4, 1) #(2016, 10, 1) COAF
+report_start_date = datetime.datetime(2017, 1, 1) #(2016, 10, 1) COAF
 report_end_date = datetime.datetime(2018, 3, 31, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
 green_start_date = datetime.datetime(2017, 1, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
 green_end_date = datetime.datetime(2017, 12, 31, hour = 23, minute = 59, second = 59)
@@ -1656,12 +1660,12 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    parse_invoice_data = False
-    parse_springer_compact = False
-    parse_wiley_dashboard = False
-    parse_oup_prepayment = False
+    parse_invoice_data = True
+    parse_springer_compact = True
+    parse_wiley_dashboard = True
+    parse_oup_prepayment = True
     estimate_green_compliance = False
-    list_green_papers = True
+    list_green_papers = False
     ############################ACTION STARTS HERE##################################
 
     #~ tempfieldnames = extract_csv_header(zenexport)
