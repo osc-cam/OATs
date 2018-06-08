@@ -38,7 +38,7 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     return (open_cmd, rm_cmd, username, home, pdftk, texworks)
 
 print(
-'''OASIS 1.1
+'''OASIS 1.2
 
 Author: André Sartori
 Copyright (c) 2017-2018

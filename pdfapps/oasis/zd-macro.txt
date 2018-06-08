@@ -124,6 +124,35 @@
     {% endif %}%
 {% endif %}
 
+%%%%DATA VALIDATION WARNINGS/ERRORS
+{% if ticket.ticket_field_24071843 == '1' and ticket.ticket_field_24117196 == '0' and ticket.ticket_field_24069493 != blank %}
+% IF COAF PAYMENT TICKED, COAF POLICY UNTICKED AND JOURNAL TITLE NOT BLANK (PROXY FOR THIS IS NOT A PREPAYMENT INVOICE)
+\renewcommand{\critical}{\WARNING{COAF policy not ticked. Sure this should be charged to COAF?}}
+{% elsif ticket.ticket_field_24117246 == '1' and ticket.ticket_field_24071783 == '0' and ticket.ticket_field_24069493 != blank %}
+% ELSIF SAME THING FOR RCUK
+\renewcommand{\critical}{\WARNING{RCUK policy not ticked. Sure this should be charged to RCUK?}}
+{% elsif ticket.ticket_field_24071843 == '0' and ticket.ticket_field_24117196 == '1' and ticket.ticket_field_24069493 != blank %}
+% ELSIF COAF PAYMENT UNTICKED, COAF POLICY TICKED AND JOURNAL TITLE NOT BLANK (PROXY FOR THIS IS NOT A PREPAYMENT INVOICE)
+    {% if ticket.ticket_field_77143828 == 'oasis_apc' or (ticket.ticket_field_29294538 == '1' and ticket.ticket_field_48024147 == '0' and ticket.ticket_field_48023887 == '0') %}
+    %%THIS IS AN APC INVOICE
+    \renewcommand{\critical}{\WARNING{COAF payment not ticked but item in COAF policy.}}
+    {% elsif ticket.ticket_field_77143828 == 'oasis_membership' or (ticket.ticket_field_29294538 == '0' and ticket.ticket_field_48024147 == '1' and ticket.ticket_field_48023887 == '0') %}
+    %%THIS IS A MEMBERSHIP INVOICE
+    \renewcommand{\critical}{\WARNING{COAF payment not ticked but item in COAF policy.}}
+    {% elsif ticket.ticket_field_77143828 == 'oasis_page' or (ticket.ticket_field_29294538 == '0' and ticket.ticket_field_48024147 == '0' and ticket.ticket_field_48023887 == '1') %}
+    %%THIS IS A AN INVOICE FOR PAGE AND/OR COLOUR CHARGES
+    % This case is fine, so no warning needed.
+    {% elsif ticket.ticket_field_77143828 == 'oasis_apc_and_page' or (ticket.ticket_field_29294538 == '1' and ticket.ticket_field_48024147 == '0' and ticket.ticket_field_48023887 == '1') %}
+    %%THIS INVOICE CONTAINS BOTH APC AND PAGE/COLOUR CHARGES
+    \renewcommand{\critical}{\WARNING{COAF payment not ticked but item in COAF policy.}}
+    {% else %}
+    \renewcommand{\critical}{\WARNING{You might have found a bug in OASIS. Please make a note of the ZD ticket number and go talk to Andr\'e}}
+    {% endif %}
+{% elsif ticket.ticket_field_24117246 == '0' and ticket.ticket_field_24071783 == '1' and ticket.ticket_field_24069493 != blank %}
+% ELSIF SAME THING FOR RCUK
+\renewcommand{\critical}{\WARNING{RCUK payment not ticked but item in RCUK policy.}}
+{% endif %}
+
 %%%%COMMAND TO EXECUTE OASIS
 %%ANDRE
 %USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\oasis.py

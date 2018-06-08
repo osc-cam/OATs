@@ -11,9 +11,10 @@
 \thispagestyle{empty}
 
 %%Warnings and errors
-\newcommand{\ERROR}[1]{\LARGE ERROR: #1}
-\newcommand{\WARNING}[1]{\LARGE WARNING: #1}
+\newcommand{\ERROR}[1]{\begin{minipage}{9cm}ERROR: #1\end{minipage}}
+\newcommand{\WARNING}[1]{\begin{minipage}{9cm}WARNING: #1\end{minipage}}
 \newcommand{\oldwarning}{}
+\newcommand{\critical}{}
 
 %%Transaction codes
 \newcommand{\OA}{EBDU}
@@ -56,6 +57,7 @@
 \path [xshift=\xshift cm, yshift=\yshift cm] (12 , 4.4) node[blue, inner sep=0pt, anchor=north west]{\textbf{\today}};
 \path [xshift=\xshift cm, yshift=\yshift cm] (11.1 , 1.2) node[red, inner sep=0pt, anchor=north west]{Approval date};
 \path [xshift=\xshift cm, yshift=\yshift cm] (6 , 3) node[blue, inner sep=0pt, anchor=north west]{\oldwarning};
+\path [xshift=\xshift cm, yshift=\yshift cm] (6 , 3) node[rectangle, blue, inner sep=0pt, anchor=north west, fill=white, fill opacity=1]{\critical};
 }
 
 \newcommand{\afourgrid}{
