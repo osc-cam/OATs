@@ -156,6 +156,8 @@
 %%%%COMMAND TO EXECUTE OASIS
 %%ANDRE
 %USERPROFILE%\Applications\WinPython\python-3.6.5.amd64\python.exe %USERPROFILE%\Documents\GitHub\OATs\oasis.py
+%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\oasis.py
+
 
 %%KATIE
 %USERPROFILE%\AppData\Local\Programs\Python\Python35-32\python.exe %USERPROFILE%\OATS\OASIS\OASIS.py
