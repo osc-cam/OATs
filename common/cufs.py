@@ -51,3 +51,16 @@ class RcukFieldsMapping():
         self.total_other = 'RCUK Page, colour or membership amount'  # Name of field we want the total for other costs to be stored in
         self.transaction_code = 'Tran'
         self.source_of_funds = 'SOF'
+
+class CufsReport():
+    '''
+    Represents a report exported from CUFS, translated using an instance of either CoafFieldsMapping or
+    RcukFieldsMapping.
+    '''
+    def __init__(self, cufsexport, mapping):
+        '''
+        :param cufsexport: csv exported from CUFS, containing the transaction data
+        :param mapping: instance of CoafFieldsMapping or RcukFieldsMapping
+        '''
+
+        

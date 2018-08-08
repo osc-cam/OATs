@@ -496,35 +496,29 @@ def process_repeated_fields(zd_list, report_field_list, ticket):
     '''
     This function populates fields in the output report that do NOT have a 1 to 1
     correspondence to zendesk data fields (e.g. Fund that APC is paid from (1)(2) and (3))
+    :param dict: the reporting dictionary
     :param zd_list: list of zendesk data fields that may be used to populate the output fields
     :param report_field_list: list of output report fields that should be populated with data from
                                 fields in zd_list
-    :param ticket:
+    :param ticket: dictionary representation of ZD ticket to work on
     :return:
     '''
-    #print('\n\n\n\n\n')
-    #pprint(ticket)
-    #print('\n')
     used_funders = []
     for fund_f in report_field_list: #e.g. Fund that APC is paid from (1)(2) and (3)
-        #print('\n\n')
-        #print('fund_f:', fund_f)
         for zd_f in zd_list: #'RCUK payment [flag]', 'COAF payment [flag]', etc
-            #print('zd_list:', zd_list)
-            #print('zd_f:', zd_f)
-            #print('\n')
-            if (fund_f not in report_dict[ticket].keys()) and (zd_f not in used_funders):
+            if (fund_f not in ticket.keys()) and (zd_f not in used_funders):
             ## 'Fund that APC is paid from 1, 2 or 3' NOT YET SET FOR THIS TICKET
                 if '[flag]' in zd_f:
-                    if report_dict[ticket][zd_f].strip().upper() == 'YES':
+                    if ticket[zd_f].strip().upper() == 'YES':
                         #print('zdfund2funderstr[zd_f]:', zdfund2funderstr[zd_f])
-                        report_dict[ticket][fund_f] = zdfund2funderstr[zd_f]
+                        ticket[fund_f] = zdfund2funderstr[zd_f]
                         used_funders.append(zd_f)
                 else:
-                    if not report_dict[ticket][zd_f].strip() == '-':
-                        #print('report_dict[ticket][zd_f]:', report_dict[ticket][zd_f])
-                        report_dict[ticket][fund_f] = report_dict[ticket][zd_f]
+                    if not ticket[zd_f].strip() == '-':
+                        #print(ticket[zd_f]:', ticket[zd_f])
+                        ticket[fund_f] = ticket[zd_f]
                         used_funders.append(zd_f)
+    return ticket
 
 def plog(*args, logfilename=logfile, terminal=True):
     '''
@@ -1013,6 +1007,17 @@ def filter_prepayment_records(row, publisher, filter_date_field, request_status_
         return(0, prune_reason)
 
 def match_datasource_fields_to_report_fields(datasource_dict, translation_dict, default_publisher = '', default_pubtype = '', default_deal = '', default_notes = ''):
+    '''
+    THIS FUNCTION IS PROBABLY OBSOLETE NOW. action_populate_report_fields() HAS TAKEN OVER ALL OF ITS FUNCTIONALITY.
+    LEAVING IT HERE FOR NOW JUST IN CASE
+    :param datasource_dict:
+    :param translation_dict:
+    :param default_publisher:
+    :param default_pubtype:
+    :param default_deal:
+    :param default_notes:
+    :return:
+    '''
     temp_dict = {}
     for ticket in datasource_dict:
         for rep_f in translation_dict:
@@ -1385,7 +1390,18 @@ def action_export_payments_reconciliation():
             included_coaf_payment_dict[p][reconcile_field] = 'included'
             writer.writerow(included_coaf_payment_dict[p])
 
-def action_populate_report_fields():
+def action_populate_report_fields(reporting_dict, translation_dict, default_publisher = '', default_pubtype = '',
+                                  default_deal = '', default_notes = ''):
+    '''
+    This function populates in the reporting dictionary the data fields that will be used in the output report
+    :param reporting_dict: the reporting dictionary
+    :param translation_dict: a dictionary mapping report fields to data source fields
+    :param default_publisher: used for prepayment deals; if set, publisher will be set to this value
+    :param default_pubtype: used for prepayment deals; if set, pubtype will be set to this value
+    :param default_deal: used for prepayment deals; if set, deal will be set to this value
+    :param default_notes: used for prepayment deals; if set, notes will be set to this value
+    :return: the reporting dictionary populated with data from several sources
+    '''
     rep_fund_field_list = ['Fund that APC is paid from (1)', 'Fund that APC is paid from (2)', 'Fund that APC is paid from (3)']
 
     zd_fund_field_list = ['RCUK payment [flag]', 'COAF payment [flag]', 'Other institution payment [flag]',
@@ -1394,30 +1410,52 @@ def action_populate_report_fields():
                           'Wellcome Supplement Payment [flag]']
 
     rep_funders = ['Funder of research (1)', 'Funder of research (2)', 'Funder of research (3)']
-    zd_allfunders = [ 'ERC [flag]',
+    zd_allfunders = [ 'Wellcome Trust [flag]',
+                      'MRC [flag]',
+                      'Cancer Research UK [flag]',
+                      'EPSRC [flag]',
+                      'British Heart Foundation [flag]',
+                      'BBSRC [flag]',
                       'Arthritis Research UK [flag]',
+                      'STFC [flag]',
                       "Breast Cancer Now (Breast Cancer Campaign) [flag]", # used to be 'Breast Cancer Campaign [flag]',
                       "Parkinson's UK [flag]",
-                      'ESRC [flag]', 'NERC [flag]', 'Bloodwise (Leukaemia & Lymphoma Research) [flag]',
-                      'FP7 [flag]', 'NIHR [flag]', 'H2020 [flag]', 'AHRC [flag]', 'BBSRC [flag]', 'EPSRC [flag]',
-                      'MRC [flag]', 'Gates Foundation [flag]', 'STFC [flag]', 'Cancer Research UK [flag]',
-                      'Wellcome Trust [flag]', 'British Heart Foundation [flag]']
+                      'ESRC [flag]',
+                      'Bloodwise (Leukaemia & Lymphoma Research) [flag]',
+                      'NERC [flag]',
+                      'AHRC [flag]',
+                      'ERC [flag]', 'FP7 [flag]', 'NIHR [flag]', 'H2020 [flag]', 'Gates Foundation [flag]',
+                      ]
 
     rep_grants = ['Grant ID (1)', 'Grant ID (2)', 'Grant ID (3)']
     zd_grantfields = ['COAF Grant Numbers [txt]'] #ZD funders field could also be used, but it does not seem to be included in the default export; this could be because it is a "multi-line text field" 
 
-    for ticket in report_dict:
+    for k, ticket in reporting_dict.items():
         ##DEAL WITH THE EASY FIELDS FIRST (ONE TO ONE CORRESPONDENCE)
-        for rep_f in rep2zd:
-            for zd_f in rep2zd[rep_f]:
-                if (rep_f not in report_dict[ticket].keys()) and (zd_f in report_dict[ticket].keys()):
-                    if not report_dict[ticket][zd_f].strip( ) in ['-', 'unknown']: #ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence 
-                        report_dict[ticket][rep_f] = report_dict[ticket][zd_f]
-                        #report_dict[ticket][rep_f] = report_dict[ticket][zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
+        for rep_f in translation_dict:
+            for zd_f in translation_dict[rep_f]:
+                if (rep_f not in ticket.keys()) and (zd_f in ticket.keys()):
+                    if ticket[zd_f]: #avoids AttributeError due to NoneType objects
+                        if not ticket[zd_f].strip( ) in ['-', 'unknown']: #ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence
+                            ticket[rep_f] = ticket[zd_f]
+                            #reporting_dict[ticket][rep_f] = reporting_dict[ticket][zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
         ##THEN WITH THE CONDITIONAL FIELDS
-        process_repeated_fields(zd_fund_field_list, rep_fund_field_list, ticket)
-        process_repeated_fields(zd_allfunders, rep_funders, ticket)
-        process_repeated_fields(zd_grantfields, rep_grants, ticket)
+        ticket = process_repeated_fields(zd_fund_field_list, rep_fund_field_list, ticket)
+        ticket = process_repeated_fields(zd_allfunders, rep_funders, ticket)
+        ticket = process_repeated_fields(zd_grantfields, rep_grants, ticket)
+
+        if default_publisher:
+            ticket['Publisher'] = default_publisher
+        if default_pubtype:
+            ticket['Type of publication'] = default_pubtype
+        if default_deal:
+            ticket['Discounts, memberships & pre-payment agreements'] = default_deal
+        if default_notes:
+            ticket['Notes'] = default_notes
+
+        reporting_dict[k] = ticket
+
+    return reporting_dict
 
 def action_adjust_total_apc_values():
     for a in report_dict:
@@ -1577,10 +1615,10 @@ wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
 merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
 oupexport = os.path.join(working_folder, "OUP OA Charge Data.csv")
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
-report_start_date = datetime.datetime(2017, 1, 1) #(2016, 10, 1) COAF
-report_end_date = datetime.datetime(2018, 3, 31, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
-green_start_date = datetime.datetime(2017, 1, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
-green_end_date = datetime.datetime(2017, 12, 31, hour = 23, minute = 59, second = 59)
+report_start_date = datetime.datetime(2016, 10, 1) #(2016, 10, 1) COAF
+report_end_date = datetime.datetime(2017, 9, 30, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
+green_start_date = datetime.datetime(2016, 1, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
+green_end_date = datetime.datetime(2016, 12, 31, hour = 23, minute = 59, second = 59)
 
 unmatched_payment_file_prefix = 'ART_debug_payments_not_matched_to_zd_numbers__'
 nonJUDB_payment_file_prefix = 'ART_debug_non_JUDB_payments__'
@@ -1660,7 +1698,7 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    parse_invoice_data = True
+    parse_invoice_data = False
     parse_springer_compact = True
     parse_wiley_dashboard = True
     parse_oup_prepayment = True
@@ -1763,10 +1801,11 @@ if __name__ == '__main__':
                          ]
     report_fieldnames = report_fields + custom_rep_fields  # + rcuk_paymentsfieldnames
     #    report_fieldnames = report_fields ###UNCOMMENT THIS LINE FOR FINAL VERSION
+    report_dict = {}
     if parse_invoice_data:
         #### NOW THAT WE PLUGGED IN ALL DATA SOURCES INTO THE ZENDESK EXPORT,
         #### PRODUCE THE FIRST PART OF THE REPORT (PAYMENTS LINKED TO ZENDESK)
-        report_dict = {}
+
         ### START BY FILTERING WHAT WE NEED
         action_populate_report_dict()
 
@@ -1780,7 +1819,7 @@ if __name__ == '__main__':
 
         ### POPULATE REPORT FIELDS WITH DATA FROM ZD/APOLLO/PAYMENT FIELDS
         ### CONVERT DATA WHEN NEEDED
-        action_populate_report_fields()
+        report_dict = action_populate_report_fields(report_dict, rep2zd)
 
         excluded_recs = {}
 
@@ -1821,7 +1860,7 @@ if __name__ == '__main__':
         ## CHECK AND OUTPUT THOSE THAT ARE NOT MARKED AS NEEDING A PAYMENT
         # Workaround to obtain valid output using report_fieldnames
         report_dict = rcuk_dict
-        action_populate_report_fields()
+        report_dict = action_populate_report_fields(report_dict, rep2zd)
         # End of Workaround to obtain valid output using report_fieldnames
         ## INCLUDE ONLY ITEMS PUBLISHED SINCE 2016
         rcuk_recent_dict = {}
@@ -1897,6 +1936,12 @@ if __name__ == '__main__':
              terminal=True)
         plog(str(gold_counter / WoS_total), 'complied via the GOLD route', terminal=True)
         plog(str(green_counter / WoS_total), 'complied via the GREEN route', terminal=True)
+
+    if (parse_springer_compact or parse_wiley_dashboard or parse_oup_prepayment) and not parse_invoice_data:
+        # overwrite previous draft with report header
+        with open(outputfile, 'w') as csvfile: #APPEND TO THE SAME OUTPUTFILE
+            writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
+            writer.writeheader()
 
     if parse_springer_compact:
         ### SPRINGER
@@ -2008,7 +2053,7 @@ if __name__ == '__main__':
         #pprint(rejection_dict_springer)
         debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_springer, springer_reject_fieldnames)
 
-        springer_out_dict = match_datasource_fields_to_report_fields(springer_dict, rep2springer,
+        springer_out_dict = action_populate_report_fields(springer_dict, rep2springer,
                                                                      'Springer', 'Article', 'Springer Compact',
                                                                      'Springer Compact')
 
@@ -2085,7 +2130,7 @@ if __name__ == '__main__':
             wiley_reject_fieldnames.append(a)
         debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_wiley, wiley_reject_fieldnames)
 
-        wiley_out_dict = match_datasource_fields_to_report_fields(wiley_dict, rep2wiley, default_deal = 'Other', default_notes = 'Wiley prepayment discount')
+        wiley_out_dict = action_populate_report_fields(wiley_dict, rep2wiley, default_deal = 'Other', default_notes = 'Wiley prepayment discount')
 
         # for a in wiley_dict:
         #     print(wiley_dict[a].keys())
@@ -2159,7 +2204,7 @@ if __name__ == '__main__':
             oup_reject_fieldnames.append(a)
         debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_oup, oup_reject_fieldnames)
 
-        oup_out_dict = match_datasource_fields_to_report_fields(oup_dict, rep2oup, 'Oxford University Press', 'Article', 'Other', 'Oxford University Press prepayment discount')
+        oup_out_dict = action_populate_report_fields(oup_dict, rep2oup, 'Oxford University Press', 'Article', 'Other', 'Oxford University Press prepayment discount')
 
         with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
             writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
