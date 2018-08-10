@@ -553,7 +553,7 @@ def prune_and_cleanup_string(string, pruning_list, typo_dict):
         string = typo_dict[string]
     return(string.strip())
 
-def convert_date_str_to_yyyy_mm_dd(string, dateutil_options):
+def convert_date_str_to_yyyy_mm_dd(string, dateutil_options=None):
     '''
     Function to convert dates to format YYYY-MM-DD
     :param string: original date string
@@ -831,7 +831,8 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                             for filtering records (e.g. publication date; acceptance date, etc)
     :param publisher: name of the publisher that produced the input CSV file
     :param institution_field: the column name of the institution field in the input CSV file
-    :param field_renaming_list:
+    :param field_renaming_list: list of fields in prepayment dataset that should be renamed to avoid conflict with
+                                fields in other input datasets.
     :param dateutil_options:
     :param exclude_titles: a list of titles of publications that should be excluded from the output
     :param request_status_field:
@@ -842,6 +843,10 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
         publisher_id = 1
         reader = csv.DictReader(csvfile, delimiter=delim)
         for row in reader:
+            # calculate and add discount data to row
+            if publisher == 'Wiley':
+                row['Prepayment discount'] = '£{}'.format(row['Discount'])
+
             warning = 0
             manual_rejection = 'BUG: unknown reason for manual rejection'
             t = filter_prepayment_records(row, publisher, filter_date_field, request_status_field, dateutil_options)
@@ -1394,6 +1399,7 @@ def action_populate_report_fields(reporting_dict, translation_dict, default_publ
                                   default_deal = '', default_notes = ''):
     '''
     This function populates in the reporting dictionary the data fields that will be used in the output report
+
     :param reporting_dict: the reporting dictionary
     :param translation_dict: a dictionary mapping report fields to data source fields
     :param default_publisher: used for prepayment deals; if set, publisher will be set to this value
@@ -1437,6 +1443,9 @@ def action_populate_report_fields(reporting_dict, translation_dict, default_publ
                 if (rep_f not in ticket.keys()) and (zd_f in ticket.keys()):
                     if ticket[zd_f]: #avoids AttributeError due to NoneType objects
                         if not ticket[zd_f].strip( ) in ['-', 'unknown']: #ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence
+                            # convert dates to YYYY-MM-DD format
+                            if (rep_f in ['Date of APC payment', 'Date of publication']) and (default_publisher == 'Wiley'):
+                                ticket[zd_f] = convert_date_str_to_yyyy_mm_dd(ticket[zd_f])
                             ticket[rep_f] = ticket[zd_f]
                             #reporting_dict[ticket][rep_f] = reporting_dict[ticket][zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
         ##THEN WITH THE CONDITIONAL FIELDS
@@ -1450,7 +1459,10 @@ def action_populate_report_fields(reporting_dict, translation_dict, default_publ
             ticket['Type of publication'] = default_pubtype
         if default_deal:
             ticket['Discounts, memberships & pre-payment agreements'] = default_deal
-        if default_notes:
+        # add discount value to notes
+        if 'Prepayment discount' in ticket.keys():
+            ticket['Notes'] = 'Prepayment discount: {}'.format(ticket['Prepayment discount'])
+        elif default_notes:
             ticket['Notes'] = default_notes
 
         reporting_dict[k] = ticket
@@ -2082,13 +2094,13 @@ if __name__ == '__main__':
         ('DOI', ['Wiley DOI']),             ## Fields in Wiley report are 'DOI' and 'Publisher', but I had to append 'Wiley ' to these two lines
         ('Publisher', ['Wiley Publisher']), ## because ART has a mechanism that prevents existing fields (e.g. comming from zd) from being overwritten
         ('Journal', ['Journal']),           ## by data from prepayment deals; this is something that probably needs revising because it is confusing, not obvious
-        #('E-ISSN', ['eISSN']), #NA
+        ('E-ISSN', ['Journal Electronic ISSN']),
         ('Type of publication', ['Article Type']),
         ('Article title', ['Article Title']),
-        #('Date of publication', ['Online Publication Date']), #NA
-        #('Date of APC payment', #NA
-        ('APC paid (actual currency) excluding VAT', ['Full APC']),
-        #('Currency of APC', #NA
+        ('Date of publication', ['EV Published Date']),
+        ('Date of APC payment', ['Date']),
+        ('APC paid (actual currency) excluding VAT', ['Withdrawals']),
+        #('Currency of APC', #NA # All Wiley values are shown in GBP
         #('APC paid (£) including VAT if charged', #NA
         #('Additional publication costs (£)', #NA
         #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO OTHER?
@@ -2130,7 +2142,7 @@ if __name__ == '__main__':
             wiley_reject_fieldnames.append(a)
         debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_wiley, wiley_reject_fieldnames)
 
-        wiley_out_dict = action_populate_report_fields(wiley_dict, rep2wiley, default_deal = 'Other', default_notes = 'Wiley prepayment discount')
+        wiley_out_dict = action_populate_report_fields(wiley_dict, rep2wiley, 'Wiley', default_deal = 'Other', default_notes = 'Wiley prepayment discount')
 
         # for a in wiley_dict:
         #     print(wiley_dict[a].keys())
@@ -2157,20 +2169,20 @@ if __name__ == '__main__':
         ('DOI', ['Doi']),
         #('Publisher', #NOT A VARIABLE; DEFAULT TO OUP
         ('Journal', ['Journal Name']),
-        #('E-ISSN', ['eISSN']), #NA
+        #('E-ISSN', ['eISSN']), #NA QUERY ORPHEUS?
         #('Type of publication', #NOT A VARIABLE; DEFAULT TO ARTICLE
         ('Article title', ['Manuscript Title']),
         ('Date of publication', ['Issue Online']),
-        ('Date of APC payment', ['Referral Date']),
-        #('APC paid (actual currency) excluding VAT', ['Journal APC']), #NA COULD BE CALCULATED
+        ('Date of APC payment', ['Order Date', 'Referral Date']),
+        ('APC paid (actual currency) excluding VAT', ['Charge Amount']), #NA COULD BE CALCULATED
         ('Currency of APC', ['Currency']),
-        ('APC paid (£) including VAT if charged', ['Charge Amount']),
+        #('APC paid (£) including VAT if charged', ['Charge Amount']), #NA
         #('Additional publication costs (£)', #NA
         #('Discounts, memberships & pre-payment agreements', #NOT A VARIABLE; DEFAULT TO OTHER
         #('Amount of APC charged to COAF grant (including VAT if charged) in £', #NA
         #('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', #NA
         ('Licence', ['OUP Licence', 'Licence']),
-        #('Notes', ['Comments']) #DEFAULT TO OUP PREPAYMENT DEAL
+        #('Notes', ['Comments']) #DEFAULT TO OUP PREPAYMENT DEAL 'Journal APC'
         ]
         rep2oup = collections.OrderedDict(rep2oup)
 
