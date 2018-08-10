@@ -846,7 +846,9 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
             # calculate and add discount data to row
             if publisher == 'Wiley':
                 row['Prepayment discount'] = '£{}'.format(row['Discount'])
-
+            elif publisher == 'OUP':
+                discount = str((float(row['Charge Amount'])/0.95) - float(row['Charge Amount']))
+                row['Prepayment discount'] = '£{}'.format(discount)
             warning = 0
             manual_rejection = 'BUG: unknown reason for manual rejection'
             t = filter_prepayment_records(row, publisher, filter_date_field, request_status_field, dateutil_options)
@@ -1459,6 +1461,9 @@ def action_populate_report_fields(reporting_dict, translation_dict, default_publ
             ticket['Type of publication'] = default_pubtype
         if default_deal:
             ticket['Discounts, memberships & pre-payment agreements'] = default_deal
+        # add GBP as currency for Wiley
+        if default_publisher == 'Wiley':
+            ticket['Currency of APC'] = 'GBP'
         # add discount value to notes
         if 'Prepayment discount' in ticket.keys():
             ticket['Notes'] = 'Prepayment discount: {}'.format(ticket['Prepayment discount'])
