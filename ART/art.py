@@ -722,6 +722,7 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
     This function attempts to match the DOI of a publication to zendesk data;
     if that fails, it calls a separate function to perform a match
     based on title similarity (heuristic_match_by_title).
+
     :param doi: a string containing the DOI of the publication
     :param title: a string containing the title of the publication
     :param publisher: a string containing the publisher of the publication
@@ -847,7 +848,7 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
             if publisher == 'Wiley':
                 row['Prepayment discount'] = '£{}'.format(row['Discount'])
             elif publisher == 'OUP':
-                discount = str((float(row['Charge Amount'])/0.95) - float(row['Charge Amount']))
+                discount = '{0:.2f}'.format((float(row['Charge Amount'])/0.95) - float(row['Charge Amount']))
                 row['Prepayment discount'] = '£{}'.format(discount)
             warning = 0
             manual_rejection = 'BUG: unknown reason for manual rejection'
@@ -1262,6 +1263,9 @@ def action_index_zendesk_data():
     with open(zenexport, encoding = "utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
+            # ignore any tickets that are not in the OA group
+            if row['Group'] != 'Open Access':
+                continue
             zd_number = row['Id']
             dup_of = row['Duplicate of (ZD-123456) [txt]']
             if (row['Duplicate [flag]'] in ['no', '-', '']) or (zd_number in manual_zendesk_duplicates_to_include):
@@ -1973,7 +1977,7 @@ if __name__ == '__main__':
         #('Type of publication', #NOT A VARIABLE; DEFAULT TO ARTICLE
         ('Article title', ['article title']),
         ('Date of publication', ['online first publication date', 'online issue publication date']),
-        #('Date of APC payment', #NA
+        ('Date of APC payment', ['approval date']),
         ('APC paid (actual currency) excluding VAT', ['APC']),
         ('Currency of APC', ['currency']),
         #('APC paid (£) including VAT if charged', #NA
