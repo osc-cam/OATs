@@ -13,17 +13,34 @@
 ## is zero. This works well in most cases, but it will also exclude papers where funds were used to pay for
 ## "Additional publication costs (£)" only.
 
-import os
-import re
+import collections
 import csv
 import datetime
+import logging
+import logging.config
+import os
+import re
 try:
     import dateutil.parser
 except ModuleNotFoundError:
     print('WARNING: Could not load the dateutil module. Please install it if you have admin rights. Conversion of dates will not work properly during this run')
-import collections
+
 from pprint import pprint
 from difflib import SequenceMatcher
+
+# create logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# add formatter to ch
+ch.setFormatter(formatter)
+# add ch to logger
+# logger.addHandler(ch)
+
 
 ### SET UP WORKING FOLDER
 home = os.path.expanduser("~")
@@ -281,7 +298,7 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
     :param funder: funder who requested this report (e.g. RCUK / COAF)
     '''
     #t_oa_zd = re.compile("(OA)?(ZD)?[ \-]?[0-9]{4,8}")
-    t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
+    t_oa = re.compile("OA[ \-]?[ \-]?[0-9]{4,8}")
     t_zd = re.compile("ZD[ \-]?[0-9]{4,8}")
     payments_dict_apc = {}
     payments_dict_other = {}
@@ -309,7 +326,8 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                         elif oa_number == "OA-1515":
                             zd_number = '4323'
                         else:
-                            print("WARNING: A ZD number could not be found for", oa_number, "in", paymentsfile + ". Data for this OA number will NOT be exported.")
+                            logger.warning("A ZD number could not be found for {} in {}. Data for this OA number "
+                                           "will NOT be exported.".format(oa_number, paymentsfile))
                             zd_number = ''
             elif m_zd:
                 zd_number = m_zd.group().replace(" ","-").strip('ZDzd -')
@@ -1605,36 +1623,38 @@ with open(logfile, 'w') as log:
     log.write('APC Reporting Tool log of last run\n')
 
 doifile = os.path.join(working_folder, "DOIs_for_cottagelabs.csv")
-rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
-rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31_Jan2017_to_Mar2017.csv")
-rcuk_vejj = os.path.join(working_folder, "VEJI_and_VEJJ_1_April_2017_to_31_March_2018_290518.csv")
-rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
+# rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
+# rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31_Jan2017_to_Mar2017.csv")
+# rcuk_vejj = os.path.join(working_folder, "VEJI_and_VEJJ_1_April_2017_to_31_March_2018_290518.csv")
+# rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
+rcuk_paymentsfilename = "RCUK_2018-08-09_all_VEJx_codes.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
-#merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
-merge_csv_files([rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
-#merge_csv_files([rcuk_vejj], rcuk_paymentsfile)
-coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12_Jan2017_to_Sept2017.csv')
-coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-04-12.csv')
-coaf_paymentsfilename = "COAF_merged_payments_file.csv"
+# merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
+# merge_csv_files([rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
+# merge_csv_files([rcuk_vejj], rcuk_paymentsfile)
+# coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12_Jan2017_to_Sept2017.csv')
+# coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-04-12.csv')
+# coaf_paymentsfilename = "COAF_merged_payments_file.csv"
+coaf_paymentsfilename = "VEAG050_2018-08-09.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
-merge_csv_files([coaf_veag050, coaf_veag052], coaf_paymentsfile)
-zenexport = os.path.join(working_folder, "export-2018-05-11-2224-234063-360000059214d5cd.csv")
+# merge_csv_files([coaf_veag050, coaf_veag052], coaf_paymentsfile)
+zenexport = os.path.join(working_folder, "export-2018-08-13-1310-234063-3600001227941889.csv")
 zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-05-25-2207.csv")
 apolloexport = os.path.join(working_folder, "Apollo_all_items-20180525.csv")
 cottagelabsDoisResult = os.path.join(working_folder, "DOIs_for_cottagelabs_results.csv")
 cottagelabsTitlesResult =  os.path.join(working_folder, "Titles_for_cottagelabs_2017-11-21_results_edited.csv")
 cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
 # merge_csv_files([cottagelabsDoisResult, cottagelabsTitlesResult], cottagelabsexport)
-merge_csv_files([cottagelabsDoisResult], cottagelabsexport)
+# merge_csv_files([cottagelabsDoisResult], cottagelabsexport)
 # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
 # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
-springercompactexport = os.path.join(working_folder, "article_approval_2017-04-01_to_2018-03-31.csv")
+springercompactexport = os.path.join(working_folder, "article_approval_2016-10-01_to_2017-09-30.csv")
 # merge_csv_files([springercompact_last_year, springercompact_this_year], springercompactexport)
 wileyrcukcoaf = os.path.join(working_folder, "Wiley_RCUK_COAF_ArticleHistoryReport.csv")
 wileycredit = os.path.join(working_folder, "Wiley_CREDIT_ArticleHistoryReport.csv")
 wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
 merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
-oupexport = os.path.join(working_folder, "OUP OA Charge Data.csv")
+oupexport = os.path.join(working_folder, "OUP_OA_Charge_Data_20180810.csv")
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
 report_start_date = datetime.datetime(2016, 10, 1) #(2016, 10, 1) COAF
 report_end_date = datetime.datetime(2017, 9, 30, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
@@ -1719,10 +1739,13 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    parse_invoice_data = False
-    parse_springer_compact = True
-    parse_wiley_dashboard = True
-    parse_oup_prepayment = True
+    logging.config.fileConfig('logging.conf', defaults={'logfilename': 'art_logging.log'})
+    logger = logging.getLogger('art')
+
+    parse_invoice_data = True
+    parse_springer_compact = False
+    parse_wiley_dashboard = False
+    parse_oup_prepayment = False
     estimate_green_compliance = False
     list_green_papers = False
     ############################ACTION STARTS HERE##################################
@@ -1753,19 +1776,19 @@ if __name__ == '__main__':
     #~ #raise
 
     ##CLEANUP DEBUG INFO FROM PREVIOUS RUNS BY WRITING HEADERS
-    print('STATUS: cleanning up debug info from previous run')
+    logger.info('Cleanning up debug info from previous run')
     action_cleanup_debug_info()
 
     ###INDEX INFO FROM ZENDESK ON ZD NUMBER
-    plog('STATUS: indexing zendesk info on zd number', terminal=True)
+    logger.info('Indexing zendesk info on zd number')
     action_index_zendesk_data()
 
     ### POPULATE doi2apollo DICTIONARY
-    plog('STATUS: populating doi2apollo dictionary', terminal=True)
+    logger.info('Populating doi2apollo dictionary')
     action_populate_doi2apollo(apolloexport)
 
     #### PLUGGING IN DATA FROM ZENDESK DATE FIELDS
-    plog('STATUS: plugging in data from zendesk date fields into zd_dict', terminal=True)
+    logger.info('Plugging in data from zendesk date fields into zd_dict')
     plug_in_metadata(zendatefields, 'id', zd2zd_dict)
 
     #### PLUGGING IN DATA FROM THE RCUK AND COAF PAYMENTS SPREADSHEETS
