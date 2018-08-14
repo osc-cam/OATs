@@ -298,13 +298,16 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
     :param funder: funder who requested this report (e.g. RCUK / COAF)
     '''
     #t_oa_zd = re.compile("(OA)?(ZD)?[ \-]?[0-9]{4,8}")
-    t_oa = re.compile("OA[ \-]?[ \-]?[0-9]{4,8}")
+    logger.info('oa2zd_dict.keys(): {}'.format(sorted(oa2zd_dict.keys())))
+    logger.info('oa2zd_dict[OA-12501]: {}'.format(oa2zd_dict['OA-12501']))
+    t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
     t_zd = re.compile("ZD[ \-]?[0-9]{4,8}")
     payments_dict_apc = {}
     payments_dict_other = {}
     with open(paymentsfile, encoding=file_encoding) as csvfile:
         reader = csv.DictReader(csvfile)
         row_counter = 0
+        unmatched_oa_numbers = []
         for row in reader:
             if row[oa_number_field] in oa_number_typos.keys():
                 row[oa_number_field] = oa_number_typos[row[oa_number_field]]
@@ -313,7 +316,7 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
             m_zd = t_zd.search(row[oa_number_field].upper())
             #before = row[oa_number_field]
             if m_oa:
-                oa_number = m_oa.group().upper().replace("OA" , "OA-").replace(" ","")
+                oa_number = m_oa.group().upper().replace("OA" , "OA-").replace(" ","").replace('--', '-')
                 try:
                     zd_number = manual_oa2zd_dict[oa_number]
                 except KeyError:
@@ -326,8 +329,8 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                         elif oa_number == "OA-1515":
                             zd_number = '4323'
                         else:
-                            logger.warning("A ZD number could not be found for {} in {}. Data for this OA number "
-                                           "will NOT be exported.".format(oa_number, paymentsfile))
+                            if oa_number not in unmatched_oa_numbers:
+                                unmatched_oa_numbers.append(oa_number)
                             zd_number = ''
             elif m_zd:
                 zd_number = m_zd.group().replace(" ","-").strip('ZDzd -')
@@ -411,7 +414,9 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                             ### OF ZD NUMBERS
                             for field in payments_dict_other[zd_number].keys():
                                 if (field in zd_dict[zd_number].keys()) and (row_counter == 0):
-                                    print('WARNING: Dictionary for ZD ticket', zd_number, 'already contains a field named', field + '. It will be overwritten by the value in file', paymentsfile)
+                                    logger.warning('Dictionary for ZD ticket {} already contains a field named {}. '
+                                                   'It will be overwritten by the value in file {}'.format(zd_number,
+                                                                                                field, paymentsfile))
                             zd_dict[zd_number].update(payments_dict_other[zd_number]) #http://stackoverflow.com/questions/8930915/append-dictionary-to-a-dictionary
                         else:
                             ## NOT A EBDU, EBDV OR EBDW PAYMENT
@@ -476,6 +481,11 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                 debug_filename = os.path.join(working_folder, unmatched_payment_file_prefix + paymentsfile.split('/')[-1])
                 output_debug_info(debug_filename, row, fileheader)
             row_counter += 1
+        if unmatched_oa_numbers:
+            unmatched_oa_numbers.sort()
+            logger.warning("ZD numbers could not be found for the following OA numbers in {}: {}. Data for these OA numbers "
+                       "will NOT be exported.".format(paymentsfile, unmatched_oa_numbers))
+
 
 def plug_in_metadata(metadata_file, matching_field, translation_dict, warning_message = '', file_encoding = 'utf-8'):
     '''
@@ -735,7 +745,8 @@ def heuristic_match_by_title_original(title, policy_dict, publisher, title2zd_di
             f.write(i[0] + ', ')
     return(zd_number)
 
-def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, apollo2zd_dict, title2zd_dict, institution='University of Cambridge', restrict_to_funder_policy=False):
+def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, apollo2zd_dict, title2zd_dict,
+                                institution='University of Cambridge', restrict_to_funder_policy=False):
     '''
     This function attempts to match the DOI of a publication to zendesk data;
     if that fails, it calls a separate function to perform a match
@@ -858,6 +869,15 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
     :param delim: the delimiter of the csv file; defaults to comma
     :return:
     '''
+
+    def find_decision_ticket(zd_tickets):
+        '''
+        Takes a list of Zendesk tickets and returns the one that is deemed most likely to contain funder information
+        :param zd_tickets: list of the Zendesk tickets to evaluate
+        :return:
+        '''
+        pass
+
     with open(inputfile) as csvfile:
         publisher_id = 1
         reader = csv.DictReader(csvfile, delimiter=delim)
@@ -1281,13 +1301,16 @@ def action_index_zendesk_data():
     with open(zenexport, encoding = "utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            # ignore any tickets that are not in the OA group
-            if row['Group'] != 'Open Access':
+            # ignore any tickets in the groups below
+            if row['Group'] in ['Cron Jobs', 'Request a Copy']:
                 continue
             zd_number = row['Id']
             dup_of = row['Duplicate of (ZD-123456) [txt]']
-            if (row['Duplicate [flag]'] in ['no', '-', '']) or (zd_number in manual_zendesk_duplicates_to_include):
+            # excluding duplicates is a bad idea because several payments were made agains duplicates
+            # if (row['Duplicate [flag]'] in ['no', '-', '']) or (zd_number in manual_zendesk_duplicates_to_include):
+            if True:
                 oa_number = row['#externalID [txt]']
+                # logger.debug('ZD number {} has #externalID [txt] {}'.format(zd_number, oa_number))
                 article_title = row['#Manuscript title [txt]'].upper()
                 rcuk_payment = row['RCUK payment [flag]']
                 rcuk_policy = row['RCUK policy [flag]']
@@ -1635,7 +1658,7 @@ rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 # coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12_Jan2017_to_Sept2017.csv')
 # coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-04-12.csv')
 # coaf_paymentsfilename = "COAF_merged_payments_file.csv"
-coaf_paymentsfilename = "VEAG050_2018-08-09.csv"
+coaf_paymentsfilename = "VEAG050_2018-08-09_with_resolved_journals.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 # merge_csv_files([coaf_veag050, coaf_veag052], coaf_paymentsfile)
 zenexport = os.path.join(working_folder, "export-2018-08-13-1310-234063-3600001227941889.csv")
@@ -1739,11 +1762,13 @@ zdfund2funderstr = {
 
 if __name__ == '__main__':
 
-    logging.config.fileConfig('logging.conf', defaults={'logfilename': 'art_logging.log'})
+    logfilename = os.path.join(working_folder, 'art_logging.log')
+
+    logging.config.fileConfig('logging.conf', defaults={'logfilename': logfilename})
     logger = logging.getLogger('art')
 
-    parse_invoice_data = True
-    parse_springer_compact = False
+    parse_invoice_data = False
+    parse_springer_compact = True
     parse_wiley_dashboard = False
     parse_oup_prepayment = False
     estimate_green_compliance = False
@@ -2016,69 +2041,70 @@ if __name__ == '__main__':
         springer_dict = {}
         rejection_dict_springer = {}
         dateutil_springer = dateutil.parser.parserinfo() ## this used to be dateutil.parser.parserinfo(dayfirst=True) for old Springer Compact reports
-        exclude_titles_springer = [
-            ### RCUK REPORT 2017
-            # 'Clinical Trials in Vasculitis',
-            # 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology',
-            # 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444',
-            # 'Hunter-Gatherers and the Origins of Religion',
-            # 'A 2-adic automorphy lifting theorem for unitary groups over CM fields',
-            # 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot',
-            # 'Hohfeldian Infinities: Why Not to Worry',
-            # 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion',
-            # 'Data processing for the sandwiched Rényi divergence: a condition for equality',
-            # 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)',
-            # 'Gender patterns in academic entrepreneurship'
-            ### COAF REPORT 2017
-            ## NOT FOUND IN ZENDESK
-            '''Do Gang Injunctions Reduce Violent Crime? Four Tests in Merseyside, UK''',
-            '''"Don't Mind the Gap!" Reflections on improvement science as a paradigm''',
-            '''Paradoxical effects of self-awareness of being observed: Testing the effect of police body-worn cameras on assaults and aggression against officers''',
-            '''KYC Optimization Using Distributed Ledger Technology''', '''Metric ultraproducts of classical groups''',
-            '''Uniformity of the late points of random walk on''',
-            '''Nowhere differentiable functions of analytic type on products of finitely connected planar domains''',
-            '''Advocacy Science: Explaining the term with case studies from biotechnology''',
-            '''Turn-taking in cooperative offspring care: by-product of individual provisioning behavior or active response rule?''',
-            '''Fetal Androgens and Human Sexual Orientation: Searching for the Elusive Link''',
-            '''The Coevolution of Play and the Cortico-Cerebellar System in Primates''',
-            '''Police Attempts to Predict Domestic Murder and Serious Assaults: Is Early Warning Possible Yet?''',
-            '''Does tracking and feedback boost patrol time in hot spots? Two tests.''',
-            '''Finite vs. Small Strain Discrete Dislocation Analysis of Cantilever Bending of Single Crystals''',
-            '''Effect of context on the contribution of individual harmonics to residue pitch''',
-            '''Preferred location for conducting filament formation in thin-film nano-ionic electrolyte: Study of microstructure by atom-probe tomography''',
-            '''Volumetric Growth Rates of Meningioma and its Correlation with Histological Diagnosis and Clinical Outcome: A Systematic Review''',
-            '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
-            '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
-            '''Comparing representations for function spaces in computable analysis''',
-            '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
-            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-            '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
-            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-            ### RCUK REPORT 2018
-            ## NOT FOUND IN ZENDESK
-            '''Thermally-stable nanocrystalline steel''',
-            '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
-            '''Harvesting the Commons''',
-            '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
-            '''The fate of the method of 'paradigms' in paleobiology''',
-            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-            '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
-            '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
-            '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
-            '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
-            '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
-            '''Thermally-stable nanocrystalline steel''',
-            '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
-            '''Harvesting the Commons''',
-            '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
-            '''The fate of the method of 'paradigms' in paleobiology''',
-            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-            '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
-            '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
-            '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
-            '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
-            '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
-        ]
+        # exclude_titles_springer = [
+        #     ### RCUK REPORT 2017
+        #     # 'Clinical Trials in Vasculitis',
+        #     # 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology',
+        #     # 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444',
+        #     # 'Hunter-Gatherers and the Origins of Religion',
+        #     # 'A 2-adic automorphy lifting theorem for unitary groups over CM fields',
+        #     # 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot',
+        #     # 'Hohfeldian Infinities: Why Not to Worry',
+        #     # 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion',
+        #     # 'Data processing for the sandwiched Rényi divergence: a condition for equality',
+        #     # 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)',
+        #     # 'Gender patterns in academic entrepreneurship'
+        #     ### COAF REPORT 2017
+        #     ## NOT FOUND IN ZENDESK
+        #     '''Do Gang Injunctions Reduce Violent Crime? Four Tests in Merseyside, UK''',
+        #     '''"Don't Mind the Gap!" Reflections on improvement science as a paradigm''',
+        #     '''Paradoxical effects of self-awareness of being observed: Testing the effect of police body-worn cameras on assaults and aggression against officers''',
+        #     '''KYC Optimization Using Distributed Ledger Technology''', '''Metric ultraproducts of classical groups''',
+        #     '''Uniformity of the late points of random walk on''',
+        #     '''Nowhere differentiable functions of analytic type on products of finitely connected planar domains''',
+        #     '''Advocacy Science: Explaining the term with case studies from biotechnology''',
+        #     '''Turn-taking in cooperative offspring care: by-product of individual provisioning behavior or active response rule?''',
+        #     '''Fetal Androgens and Human Sexual Orientation: Searching for the Elusive Link''',
+        #     '''The Coevolution of Play and the Cortico-Cerebellar System in Primates''',
+        #     '''Police Attempts to Predict Domestic Murder and Serious Assaults: Is Early Warning Possible Yet?''',
+        #     '''Does tracking and feedback boost patrol time in hot spots? Two tests.''',
+        #     '''Finite vs. Small Strain Discrete Dislocation Analysis of Cantilever Bending of Single Crystals''',
+        #     '''Effect of context on the contribution of individual harmonics to residue pitch''',
+        #     '''Preferred location for conducting filament formation in thin-film nano-ionic electrolyte: Study of microstructure by atom-probe tomography''',
+        #     '''Volumetric Growth Rates of Meningioma and its Correlation with Histological Diagnosis and Clinical Outcome: A Systematic Review''',
+        #     '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
+        #     '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
+        #     '''Comparing representations for function spaces in computable analysis''',
+        #     '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
+        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+        #     '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
+        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+        #     ### RCUK REPORT 2018
+        #     ## NOT FOUND IN ZENDESK
+        #     '''Thermally-stable nanocrystalline steel''',
+        #     '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
+        #     '''Harvesting the Commons''',
+        #     '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
+        #     '''The fate of the method of 'paradigms' in paleobiology''',
+        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+        #     '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
+        #     '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
+        #     '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
+        #     '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
+        #     '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
+        #     '''Thermally-stable nanocrystalline steel''',
+        #     '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
+        #     '''Harvesting the Commons''',
+        #     '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
+        #     '''The fate of the method of 'paradigms' in paleobiology''',
+        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+        #     '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
+        #     '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
+        #     '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
+        #     '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
+        #     '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
+        # ]
+        exclude_titles_springer = []
         import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
                                               'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
                                               'approval requested date', # 'Online Publication Date' was previously used, but it was renamed to 'online first publication date' and has blank values for several articles
