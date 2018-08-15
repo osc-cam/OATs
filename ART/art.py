@@ -502,6 +502,8 @@ def plug_in_metadata(metadata_file, matching_field, translation_dict, warning_me
         row_counter = 0
         for row in reader:
             mf = row[matching_field]
+            if matching_field in ['doi', 'DOI']:
+                mf = prune_and_cleanup_string(mf, DOI_CLEANUP)
             try:
                 zd_number = translation_dict[mf]
             except KeyError:
@@ -566,7 +568,7 @@ def plog(*args, logfilename=logfile, terminal=True):
                 f.write(' ')
         f.write('\n')
 
-def prune_and_cleanup_string(string, pruning_list, typo_dict):
+def prune_and_cleanup_string(string, pruning_list, typo_dict={}):
     '''
     A function to prune substrings from a string and/or correct typos (replace original string
     by corrected string)
@@ -577,7 +579,7 @@ def prune_and_cleanup_string(string, pruning_list, typo_dict):
     '''
     for a in pruning_list:
         string = string.replace(a, '')
-    if string in typo_dict.keys():
+    if typo_dict.keys() and (string in typo_dict.keys()):
         string = typo_dict[string]
     return(string.strip())
 
@@ -1103,7 +1105,7 @@ def match_datasource_fields_to_report_fields(datasource_dict, translation_dict, 
                     if datasource_dict[ticket][zd_f]: #avoids AttributeError due to NoneType objects
                         if not datasource_dict[ticket][zd_f].strip() in ['-', 'unknown']: #ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence 
                             datasource_dict[ticket][rep_f] = datasource_dict[ticket][zd_f]
-                            #datasource_dict[ticket][rep_f] = datasource_dict[ticket][zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
+                            # datasource_dict[ticket][rep_f] = datasource_dict[ticket][zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
         if default_publisher:
             datasource_dict[ticket]['Publisher'] = default_publisher
         if default_pubtype:
@@ -1517,14 +1519,15 @@ def action_populate_report_fields(reporting_dict, translation_dict, default_publ
         ##DEAL WITH THE EASY FIELDS FIRST (ONE TO ONE CORRESPONDENCE)
         for rep_f in translation_dict:
             for zd_f in translation_dict[rep_f]:
-                if (rep_f not in ticket.keys()) and (zd_f in ticket.keys()):
+                # if (rep_f not in ticket.keys()) and (zd_f in ticket.keys()): # this saves some time, but it means that info can come from fields that are not intended
+                if zd_f in ticket.keys():
                     if ticket[zd_f]: #avoids AttributeError due to NoneType objects
                         if not ticket[zd_f].strip( ) in ['-', 'unknown']: #ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence
                             # convert dates to YYYY-MM-DD format
                             if (rep_f in ['Date of APC payment', 'Date of publication']) and (default_publisher == 'Wiley'):
                                 ticket[zd_f] = convert_date_str_to_yyyy_mm_dd(ticket[zd_f])
                             ticket[rep_f] = ticket[zd_f]
-                            #reporting_dict[ticket][rep_f] = reporting_dict[ticket][zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
+                            # ticket[rep_f] = ticket[zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
         ##THEN WITH THE CONDITIONAL FIELDS
         ticket = process_repeated_fields(zd_fund_field_list, rep_fund_field_list, ticket)
         ticket = process_repeated_fields(zd_allfunders, rep_funders, ticket)
@@ -1697,7 +1700,7 @@ apolloexport = os.path.join(working_folder, "Apollo_all_items-20180525.csv")
 
 # instead of running results via Cottage Labs, let's use PMID-PMCID-DOI mappings available from
 # https://europepmc.org/downloads
-
+europepmc_map = os.path.join(working_folder, "PMID_PMCID_DOI.csv")
 cottagelabsDoisResult = os.path.join(working_folder, "DOIs_for_cottagelabs_results.csv")
 cottagelabsTitlesResult =  os.path.join(working_folder, "Titles_for_cottagelabs_2017-11-21_results_edited.csv")
 cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
@@ -1725,8 +1728,8 @@ nonEBDU_payment_file_prefix = 'ART_debug_non_EBDU_EBDV_or_EBDW_payments__'
 ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS IN zd_dict
 rep2zd = [
 ('Date of acceptance', ['Symplectic acceptance date (YYYY-MM-DD) [txt]', 'Acceptance date', 'dcterms.dateAccepted']),
-('PubMed ID', ['PMID']), #from cottagelabs
-('DOI', ['#DOI (like 10.123/abc456) [txt]', 'rioxxterms.versionofrecord', 'dc.identifier.uri']), #dc.identifier.uri often contains DOIs that are not in rioxxterms.versionofrecord, but it needs cleaning up (e.g. http://dx.doi.org/10.1111/oik.02622,https://www.repository.cam.ac.uk/handle/1810/254674 ); use only if the DOI cannot be found elsewhere
+('PubMed ID', ['PMID']), #from cottagelabs or Europe PMC map
+('DOI', ['#DOI (like 10.123/abc456) [txt]', 'rioxxterms.versionofrecord']),#, 'dc.identifier.uri']), #dc.identifier.uri often contains DOIs that are not in rioxxterms.versionofrecord, but it needs cleaning up (e.g. http://dx.doi.org/10.1111/oik.02622,https://www.repository.cam.ac.uk/handle/1810/254674 ); use only if the DOI cannot be found elsewhere
 ('Publisher', ['Publisher [txt]', 'dc.publisher']),
 ('Journal', ['#Journal title [txt]', 'prism.publicationName']),
 ('E-ISSN', ['ISSN']), #from cottagelabs
@@ -1807,6 +1810,8 @@ if __name__ == '__main__':
     parse_oup_prepayment = True
     estimate_green_compliance = False
     list_green_papers = False
+    resolve_pmc_id = True
+
     ############################ACTION STARTS HERE##################################
 
     #~ tempfieldnames = extract_csv_header(zenexport)
@@ -1862,15 +1867,21 @@ if __name__ == '__main__':
     #### PLUGGING IN DATA FROM APOLLO
     ###NEED TO MAP THIS DATA USING REPOSITORY HANDLE, BECAUSE APOLLO DOES
     ###NOT STORE ZD AND OA NUMBERS FOR ALL SUBMISSIONS
+    logger.info('Plugging in data from Apollo into zd_dict')
     plug_in_metadata(apolloexport, 'handle', apollo2zd_dict)
 
-    #### PLUGGING IN DATA FROM COTTAGELABS
-    ## For some reason not all PMIDs are appearing in the final COAF 2017 report, so this is something that needs to be fixed.
-    try:
-        plug_in_metadata(cottagelabsexport, 'DOI', doi2zd_dict)
-    except FileNotFoundError:
-        plog('WARNING: Compliance data from Cottage Labs not found; I will assume this is because it was not generated yet',
-             terminal=True)
+    #### PLUGGING IN DATA FROM EUROPE PMC
+    if resolve_pmc_id:
+        logger.info('Plugging in data from Europe PMC into zd_dict')
+        plug_in_metadata(europepmc_map, 'DOI', doi2zd_dict)
+
+    # #### PLUGGING IN DATA FROM COTTAGELABS
+    # ## For some reason not all PMIDs are appearing in the final COAF 2017 report, so this is something that needs to be fixed.
+    # try:
+    #     plug_in_metadata(cottagelabsexport, 'DOI', doi2zd_dict)
+    # except FileNotFoundError:
+    #     plog('WARNING: Compliance data from Cottage Labs not found; I will assume this is because it was not generated yet',
+    #          terminal=True)
 
     #### MAUALLY FIX SOME PROBLEMS
     zd_dict['3743']['DOI'] = '10.1088/0953-2048/27/8/082001'
@@ -2051,8 +2062,8 @@ if __name__ == '__main__':
         ### MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
         rep2springer = [
         ('Date of acceptance', ['acceptance date']),
-        #('PubMed ID', #NA
-        ('DOI', ['DOI']),
+        ('PubMed ID', ['PMID']),  # NOT in prepayment dataset, but should be available from zd_dict
+        ('DOI', ['#DOI (like 10.123/abc456) [txt]', 'rioxxterms.versionofrecord']), #('DOI', ['DOI']),
         #('Publisher', #NOT A VARIABLE; DEFAULT TO SPRINGER
         ('Journal', ['journal title']),
         ('E-ISSN', ['eISSN']),
@@ -2185,7 +2196,7 @@ if __name__ == '__main__':
         ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
         rep2wiley = [
         ('Date of acceptance', ['Article Accepted Date']),
-        #('PubMed ID', #NA
+        ('PubMed ID', ['PMID']),  # NOT in prepayment dataset, but should be available from zd_dict
         ('DOI', ['Wiley DOI']),             ## Fields in Wiley report are 'DOI' and 'Publisher', but I had to append 'Wiley ' to these two lines
         ('Publisher', ['Wiley Publisher']), ## because ART has a mechanism that prevents existing fields (e.g. comming from zd) from being overwritten
         ('Journal', ['Journal']),           ## by data from prepayment deals; this is something that probably needs revising because it is confusing, not obvious
@@ -2263,7 +2274,7 @@ if __name__ == '__main__':
         ###MAP REPORT FIELDS TO HARVESTED OR CALCULATED FIELDS
         rep2oup = [
         ('Date of acceptance', ['Accepted For Publication', 'Approved For Publication']),
-        #('PubMed ID', #NA
+        ('PubMed ID', ['PMID']), # NOT in OUP dataset, but should be available from zd_dict
         ('DOI', ['Doi']),
         #('Publisher', #NOT A VARIABLE; DEFAULT TO OUP
         ('Journal', ['Journal Name']),
@@ -2339,13 +2350,13 @@ if __name__ == '__main__':
 
         plog('STATUS: Finished processing OUP Prepayment entries')
 
-    # NOW LET'S EXPORT A CSV OF DOIS TO UPLOAD TO https://compliance.cottagelabs.com
-    # FIX THIS ONE MANUALLY ON THE OUTPUT CSV: http:/​/​dx.​doi.​org/​10.​1104/​pp.​16.​00539
-    with open(doifile, 'w') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=['DOI'], extrasaction='ignore')
-        writer.writeheader()
-        for ticket in report_dict:
-            if 'DOI' in report_dict[ticket].keys():
-                if report_dict[ticket]['DOI'].strip():
-                    writer.writerow(report_dict[ticket])
+    # # NOW LET'S EXPORT A CSV OF DOIS TO UPLOAD TO https://compliance.cottagelabs.com
+    # # FIX THIS ONE MANUALLY ON THE OUTPUT CSV: http:/​/​dx.​doi.​org/​10.​1104/​pp.​16.​00539
+    # with open(doifile, 'w') as csvfile:
+    #     writer = csv.DictWriter(csvfile, fieldnames=['DOI'], extrasaction='ignore')
+    #     writer.writeheader()
+    #     for ticket in report_dict:
+    #         if 'DOI' in report_dict[ticket].keys():
+    #             if report_dict[ticket]['DOI'].strip():
+    #                 writer.writerow(report_dict[ticket])
 
