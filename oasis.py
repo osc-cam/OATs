@@ -38,7 +38,7 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     return (open_cmd, rm_cmd, username, home, pdftk, texworks)
 
 print(
-'''OASIS 1.2
+'''OASIS 1.2.1
 
 Author: André Sartori
 Copyright (c) 2017-2018
@@ -235,7 +235,6 @@ else:
     oats_copy(src, dst)
 
 # OBTAIN INVOICE DATA AND RENAME THE FILE TO <OA/ZD NUMBER>_<INVOICE NUMBER>.PDF
-logger.plog("OASIS: Renaming invoice to <OA/ZD NUMBER>_<INVOICE NUMBER>.pdf")
 invno = ""
 tinvno = re.compile("%%%%INVOICE VARIABLES FOR .+%%%%")
 minvno = tinvno.search(varcontent)
@@ -259,6 +258,7 @@ else:
     sys.exit("OASIS ERROR: Failed to extract OA or ZD number from", invoicevarfile)
 
 invfilename = refno + "_" + invno + ".pdf"
+logger.plog("OASIS: Renaming invoice to {}.pdf".format(invfilename))
 src = stampedinvoice
 dst = os.path.join(oasisfolder, invfilename)
 oats_move(src, dst)
