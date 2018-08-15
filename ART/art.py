@@ -764,6 +764,71 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
     :return: zendesk_number or an empty string # tuple (zendesk_number, reason_zendesk_number_could_not_be_found)
     '''
 
+    def ticket_in_policy(zd_ticket):
+        '''
+        Check if ZD ticket is marked as included in funder policies
+        :param zd_ticket: Zendesk ticket to evaluate
+        :return: True if included in at least one policy; False if not included
+        '''
+        for field in ["RCUK policy [flag]", "COAF policy [flag]", "RCUK payment [flag]", "COAF payment [flag]"]:
+            if (zd_ticket[field] == 'yes'):
+                return True
+        return False
+
+    def doi_match(doi):
+        '''
+        Matches DOI to a list of Zendesk tickets usig dictionaries doi2zd_dict, doi2apollo and zd_dict. If a match is
+        found, checks if ticket is included in funder policies. If it is, returns the ZD number of the matched ticket;
+        otherwise return None
+        :param doi: DOI to lookup
+        :return: zd_number or None
+        '''
+        try:
+            zd_list = doi2zd_dict[doi]
+        except KeyError:
+            zd_list = []
+
+        if not zd_list:
+            try:
+                apollo_handle = doi2apollo[doi]
+                zd_list = apollo2zd_dict[apollo_handle]
+            except KeyError:
+                zd_list = []
+
+        if zd_list:
+            logger.debug('zd_list: {}'.format(zd_list))
+            for zd_number in zd_list:
+                zd_ticket = zd_dict[zd_number]
+                if ticket_in_policy(zd_ticket):
+                    return zd_number
+        return None
+
+    def title_match(title, doi):
+        if title.strip() == '':
+            try:
+                title = manual_doi2title[doi]
+            except KeyError:
+                logger.warning('Empty title for prepayment record with DOI {} '
+                               'not found in manual_doi2title dictionary'.format(doi))
+        try:
+            if restrict_to_funder_policy == 'RCUK':
+                zd_number = title2zd_dict_RCUK[title.upper()]
+            elif restrict_to_funder_policy == 'COAF':
+                zd_number = title2zd_dict_COAF[title.upper()]
+            else:
+                zd_number = title2zd_dict[title.upper()]
+        except KeyError:
+            unresolved_titles.append(title)
+            possible_matches = []
+            if restrict_to_funder_policy == 'RCUK':
+                zd_number = heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict=title2zd_dict_RCUK)
+            elif restrict_to_funder_policy == 'COAF':
+                zd_number = heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict=title2zd_dict_COAF)
+            else:
+                zd_number = heuristic_match_by_title(title, publisher, title2zd_dict)
+        return zd_number
+
+
     # DEV NOTES
     # Maybe I should change this function so that zd_numbers are appended to a list of possible matches
     # using each of the different search methods (doi, apollo handle, title).
@@ -781,43 +846,12 @@ def match_prepayment_deal_to_zd(doi, title, publisher, doi2zd_dict, doi2apollo, 
     if institution == 'University of Cambridge':
         if title.strip() in manual_title2zd_dict.keys():
             zd_number = manual_title2zd_dict[title.strip()]
-            if not zd_number:
-                return('')
+            return zd_number
         else:
-            try:
-                zd_number = doi2zd_dict[doi]
-                # if '10.1093/brain/awx101' in doi: ##DEBUGGING STUFF
-                #     print('DOI:', doi)
-                #     print('zd_number:', zd_number)
-                #     print('title:', title)
-            except KeyError:
-                unresolved_dois.append(doi)
-                try:
-                    apollo_handle = doi2apollo[doi]
-                    zd_number = apollo2zd_dict[apollo_handle]
-                except KeyError:
-                    unresolved_dois_apollo.append(doi)
-                    if title.strip() == '':
-                        try:
-                            title = manual_doi2title[doi]
-                        except KeyError:
-                            plog('WARNING: Empty title for prepayment record with DOI', doi, 'not found in manual_doi2title dictionary.', terminal=true)
-                    try:
-                        if restrict_to_funder_policy == 'RCUK':
-                            zd_number = title2zd_dict_RCUK[title.upper()]
-                        elif restrict_to_funder_policy == 'COAF':
-                            zd_number = title2zd_dict_COAF[title.upper()]
-                        else:
-                            zd_number = title2zd_dict[title.upper()]
-                    except KeyError:
-                        unresolved_titles.append(title)
-                        possible_matches = []
-                        if restrict_to_funder_policy == 'RCUK':
-                            zd_number = heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict=title2zd_dict_RCUK)
-                        elif restrict_to_funder_policy == 'COAF':
-                            zd_number = heuristic_match_by_title(title, publisher, title2zd_dict, policy_dict=title2zd_dict_COAF)
-                        else:
-                            zd_number = heuristic_match_by_title(title, publisher, title2zd_dict)
+            zd_number = doi_match(doi)
+            if not zd_number:
+                zd_number = title_match(title, doi)
+
         #~ plog(str(len(unresolved_dois)) + ' DOIs in the ' + publisher + ' dataset could not be matched to ZD numbers:')
         #~ for doi in unresolved_dois:
             #~ plog(doi)
@@ -870,14 +904,6 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
     :return:
     '''
 
-    def find_decision_ticket(zd_tickets):
-        '''
-        Takes a list of Zendesk tickets and returns the one that is deemed most likely to contain funder information
-        :param zd_tickets: list of the Zendesk tickets to evaluate
-        :return:
-        '''
-        pass
-
     with open(inputfile) as csvfile:
         publisher_id = 1
         reader = csv.DictReader(csvfile, delimiter=delim)
@@ -910,9 +936,9 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                 else:
                     zd_number = ''
                     manual_rejection = 'Title included in exclude_titles list; Not found in zd (match by title attempted only on tickets included in ' + reporttype + ' policy) during a previous run'
-                    plog('''WARNING: The following record could not be matched to a Zendesk ticket. 
-                        If this is a Wiley or OUP record, please map it manually to a Zendesk by adding it to
-                        manual_title2zd_dict.''')
+                    logger.warning('The following record could not be matched to a Zendesk ticket. '
+                                   'If this is a Wiley or OUP record, please map it manually to a Zendesk by adding '
+                                   'it to manual_title2zd_dict.')
                 #~ output_dict[publisher_id] = row
                 for a in field_renaming_list:
                     #~ output_dict[publisher_id][a[1]] = output_dict[publisher_id][a[0]]
@@ -924,11 +950,15 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                     for fn in row.keys():
                         try:
                             if fn in zd_dict[zd_number].keys():
-                                print('WARNING:', fn, 'in output_dict will be overwritten by data in zd_dict')
+                                logger.warning('{} in output_dict will be overwritten by data in zd_dict'.format(fn))
                         except KeyError:
                             warning = 1
                 if warning == 1:
-                    print('WARNING:', zd_number, 'not in zd_dict. This is probably because the zd number for this article was obtained from manual_title2zd_dict rather than from zd_dict and either (1) the zd ticket is newer than the zd export used here (using a new export should solve the problem); or (2) this zd_number is a typo in manual_title2zd_dict')
+                    logger.warning('{} not in zd_dict. This is probably because the zd number for this article was '
+                                   'obtained from manual_title2zd_dict rather than from zd_dict and either (1) '
+                                   'the zd ticket is newer than the zd export used here (using a new export should '
+                                   'solve the problem); or (2) this zd_number is a '
+                                   'typo in manual_title2zd_dict'.format(zd_number))
                     zd_number = ''
                 if zd_number:
                     if reporttype == 'RCUK':
@@ -1019,7 +1049,7 @@ def filter_prepayment_records(row, publisher, filter_date_field, request_status_
         publication_date = row[filter_date_field]
     elif (publisher == 'OUP') or (publisher == 'Wiley'):
         request_status = row[request_status_field]
-        if request_status in ['Cancelled', 'Rejected', 'Denied']:
+        if request_status in ['Cancelled', 'Rejected', 'Denied', 'Reclaimed']:
             prune = 1
             prune_reason = 'Rejected request'
         else:
@@ -1664,6 +1694,10 @@ coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 zenexport = os.path.join(working_folder, "export-2018-08-13-1310-234063-3600001227941889.csv")
 zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-05-25-2207.csv")
 apolloexport = os.path.join(working_folder, "Apollo_all_items-20180525.csv")
+
+# instead of running results via Cottage Labs, let's use PMID-PMCID-DOI mappings available from
+# https://europepmc.org/downloads
+
 cottagelabsDoisResult = os.path.join(working_folder, "DOIs_for_cottagelabs_results.csv")
 cottagelabsTitlesResult =  os.path.join(working_folder, "Titles_for_cottagelabs_2017-11-21_results_edited.csv")
 cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
@@ -1767,10 +1801,10 @@ if __name__ == '__main__':
     logging.config.fileConfig('logging.conf', defaults={'logfilename': logfilename})
     logger = logging.getLogger('art')
 
-    parse_invoice_data = False
+    parse_invoice_data = True
     parse_springer_compact = True
-    parse_wiley_dashboard = False
-    parse_oup_prepayment = False
+    parse_wiley_dashboard = True
+    parse_oup_prepayment = True
     estimate_green_compliance = False
     list_green_papers = False
     ############################ACTION STARTS HERE##################################
@@ -2041,69 +2075,69 @@ if __name__ == '__main__':
         springer_dict = {}
         rejection_dict_springer = {}
         dateutil_springer = dateutil.parser.parserinfo() ## this used to be dateutil.parser.parserinfo(dayfirst=True) for old Springer Compact reports
-        # exclude_titles_springer = [
-        #     ### RCUK REPORT 2017
-        #     # 'Clinical Trials in Vasculitis',
-        #     # 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology',
-        #     # 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444',
-        #     # 'Hunter-Gatherers and the Origins of Religion',
-        #     # 'A 2-adic automorphy lifting theorem for unitary groups over CM fields',
-        #     # 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot',
-        #     # 'Hohfeldian Infinities: Why Not to Worry',
-        #     # 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion',
-        #     # 'Data processing for the sandwiched Rényi divergence: a condition for equality',
-        #     # 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)',
-        #     # 'Gender patterns in academic entrepreneurship'
-        #     ### COAF REPORT 2017
-        #     ## NOT FOUND IN ZENDESK
-        #     '''Do Gang Injunctions Reduce Violent Crime? Four Tests in Merseyside, UK''',
-        #     '''"Don't Mind the Gap!" Reflections on improvement science as a paradigm''',
-        #     '''Paradoxical effects of self-awareness of being observed: Testing the effect of police body-worn cameras on assaults and aggression against officers''',
-        #     '''KYC Optimization Using Distributed Ledger Technology''', '''Metric ultraproducts of classical groups''',
-        #     '''Uniformity of the late points of random walk on''',
-        #     '''Nowhere differentiable functions of analytic type on products of finitely connected planar domains''',
-        #     '''Advocacy Science: Explaining the term with case studies from biotechnology''',
-        #     '''Turn-taking in cooperative offspring care: by-product of individual provisioning behavior or active response rule?''',
-        #     '''Fetal Androgens and Human Sexual Orientation: Searching for the Elusive Link''',
-        #     '''The Coevolution of Play and the Cortico-Cerebellar System in Primates''',
-        #     '''Police Attempts to Predict Domestic Murder and Serious Assaults: Is Early Warning Possible Yet?''',
-        #     '''Does tracking and feedback boost patrol time in hot spots? Two tests.''',
-        #     '''Finite vs. Small Strain Discrete Dislocation Analysis of Cantilever Bending of Single Crystals''',
-        #     '''Effect of context on the contribution of individual harmonics to residue pitch''',
-        #     '''Preferred location for conducting filament formation in thin-film nano-ionic electrolyte: Study of microstructure by atom-probe tomography''',
-        #     '''Volumetric Growth Rates of Meningioma and its Correlation with Histological Diagnosis and Clinical Outcome: A Systematic Review''',
-        #     '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
-        #     '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
-        #     '''Comparing representations for function spaces in computable analysis''',
-        #     '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
-        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-        #     '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
-        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-        #     ### RCUK REPORT 2018
-        #     ## NOT FOUND IN ZENDESK
-        #     '''Thermally-stable nanocrystalline steel''',
-        #     '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
-        #     '''Harvesting the Commons''',
-        #     '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
-        #     '''The fate of the method of 'paradigms' in paleobiology''',
-        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-        #     '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
-        #     '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
-        #     '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
-        #     '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
-        #     '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
-        #     '''Thermally-stable nanocrystalline steel''',
-        #     '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
-        #     '''Harvesting the Commons''',
-        #     '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
-        #     '''The fate of the method of 'paradigms' in paleobiology''',
-        #     '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
-        #     '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
-        #     '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
-        #     '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
-        #     '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
-        #     '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
-        # ]
+        exclude_titles_springer = [
+            ### RCUK REPORT 2017
+            # 'Clinical Trials in Vasculitis',
+            # 'PET Imaging of Atherosclerotic Disease: Advancing Plaque Assessment from Anatomy to Pathophysiology',
+            # 'Consequences of tidal interaction between disks and orbiting protoplanets for the evolution of multi-planet systems with architecture resembling that of Kepler 444',
+            # 'Hunter-Gatherers and the Origins of Religion',
+            # 'A 2-adic automorphy lifting theorem for unitary groups over CM fields',
+            # 'Basal insulin delivery reduction for exercise in type 1 diabetes: finding the sweet spot',
+            # 'Hohfeldian Infinities: Why Not to Worry',
+            # 'Ultrastructural and immunocytochemical evidence for the reorganisation of the milk fat globule membrane after secretion',
+            # 'Data processing for the sandwiched Rényi divergence: a condition for equality',
+            # 'Knowledge, beliefs and pedagogy: how the nature of science should inform the aims of science education (and not just when teaching evolution)',
+            # 'Gender patterns in academic entrepreneurship'
+            ### COAF REPORT 2017
+            ## NOT FOUND IN ZENDESK
+            '''Do Gang Injunctions Reduce Violent Crime? Four Tests in Merseyside, UK''',
+            '''"Don't Mind the Gap!" Reflections on improvement science as a paradigm''',
+            '''Paradoxical effects of self-awareness of being observed: Testing the effect of police body-worn cameras on assaults and aggression against officers''',
+            '''KYC Optimization Using Distributed Ledger Technology''', '''Metric ultraproducts of classical groups''',
+            '''Uniformity of the late points of random walk on''',
+            '''Nowhere differentiable functions of analytic type on products of finitely connected planar domains''',
+            '''Advocacy Science: Explaining the term with case studies from biotechnology''',
+            '''Turn-taking in cooperative offspring care: by-product of individual provisioning behavior or active response rule?''',
+            '''Fetal Androgens and Human Sexual Orientation: Searching for the Elusive Link''',
+            '''The Coevolution of Play and the Cortico-Cerebellar System in Primates''',
+            '''Police Attempts to Predict Domestic Murder and Serious Assaults: Is Early Warning Possible Yet?''',
+            '''Does tracking and feedback boost patrol time in hot spots? Two tests.''',
+            '''Finite vs. Small Strain Discrete Dislocation Analysis of Cantilever Bending of Single Crystals''',
+            '''Effect of context on the contribution of individual harmonics to residue pitch''',
+            '''Preferred location for conducting filament formation in thin-film nano-ionic electrolyte: Study of microstructure by atom-probe tomography''',
+            '''Volumetric Growth Rates of Meningioma and its Correlation with Histological Diagnosis and Clinical Outcome: A Systematic Review''',
+            '''Crack kinking at the tip of a mode I crack in an orthotropic solid''',
+            '''Evidence comes by replication, but needs differentiation: The reproducibility problem in science and its relevance for criminology''',
+            '''Comparing representations for function spaces in computable analysis''',
+            '''Spatial selectivity in cochlear implants: Effects of asymmetric waveforms and development of a single-point measure.''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            '''A re-examination of the effect of masker phase curvature on non-simultaneous masking''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            ### RCUK REPORT 2018
+            ## NOT FOUND IN ZENDESK
+            '''Thermally-stable nanocrystalline steel''',
+            '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
+            '''Harvesting the Commons''',
+            '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
+            '''The fate of the method of 'paradigms' in paleobiology''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
+            '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
+            '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
+            '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
+            '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
+            '''Thermally-stable nanocrystalline steel''',
+            '''Energy flows in the coffee plantations of Costa Rica: From traditional to modern systems (1935-2010)''',
+            '''Harvesting the Commons''',
+            '''Endoluminal vacuum therapy (E-Vac): a novel treatment option in oesophagogastric surgery''',
+            '''The fate of the method of 'paradigms' in paleobiology''',
+            '''Tracking Police Responses to “Hot” Vehicle Alerts: Automatic Number Plate Recognition and the Cambridge Crime Harm Index''',
+            '''Reflections on and Extensions of the Fuller and Tabor Theory of Rough Surface Adhesion''',
+            '''Sweet Spots for Hot Spots? A Cost-Effectiveness Comparison of Two Patrol Strategies''',
+            '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
+            '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
+            '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
+        ]
         exclude_titles_springer = []
         import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,
                                               'DOI', 'article title', # this used to be 'Article Title' in Springer Compact reports,
@@ -2126,6 +2160,9 @@ if __name__ == '__main__':
         springer_out_dict = action_populate_report_fields(springer_dict, rep2springer,
                                                                      'Springer', 'Article', 'Springer Compact',
                                                                      'Springer Compact')
+
+        # add springer entries to report_dict so that they are included in the cottage labs file
+        report_dict.update(springer_out_dict)
 
         report_fieldnames += ['Is there an APC payment? [list]']
         with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
@@ -2202,6 +2239,9 @@ if __name__ == '__main__':
 
         wiley_out_dict = action_populate_report_fields(wiley_dict, rep2wiley, 'Wiley', default_deal = 'Other', default_notes = 'Wiley prepayment discount')
 
+        # add wiley entries to report_dict so that they are included in the cottage labs file
+        report_dict.update(wiley_out_dict)
+
         # for a in wiley_dict:
         #     print(wiley_dict[a].keys())
         #     print('DOI', wiley_dict[a]['Wiley DOI'])
@@ -2247,7 +2287,7 @@ if __name__ == '__main__':
         oup_dict = {}
         rejection_dict_oup = {}
         dateutil_oup = dateutil.parser.parserinfo() # Used for RCUK report but no longer valid: dateutil.parser.parserinfo(dayfirst=True)
-        filter_date_field_oup = 'Referral Date'
+        filter_date_field_oup = 'Order Date' # 'Referral Date'
         request_status_field_oup = 'Status'
         exclude_titles_oup = [
             ## RCUK REPORT 2017
@@ -2275,6 +2315,9 @@ if __name__ == '__main__':
         debug_export_excluded_records_prepayment(excluded_debug_file, rejection_dict_oup, oup_reject_fieldnames)
 
         oup_out_dict = action_populate_report_fields(oup_dict, rep2oup, 'Oxford University Press', 'Article', 'Other', 'Oxford University Press prepayment discount')
+
+        # add oup entries to report_dict so that they are included in the cottage labs file
+        report_dict.update(oup_out_dict)
 
         with open(outputfile, 'a') as csvfile: #APPEND TO THE SAME OUTPUTFILE
             writer = csv.DictWriter(csvfile, fieldnames=report_fieldnames, extrasaction='ignore')
