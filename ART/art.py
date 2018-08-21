@@ -309,6 +309,7 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
         row_counter = 0
         unmatched_oa_numbers = []
         for row in reader:
+            logger.debug('row: {}'.format(row))
             if row[oa_number_field] in oa_number_typos.keys():
                 row[oa_number_field] = oa_number_typos[row[oa_number_field]]
             #print('\n', 'oa_number_field:', oa_number_field)
@@ -438,7 +439,8 @@ def plug_in_payment_data(paymentsfile, fileheader, oa_number_field, output_apc_f
                     key = 'no_transaction_field_' + str(row_counter)
                     if funder == 'RCUK':
                         included_rcuk_payment_dict[key] = row.copy()
-                        plog('WARNING: RCUK payments without a transaction field detected. Something is probably wrong!')
+                        logger.debug('RCUK payments without a transaction field detected in file {}'.format(
+                                        paymentsfile))
                     elif funder == 'COAF':
                         included_coaf_payment_dict[key] = row.copy()
                     if zd_number in payments_dict_apc.keys():
@@ -969,6 +971,13 @@ def import_prepayment_data_and_link_to_zd(inputfile, output_dict, rejection_dict
                     elif reporttype == 'COAF':
                         policy_flag = "COAF policy [flag]"
                         payment_flag = "COAF payment [flag]"
+                    elif reporttype == 'ALL':
+                        row[rejection_reason_field] = 'Included in output_dict by function import_prepayment_data; ' \
+                                                      'report type is ALL)'
+                        output_dict[publisher_id] = row
+                        rejection_dict[publisher_id] = row  # this can be removed from the if statement as it also appears in else; leaving it here for now as still in active development
+                        continue
+
                     if type(zd_number) == type('string'):
                         row.update(zd_dict[zd_number])
                         if zd_number in included_in_report.keys():
@@ -1642,7 +1651,8 @@ invoice2zd_number = {
 lf = os.path.dirname(os.path.realpath(__file__))
 os.chdir(lf)
 
-reporttype = "COAF" #Report requester. Supported values are: RCUK or COAF
+# SETUP REPORT
+reporttype = "ALL" #Report requester. Supported values are: RCUK, COAF, ALL
 rcuk_paydate_field = 'Posted' #Name of field in rcuk_paymentsfile containing the payment date
 rcuk_payamount_field = 'Amount' #Name of field in rcuk_paymentsfile containing the payment amount
 total_rcuk_payamount_field = 'RCUK APC Amount' #Name of field we want the calculated total RCUK APC to be stored in
@@ -1651,16 +1661,16 @@ coaf_payamount_field = 'Burdened Cost' #Name of field in coaf_last_year and coaf
 total_coaf_payamount_field = 'COAF APC Amount' #Name of field we want the calculated total COAF APC to be stored in
 total_apc_field = 'Total APC amount'
 
-if reporttype == "RCUK":
+if reporttype in ["RCUK", "ALL"]:
     paydate_field = rcuk_paydate_field
     payamount_field = rcuk_payamount_field
     total_payamount_field = total_rcuk_payamount_field
     other_funder = "COAF"
     of_payamount_field = coaf_payamount_field
     total_of_payamount_field = total_coaf_payamount_field
-    outputfile = os.path.join(working_folder, "RCUK_report_draft.csv")
-    outputgreen = os.path.join(working_folder, "RCUK_report_draft-green_papers.csv")
-    excluded_recs_logfile = os.path.join(working_folder, "RCUK_report_excluded_records.csv")
+    outputfile = os.path.join(working_folder, "{}_report_draft.csv".format(reporttype))
+    outputgreen = os.path.join(working_folder, "{}_report_draft-green_papers.csv".format(reporttype))
+    excluded_recs_logfile = os.path.join(working_folder, "{}_report_excluded_records.csv".format(reporttype))
 elif reporttype == "COAF":
     paydate_field = coaf_paydate_field
     payamount_field = coaf_payamount_field
@@ -1679,25 +1689,32 @@ with open(logfile, 'w') as log:
     log.write('APC Reporting Tool log of last run\n')
 
 doifile = os.path.join(working_folder, "DOIs_for_cottagelabs.csv")
+# RCUK GRANT REPORTS FROM CUFS
 # rcuk_veje = os.path.join(working_folder, "VEJE_2017-10-31.csv")
 # rcuk_veji = os.path.join(working_folder, "VEJI_2017-10-31_Jan2017_to_Mar2017.csv")
 # rcuk_vejj = os.path.join(working_folder, "VEJI_and_VEJJ_1_April_2017_to_31_March_2018_290518.csv")
+rcuk_vejx = os.path.join(working_folder, "RCUK_2018-08-09_all_VEJx_codes.csv")
 # rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
 rcuk_paymentsfilename = "RCUK_2018-08-09_all_VEJx_codes.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
-# merge_csv_files([rcuk_veje, rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
-# merge_csv_files([rcuk_veji, rcuk_vejj], rcuk_paymentsfile)
-# merge_csv_files([rcuk_vejj], rcuk_paymentsfile)
-# coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-04-12_Jan2017_to_Sept2017.csv')
-# coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-04-12.csv')
-# coaf_paymentsfilename = "COAF_merged_payments_file.csv"
-coaf_paymentsfilename = "VEAG050_2018-08-09_with_resolved_journals.csv"
+# merge_csv_files([rcuk_vejx, rcuk_veag054], rcuk_paymentsfile)
+rcuk_veag054 = os.path.join(working_folder, "RCUK_VEAG054_2018-08-09.csv") # this sheet has the same format as COAF ones
+rcuk_paymentsfile_veag = os.path.join(working_folder, rcuk_veag054)
+
+# COAF GRANT REPORTS FROM CUFS
+coaf_veag044 = os.path.join(working_folder, 'VEAG044_2018-08-09.csv')
+coaf_veag045 = os.path.join(working_folder, 'VEAG045_2018-08-09.csv')
+coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv')
+coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-08-09.csv')
+coaf_paymentsfilename = "COAF_merged_payments_file.csv"
+# coaf_paymentsfilename = "VEAG050_2018-08-09_with_resolved_journals.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
-# merge_csv_files([coaf_veag050, coaf_veag052], coaf_paymentsfile)
+merge_csv_files([coaf_veag044, coaf_veag045, coaf_veag050, coaf_veag052], coaf_paymentsfile)
+
+# METADATA SOURCES
 zenexport = os.path.join(working_folder, "export-2018-08-13-1310-234063-3600001227941889.csv")
 zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-05-25-2207.csv")
 apolloexport = os.path.join(working_folder, "Apollo_all_items-20180525.csv")
-
 # instead of running results via Cottage Labs, let's use PMID-PMCID-DOI mappings available from
 # https://europepmc.org/downloads
 europepmc_map = os.path.join(working_folder, "PMID_PMCID_DOI.csv")
@@ -1706,6 +1723,8 @@ cottagelabsTitlesResult =  os.path.join(working_folder, "Titles_for_cottagelabs_
 cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
 # merge_csv_files([cottagelabsDoisResult, cottagelabsTitlesResult], cottagelabsexport)
 # merge_csv_files([cottagelabsDoisResult], cottagelabsexport)
+
+# PREPAYMENT ACCOUNTS REPORTS
 # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
 # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
 springercompactexport = os.path.join(working_folder, "article_approval_2016-10-01_to_2017-09-30.csv")
@@ -1715,11 +1734,13 @@ wileycredit = os.path.join(working_folder, "Wiley_CREDIT_ArticleHistoryReport.cs
 wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
 merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
 oupexport = os.path.join(working_folder, "OUP_OA_Charge_Data_20180810.csv")
+
+# SETUP REPORT
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
-report_start_date = datetime.datetime(2016, 10, 1) #(2016, 10, 1) COAF
-report_end_date = datetime.datetime(2017, 9, 30, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
-green_start_date = datetime.datetime(2016, 1, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
-green_end_date = datetime.datetime(2016, 12, 31, hour = 23, minute = 59, second = 59)
+report_start_date = datetime.datetime(1900, 1, 1) #(2016, 10, 1) COAF
+report_end_date = datetime.datetime(2018, 8, 20, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
+green_start_date = datetime.datetime(1900, 1, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
+green_end_date = datetime.datetime(2017, 12, 31, hour = 23, minute = 59, second = 59)
 
 unmatched_payment_file_prefix = 'ART_debug_payments_not_matched_to_zd_numbers__'
 nonJUDB_payment_file_prefix = 'ART_debug_non_JUDB_payments__'
@@ -1805,12 +1826,12 @@ if __name__ == '__main__':
     logger = logging.getLogger('art')
 
     parse_invoice_data = True
-    parse_springer_compact = True
-    parse_wiley_dashboard = True
-    parse_oup_prepayment = True
+    parse_springer_compact = False
+    parse_wiley_dashboard = False
+    parse_oup_prepayment = False
     estimate_green_compliance = False
     list_green_papers = False
-    resolve_pmc_id = True
+    resolve_pmc_id = False
 
     ############################ACTION STARTS HERE##################################
 
@@ -1859,10 +1880,14 @@ if __name__ == '__main__':
     if parse_invoice_data:
         plug_in_payment_data(rcuk_paymentsfile, rcuk_paymentsfieldnames, 'Description', total_rcuk_payamount_field,
                              'Page, colour or membership amount', amount_field = rcuk_payamount_field,
-                             file_encoding = 'utf-8', transaction_code_field = 'Tran', funder = 'RCUK')
+                             file_encoding = 'utf-8', transaction_code_field = 'Tran', funder='RCUK')
+
+        plug_in_payment_data(rcuk_paymentsfile_veag, coaffieldnames, 'Comment', total_rcuk_payamount_field,
+                             'Page, colour or membership amount', invoice_field = 'Invoice',
+                             amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder='RCUK')
         plug_in_payment_data(coaf_paymentsfile, coaffieldnames, 'Comment', total_coaf_payamount_field,
                              'COAF Page, colour or membership amount', invoice_field = 'Invoice',
-                             amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder = 'COAF')
+                             amount_field = coaf_payamount_field, file_encoding = 'utf-8', funder='COAF')
 
     #### PLUGGING IN DATA FROM APOLLO
     ###NEED TO MAP THIS DATA USING REPOSITORY HANDLE, BECAUSE APOLLO DOES

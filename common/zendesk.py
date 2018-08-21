@@ -2,23 +2,46 @@ import csv
 import datetime
 import dateutil.parser
 import logging
+import logging.config
 import os
-import pandas as pd
 import re
 import sys
-from . import cufs
-from .oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
 
-### USE THIS DICTIONARY TO FORCE THE MAPPING OF PARTICULARLY PROBLEMATIC OA NUMBERS TO ZD NUMBERS
-### FOR EXAMPLE A OA NUMBER MARKED AS DUPLICATE IN ZENDESK, BUT WITH A PAYMENT ASSOCIATED WITH IT
-### (NOT EASY TO FIX IN ZENDESK)
-manual_oa2zd_dict = {
-    # 'OA-13907':'83033',
-    # 'OA-10518':'36495',
-    # 'OA-13111':'76842',
-    # 'OA-14062':'86232',
-    # 'OA-13919':'83197',
-    # 'OA-14269':'89212'
+import cufs
+# from . import cufs
+from oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
+# from .oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
+
+# create logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# add formatter to ch
+ch.setFormatter(formatter)
+# add ch to logger
+# logger.addHandler(ch)
+
+
+# Use this dictionary to force the mapping of particularly problematic oa numbers to zd numbers. For example,
+# both ZD tickets 6127 and 9693 have external ID set to OA-2629, so we need to map this one manually to the
+# correct zd_ticket
+MANUAL_OA2ZD_DICT = {
+    'OA-1267':'3965',
+    'OA-2208':'5466',
+    'OA-2629':'6127',
+    'OA-2669':'6202',
+    'OA-2746':'6331',
+    'OA-3194':'7104',
+    'OA-4299':'9020',
+    'OA-4658':'9660',
+    'OA-4998':'10229',
+    'OA-5555':'11066',
+    'OA-5620':'11167',
+    'OA-9922':'26755',
     }
 
 unmatched_payment_file_prefix = 'Midas_debug_payments_not_matched_to_zd_numbers__'
@@ -56,19 +79,19 @@ class ZdFieldsMapping():
         self.apc_payment = 'Is there an APC payment? [list]'
         self.coaf_payment = 'COAF payment [flag]'
         self.coaf_policy = 'COAF policy [flag]'
-        self.doi = 'DOI (like 10.123/abc456) [txt]'
+        self.doi = '#DOI (like 10.123/abc456) [txt]'
         self.duplicate = 'Duplicate [flag]'
         self.duplicate_of = 'Duplicate of (ZD-123456) [txt]'
         self.embargo = 'Embargo duration [list]'
-        self.external_id = 'externalID [txt]'
+        self.external_id = '#externalID [txt]'
         self.green_allowed_version = 'Green allowed version [list]'
         self.green_licence = 'Green licence [list]'
         self.id = 'Id'
-        self.manuscript_title = 'Manuscript title [txt]'
-        self.publication_date = 'Publication date (YYYY-MM-DD) [txt]'
+        self.manuscript_title = '#Manuscript title [txt]'
+        self.publication_date = '#Publication date (YYYY-MM-DD) [txt]'
         self.rcuk_payment = 'RCUK payment [flag]'
         self.rcuk_policy = 'RCUK policy [flag]'
-        self.repository_link = 'Repository link [txt]'
+        self.repository_link = '#Repository link [txt]'
 
         self.summation_column = 'Summation column'
         self.requester = 'Requester'
@@ -185,7 +208,7 @@ class ZdFieldsMapping():
         self.date_compliance_first_checked_yyyymmdd = 'Date compliance first checked (YYYY-MM-DD) [txt]'
         self.rcuk_cost_centre = 'RCUK cost centre [list]'
         self.membership_fee_paid_on_cufs = 'Membership fee paid on CUFS [flag]'
-        self.parkinsons_uk = 'Parkinson's UK [flag]'
+        self.parkinsons_uk = "Parkinson's UK [flag]"
         self.hero_thesis = 'Hero Thesis [flag]'
         self.dspace_tickets = 'DSpace Tickets [flag]'
         self.zd_ticket_number_of_original_submission_zd123456 = 'ZD ticket number of original submission (ZD-123456) [txt]'
@@ -350,7 +373,7 @@ class Parser():
     Use this class to read in data exported from Zendesk and parse it into a number of
     dictionaries.
     '''
-    def __init__(self):
+    def __init__(self, zenexport):
         self.apollo2zd_dict = {}
         self.cufs_map = None
         self.doi2zd_dict = {}
@@ -369,14 +392,16 @@ class Parser():
         self.zd_dict = {}
         self.zd_dict_COAF = {}
         self.zd_dict_RCUK = {}
+        self.zd_dict_with_payments = {}
         self.zd_fields = ZdFieldsMapping()
+        self.zenexport = zenexport
         self.zenexport_fieldnames = None
 
-    def index_zd_data(self, zenexport):
+    def index_zd_data(self):
         """ This function parses a csv file exported from the UoC OSC zendesk account
             and returns several dictionaries with the contained data
 
-            :param zenexport: path of the csv file exported from zendesk
+            :param self.zenexport: path of the csv file exported from zendesk
             :param zd_dict: dictionary of Ticket objects indexed by zendesk ticket number (one Ticket object per number)
             :param title2zd_dict: dictionary of Ticket objects indexed by publication titles (list of objects per title)
             :param doi2zd_dict: dictionary of Ticket objects indexed by DOIs (list of objects per DOI)
@@ -410,7 +435,8 @@ class Parser():
                 else:
                     dict[v] = [zd_number]
 
-        with open(zenexport, encoding = "utf-8") as csvfile:
+        t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
+        with open(self.zenexport, encoding = "utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
             self.zenexport_fieldnames = next(reader).keys()
             for row in reader:
@@ -429,6 +455,12 @@ class Parser():
                 dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
                 t.publication_date = convert_date_str_to_yyyy_mm_dd(row[self.zd_fields.publication_date], dateutil_options)
                 row[self.zd_fields.publication_date] = t.publication_date
+
+                # Old OA- tickets (created before October 2014) do not have field external_id populated, so check if
+                # subject line contains OA- reference number
+                if (t.external_id in ['', '-']) and (row[self.zd_fields.subject][:23] == 'Open Access enquiry OA-'):
+                    t.external_id = row[self.zd_fields.subject][20:]
+
                 for v, dict in [
                         (t.apollo_handle, self.apollo2zd_dict),
                         (t.article_title, self.title2zd_dict),
@@ -465,7 +497,7 @@ class Parser():
                 self.zd_dict_RCUK,
                 ]
 
-    def plug_in_payment_data(self, cufs_export_type, paymentsfile, file_encoding = 'utf-8'):
+    def plug_in_payment_data(self, cufs_export_type, paymentsfile, file_encoding='utf-8'):
         '''
         This function parses financial reports produced by CUFS. It tries to mach each payment in the CUFS report
         to a zd ticket and, if successful, it produces summations of payments per zd ticket and appends these
@@ -500,42 +532,43 @@ class Parser():
             n_amount = float(row[self.cufs_map.amount_field].replace(',', ''))
             return existing_payment, str(p_amount + n_amount)
 
-        def parse_apc_payments(self, zd_number, payments_dict_apc, row, row_counter, paymentsfile):
-            '''
-            Parses APC payments. Used twice by outer function.
+        # def parse_apc_payments(self, zd_number, payments_dict_apc, row, row_counter, paymentsfile):
+        #     '''
+        #     Parses APC payments. Used twice by outer function.
+        #
+        #     :param self:
+        #     :param zd_number:
+        #     :param payments_dict_apc:
+        #     :param row:
+        #     :param row_counter:
+        #     :param paymentsfile:
+        #     :return:
+        #     '''
+        #     if zd_number in payments_dict_apc.keys():
+        #         # Another APC payment was already recorded for this ticket, so we concatenate values
+        #         existing_payment, balance = calculate_balance(self, payments_dict_apc, zd_number, 'apc')
+        #         for k in row.keys():
+        #             if (existing_payment[k] != row[k]) and \
+        #                     (k not in [self.cufs_map.paydate_field]):  # DO NOT CONCATENATE PAYMENT DATES
+        #                 n_value = existing_payment[k] + ' %&% ' + row[k]
+        #             else:
+        #                 n_value = row[k]
+        #             payments_dict_apc[zd_number][k] = n_value
+        #         payments_dict_apc[zd_number][self.cufs_map.total_apc] = balance
+        #     else:
+        #         payments_dict_apc[zd_number] = row
+        #         payments_dict_apc[zd_number][self.cufs_map.total_apc] = \
+        #             payments_dict_apc[zd_number][self.cufs_map.amount_field]
+        #     # Now that we dealt with the problem of several apc payments per ticket,
+        #     # add payment info to master dict of zd numbers
+        #     for field in payments_dict_apc[zd_number].keys():
+        #         if (field in self.zd_dict[zd_number].keys()) and (row_counter == 0):
+        #             logging.warning('Dictionary for ZD ticket {} already contains a field named {}.'
+        #                             'It will be overwritten by the value in file {}.'.format(zd_number, field,
+        #                                                                                      paymentsfile))
+        #     self.zd_dict[zd_number].update(payments_dict_apc[zd_number])
+        #     return payments_dict_apc
 
-            :param self:
-            :param zd_number:
-            :param payments_dict_apc:
-            :param row:
-            :param row_counter:
-            :param paymentsfile:
-            :return:
-            '''
-            if zd_number in payments_dict_apc.keys():
-                # Another APC payment was already recorded for this ticket, so we concatenate values
-                existing_payment, balance = calculate_balance(self, payments_dict_apc, zd_number, 'apc')
-                for k in row.keys():
-                    if (existing_payment[k] != row[k]) and \
-                            (k not in [self.cufs_map.paydate_field]):  # DO NOT CONCATENATE PAYMENT DATES
-                        n_value = existing_payment[k] + ' %&% ' + row[k]
-                    else:
-                        n_value = row[k]
-                    payments_dict_apc[zd_number][k] = n_value
-                payments_dict_apc[zd_number][self.cufs_map.total_apc] = balance
-            else:
-                payments_dict_apc[zd_number] = row
-                payments_dict_apc[zd_number][self.cufs_map.total_apc] = \
-                    payments_dict_apc[zd_number][self.cufs_map.amount_field]
-            # Now that we dealt with the problem of several apc payments per ticket,
-            # add payment info to master dict of zd numbers
-            for field in payments_dict_apc[zd_number].keys():
-                if (field in self.zd_dict[zd_number].keys()) and (row_counter == 0):
-                    logging.warning('Dictionary for ZD ticket {} already contains a field named {}.'
-                                    'It will be overwritten by the value in file {}.'.format(zd_number, field,
-                                                                                             paymentsfile))
-            self.zd_dict[zd_number].update(payments_dict_apc[zd_number])
-            return payments_dict_apc
 
         if cufs_export_type == 'RCUK':
             self.cufs_map = cufs.RcukFieldsMapping()
@@ -553,42 +586,46 @@ class Parser():
         with open(paymentsfile, encoding=file_encoding) as csvfile:
             reader = csv.DictReader(csvfile)
             row_counter = 0
+            unmatched_oa_numbers = []
             for row in reader:
-                if row[self.cufs_map.oa_number] in cufs.oa_number_typos.keys():
-                    row[self.cufs_map.oa_number] = cufs.oa_number_typos[row[self.cufs_map.oa_number]]
+                if row[self.cufs_map.oa_number] in cufs.OA_NUMBER_TYPOS.keys():
+                    row[self.cufs_map.oa_number] = cufs.OA_NUMBER_TYPOS[row[self.cufs_map.oa_number]]
                 m_oa = t_oa.search(row[self.cufs_map.oa_number].upper())
                 m_zd = t_zd.search(row[self.cufs_map.oa_number].upper())
                 zd_number = None
                 if m_oa:
-                    oa_number = m_oa.group().upper().replace("OA" , "OA-").replace(" ","")
+                    oa_number = m_oa.group().upper().replace("OA" , "OA-").replace(" ","").replace('--', '-')
                     try:
-                        zd_number = manual_oa2zd_dict[oa_number] # might be obsolete; test
+                        zd_number = MANUAL_OA2ZD_DICT[oa_number]
                     except KeyError:
                         try:
                             zd_number_list = self.oa2zd_dict[oa_number]
                             if len(zd_number_list) > 1:
-                                logging.error('More than one ZD number is linked to OA number {}'
-                                              'Expect to see "TypeError: unhashable type: list"'.format(oa_number))
-                                zd_number = zd_number_list
+                                logging.error('More than one ZD number is linked to OA number {} {}. Using earliest'
+                                              'ZD ticket as match to avoid "TypeError: unhashable type: '
+                                              'list". Map OA number manually to ZD number using MANUAL_OA2ZD_DICT to '
+                                              'solve this error'.format(oa_number, zd_number_list))
+                                zd_number = str(sorted([ int(x) for x in zd_number_list ])[0])
                             else:
                                 zd_number = zd_number_list[0]
                         except KeyError:
-                            logging.warning('A ZD number could not be found for {} in {}.' 
-                                            'Data for this OA number will be ignored'.format(oa_number, paymentsfile))
+                            if oa_number not in unmatched_oa_numbers:
+                                unmatched_oa_numbers.append(oa_number)
                 elif m_zd:
                     zd_number = m_zd.group().replace(" ","-").strip('ZDzd -')
 
-                if row[self.cufs_map.invoice_field].strip() in cufs.invoice2zd_number.keys():
-                    zd_number = cufs.invoice2zd_number[row[self.cufs_map.invoice_field]]
+                if row[self.cufs_map.invoice_field].strip() in cufs.INVOICE2ZD_NUMBER.keys():
+                    zd_number = cufs.INVOICE2ZD_NUMBER[row[self.cufs_map.invoice_field]]
 
-                if row[self.cufs_map.oa_number].strip() in cufs.description2zd_number.keys():
-                    zd_number = cufs.description2zd_number[row[self.cufs_map.oa_number]]
+                if row[self.cufs_map.oa_number].strip() in cufs.DESCRIPTION2ZD_NUMBER.keys():
+                    zd_number = cufs.DESCRIPTION2ZD_NUMBER[row[self.cufs_map.oa_number]]
 
                 if zd_number:
-                    if zd_number in cufs.zd_number_typos.keys():
-                        zd_number = cufs.zd_number_typos[zd_number]
+                    if zd_number in cufs.ZD_NUMBER_TYPOS.keys():
+                        zd_number = cufs.ZD_NUMBER_TYPOS[zd_number]
 
                     t = self.zd_dict[zd_number]
+                    self.zd_dict_with_payments[zd_number] = t
 
                     if cufs_export_type == 'COAF':
                         # Payments spreadsheet does not contain transaction field, so assume all payments are APCs
@@ -614,6 +651,11 @@ class Parser():
                     debug_filename = os.path.join(os.getcwd(), unmatched_payment_file_prefix + paymentsfile.split('/')[-1])
                     output_debug_csv(debug_filename, row, fileheader)
                 row_counter += 1
+            if unmatched_oa_numbers:
+                unmatched_oa_numbers.sort()
+                logger.warning(
+                    "ZD numbers could not be found for the following OA numbers in {}: {}. Data for these OA numbers "
+                    "will NOT be exported.".format(paymentsfile, unmatched_oa_numbers))
 
     def plug_in_metadata(self, metadata_file, matching_field, translation_dict, warning_message='', file_encoding='utf-8'):
         '''

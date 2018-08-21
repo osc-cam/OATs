@@ -59,6 +59,7 @@ def get_latest_csv(folder_path):
         latestfilename = modtimes[listcounter][1]
     return(latestfilename)
 
+
 def prune_and_cleanup_string(string, pruning_list, typo_dict):
     '''
     A function to prune substrings from a string and/or correct typos (replace original string

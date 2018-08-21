@@ -16,27 +16,27 @@ import collections
 from pprint import pprint
 from difflib import SequenceMatcher
 
+import common.cufs as cufs
+import common.midas_constants as mc
 import common.zendesk as zendesk
-from common.oatsutils import get_latest_csv
+from common.oatsutils import extract_csv_header, get_latest_csv
 
-ZENDESK_EXCLUDED_GROUPS = ['Cron Jobs',
-                           'Request a Copy',
-                           'Social Media',
-                           'Thesis',
-                           'Office of Scholarly Communication',
-                           'OPs',
-                           'Research Data',
-                           'Repository'
-                           ]
+class CufsGrantExport():
+    '''
+    CUFS export for one or more grant codes
+    '''
+    def __init__(self, filename, format='coaf', funder):
+        self.filename = filename
+        if format == 'rcuk':
+            self.mapping = cufs.RcukFieldsMapping
+        elif format == 'coaf':
+            self.mapping = cufs.CoafFieldsMapping
+        self.funder = funder
 
-ZENDESK_EXCLUDED_REQUESTERS = ['Dspace',
-                               'JIRA Integratrion',
-                               'photo',
-                               'Accountdashboard',
-                               'Cs-onlineopen',
-                               'Uptime Robot',
-                               'Authorhelpdesk'
-                               ]
+class Article():
+    '''
+    Each article in the output report
+    '''
 
 
 class Report():
@@ -44,16 +44,33 @@ class Report():
     The report object
     '''
 
-    def __init__(self):
-        self.period_start = datetime.datetime(2000, 1, 1)
-        self.period_end = datetime.datetime.now().date()
-        self.rcuk = True
-        self.coaf = True
+    def __init__(self, report_type='all', fieldnames=mc.JISC_FORMAT_EXPANDED, cufs_datasources=None,
+                 period_start=datetime.datetime(2000, 1, 1), period_end=datetime.datetime.now().date()):
+        self.cufs_datasources = cufs_datasources
+        self.period_start = period_start
+        self.period_end = period_end
+        if report_type == 'all':
+            self.rcuk = True
+            self.coaf = True
+        elif report_type == 'rcuk':
+            self.rcuk = True
+            self.coaf = False
+        elif report_type == 'coaf':
+            self.rcuk = False
+            self.coaf = True
+
         self.springer = True
         self.wiley = True
         self.oup = True
         self.frontiers = True
         self.zd_parser = zendesk.Parser()
+
+        self.fieldnames = fieldnames
+        self.articles=[]
+
+    def parse_cufs_data(self):
+
+
     
 
 def valid_date(s):
@@ -123,15 +140,16 @@ parser.add_argument('-z', '--zendesk-export', dest='zenexport', type=str, metava
 if __name__ == '__main__':
     arguments = parser.parse_args()
 
+    # working folder
     working_folder = arguments.working_folder
     if not os.path.exists(working_folder):
         os.makedirs(working_folder)
 
+    # zenexport
     if os.path.isdir(arguments.zenexport):
         zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
     else:
         zenexport = arguments.zenexport
-
     zen_path, zen_ext = os.path.splitext(zenexport)
     filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
     if not arguments.all_groups:
@@ -139,4 +157,15 @@ if __name__ == '__main__':
             zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group':ZENDESK_EXCLUDED_GROUPS})
         zenexport = filtered_zenexport
 
-    rep = Report()
+    # input cufs reports
+    paymentfiles = [
+        ["RCUK_2018-08-09_all_VEJx_codes.csv", 'rcuk'],
+        ["RCUK_VEAG054_2018-08-09.csv", 'coaf'],
+        ['VEAG044_2018-08-09.csv', 'coaf'],
+        ['VEAG045_2018-08-09.csv', 'coaf'],
+        ['VEAG050_2018-08-09_with_resolved_journals.csv', 'coaf'],
+        ['VEAG052_2018-08-09.csv', 'coaf'],
+    ]
+
+    # get the report object
+    rep = Report(report_type='all')

@@ -1,13 +1,30 @@
+import csv
 import logging
+import logging.config
+import re
 import sys
 
-from .oatsutils import extract_csv_header
+# create logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# add formatter to ch
+ch.setFormatter(formatter)
+# add ch to logger
+# logger.addHandler(ch)
 
 ###MANUAL FIXES FOR PAYMENT FILES
-zd_number_typos = {'30878':'50878'}
-oa_number_typos = {'OA 10768':'OA 10468'}
-description2zd_number = {"OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490', 'REV CHRG/ACQ TAX PD 04/16;  INV NO:Polymers-123512SUPPLIER:  MDPI AG' : '15589'}
-invoice2zd_number = {
+ZD_NUMBER_TYPOS = {'30878':'50878'}
+OA_NUMBER_TYPOS = {'OA 10768':'OA 10468'}
+DESCRIPTION2ZD_NUMBER = {
+    "OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490',
+    'REV CHRG/ACQ TAX PD 04/16;  INV NO:Polymers-123512SUPPLIER:  MDPI AG' : '15589'
+}
+INVOICE2ZD_NUMBER = {
     ##INPUT FOR RCUK 2017 REPORT
     'APC502145176':'48547',
     'P09819649':'28975',
@@ -19,8 +36,16 @@ invoice2zd_number = {
     '20170117' : '50542',
     '94189700 BANKCHRG' : '47567'
 }
+MANUAL_OA2ZD_DICT = {
+    'OA-13907':'83033',
+    'OA-10518':'36495',
+    'OA-13111':'76842',
+    'OA-14062':'86232',
+    'OA-13919':'83197',
+    'OA-14269':'89212'
+    }
 
-total_apc_field = 'Total APC amount'
+TOTAL_APC_FIELD = 'Total APC amount'
 
 class CoafFieldsMapping():
     '''
@@ -51,16 +76,3 @@ class RcukFieldsMapping():
         self.total_other = 'RCUK Page, colour or membership amount'  # Name of field we want the total for other costs to be stored in
         self.transaction_code = 'Tran'
         self.source_of_funds = 'SOF'
-
-class CufsReport():
-    '''
-    Represents a report exported from CUFS, translated using an instance of either CoafFieldsMapping or
-    RcukFieldsMapping.
-    '''
-    def __init__(self, cufsexport, mapping):
-        '''
-        :param cufsexport: csv exported from CUFS, containing the transaction data
-        :param mapping: instance of CoafFieldsMapping or RcukFieldsMapping
-        '''
-
-        
