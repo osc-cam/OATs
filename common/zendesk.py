@@ -41,6 +41,8 @@ MANUAL_OA2ZD_DICT = {
     'OA-4998':'10229',
     'OA-5555':'11066',
     'OA-5620':'11167',
+    'OA-6514':'13035',
+    'OA-8663':'17157',
     'OA-9922':'26755',
     }
 
@@ -55,8 +57,8 @@ def output_pruned_zendesk_export(zenexport, output_filename, **kwargs):
     :param output_filename: the name of the file we will save pruned data to
     :param kwargs: a dictionary where k are Zendesk field names and v are lists of values to exclude
     '''
-    p = Parser()
-    p.index_zd_data(zenexport)
+    p = Parser(zenexport)
+    p.index_zd_data()
     fieldnames = p.zenexport_fieldnames
     with open(output_filename, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames)
@@ -383,6 +385,7 @@ class Parser():
         self.grant_report_requester = None
         self.grant_report_start_date = None
         self.grant_report_end_date = None
+        self.output_map = None
         self.rejected_payments = {}
         self.title2zd_dict = {}
         self.title2zd_dict_COAF = {}
@@ -435,6 +438,7 @@ class Parser():
                 else:
                     dict[v] = [zd_number]
 
+        logger.info('Indexing Zendesk data')
         t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
         with open(self.zenexport, encoding = "utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
@@ -497,7 +501,7 @@ class Parser():
                 self.zd_dict_RCUK,
                 ]
 
-    def plug_in_payment_data(self, cufs_export_type, paymentsfile, file_encoding='utf-8'):
+    def plug_in_payment_data(self, paymentsfile, cufs_export_type='rcuk', funder='rcuk', file_encoding='utf-8'):
         '''
         This function parses financial reports produced by CUFS. It tries to mach each payment in the CUFS report
         to a zd ticket and, if successful, it produces summations of payments per zd ticket and appends these
@@ -508,8 +512,9 @@ class Parser():
         instead of custom fields in a dictionary to store anything useful for reporting and **kwargs for fields
         coming from zendesk
 
-        :param cufs_export_type: type of report exported by CUFS. Supported values are 'RCUK' and 'COAF'
         :param paymentsfile: path of input CSV file containing payment data
+        :param cufs_export_type: type of report exported by CUFS. Supported values are 'rcuk' and 'coaf'
+        :param funder: 'rcuk' if paymentsfile is a report of a RCUK grant; 'coaf' if it is of a COAF grant
         :param file_encoding: enconding of paymentsfile
         '''
 
@@ -570,12 +575,20 @@ class Parser():
         #     return payments_dict_apc
 
 
-        if cufs_export_type == 'RCUK':
+        if cufs_export_type == 'rcuk':
             self.cufs_map = cufs.RcukFieldsMapping()
-        elif cufs_export_type == 'COAF':
+        elif cufs_export_type == 'coaf':
             self.cufs_map = cufs.CoafFieldsMapping()
         else:
             sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(cufs_export_type))
+
+        if funder == 'rcuk':
+            self.output_map = cufs.RcukOutputMapping()
+        elif funder == 'coaf':
+            self.output_map = cufs.CoafOutputMapping()
+        else:
+            sys.exit('{} is not a supported funder'.format(funder))
+
 
         fileheader = extract_csv_header(paymentsfile)
 
@@ -627,23 +640,29 @@ class Parser():
                     t = self.zd_dict[zd_number]
                     self.zd_dict_with_payments[zd_number] = t
 
-                    if cufs_export_type == 'COAF':
+                    if funder == 'coaf':
                         # Payments spreadsheet does not contain transaction field, so assume all payments are APCs
                         t.coaf_apc_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
-                    elif cufs_export_type == 'RCUK':
-                        if row[self.cufs_map.transaction_code] == 'EBDU':
-                            t.rcuk_apc_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
-                        elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
-                            t.rcuk_other_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
+                    elif funder == 'rcuk':
+                        if cufs_export_type == 'rcuk':
+                            if row[self.cufs_map.transaction_code] == 'EBDU':
+                                t.rcuk_apc_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
+                            elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
+                                t.rcuk_other_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
+                            else:
+                                # Not a EBDU, EBDV or EBDW payment
+                                key = 'not_EBD*_payment_' + str(row_counter)
+                                self.rejected_payments[key] = row
+                                debug_filename = os.path.join(os.getcwd(),
+                                                              nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
+                                output_debug_csv(debug_filename, row, fileheader)
+                        elif cufs_export_type == 'coaf':
+                            t.rcuk_apc_total += float(row[self.cufs_map.amount_field].replace(',', ''))
                         else:
-                            # Not a EBDU, EBDV or EBDW payment
-                            key = 'not_EBD*_payment_' + str(row_counter)
-                            self.rejected_payments[key] = row
-                            debug_filename = os.path.join(os.getcwd(),
-                                                          nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
-                            output_debug_csv(debug_filename, row, fileheader)
+                            sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(
+                                cufs_export_type))
                     else:
-                        sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(cufs_export_type))
+                        sys.exit('{} is not a supported funder'.format(funder))
                 else:
                     # Payment could not be linked to a zendesk number
                     key = 'no_zd_match_' + str(row_counter)

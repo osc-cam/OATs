@@ -57,10 +57,16 @@ class CoafFieldsMapping():
         self.invoice_field = 'Invoice'
         self.oa_number =  'Comment'
         self.paydate_field = 'GL Posting Date'
-        self.total_apc = 'COAF APC Amount' #Name of field we want the calculated total COAF APC to be stored in
-        self.total_other = 'COAF Page, colour or membership amount'  # Name of field we want the total for other costs to be stored in
         self.transaction_code = None
         self.source_of_funds = None
+
+class CoafOutputMapping():
+    '''
+    Mapping of column names for output reports of COAF spending.
+    '''
+    def __init__(self):
+        self.total_apc = 'COAF APC Amount' #Name of field we want the calculated total COAF APC to be stored in
+        self.total_other = 'COAF Page, colour or membership amount'  # Name of field we want the total for other costs to be stored in
 
 class RcukFieldsMapping():
     '''
@@ -72,7 +78,13 @@ class RcukFieldsMapping():
         self.invoice_field = 'Ref 5'
         self.oa_number =  'Description'
         self.paydate_field = 'Posted'
-        self.total_apc = 'RCUK APC Amount'  # Name of field we want the calculated total RCUK APC to be stored in
-        self.total_other = 'RCUK Page, colour or membership amount'  # Name of field we want the total for other costs to be stored in
         self.transaction_code = 'Tran'
         self.source_of_funds = 'SOF'
+
+class RcukOutputMapping():
+    '''
+    Mapping of column names for output reports of RCUK spending.
+    '''
+    def __init__(self):
+        self.total_apc = 'RCUK APC Amount' #Name of field we want the calculated total RCUK APC to be stored in
+        self.total_other = 'RCUK Page, colour or membership amount'  # Name of field we want the total for other costs to be stored in

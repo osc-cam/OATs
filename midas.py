@@ -13,6 +13,8 @@ import csv
 import datetime
 import dateutil.parser
 import collections
+import logging
+import logging.config
 from pprint import pprint
 from difflib import SequenceMatcher
 
@@ -21,17 +23,18 @@ import common.midas_constants as mc
 import common.zendesk as zendesk
 from common.oatsutils import extract_csv_header, get_latest_csv
 
-class CufsGrantExport():
-    '''
-    CUFS export for one or more grant codes
-    '''
-    def __init__(self, filename, format='coaf', funder):
-        self.filename = filename
-        if format == 'rcuk':
-            self.mapping = cufs.RcukFieldsMapping
-        elif format == 'coaf':
-            self.mapping = cufs.CoafFieldsMapping
-        self.funder = funder
+# create logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# add formatter to ch
+ch.setFormatter(formatter)
+# add ch to logger
+# logger.addHandler(ch)
 
 class Article():
     '''
@@ -44,9 +47,8 @@ class Report():
     The report object
     '''
 
-    def __init__(self, report_type='all', fieldnames=mc.JISC_FORMAT_EXPANDED, cufs_datasources=None,
+    def __init__(self, zenexport, report_type='all', fieldnames=mc.JISC_FORMAT_EXPANDED,
                  period_start=datetime.datetime(2000, 1, 1), period_end=datetime.datetime.now().date()):
-        self.cufs_datasources = cufs_datasources
         self.period_start = period_start
         self.period_end = period_end
         if report_type == 'all':
@@ -63,15 +65,22 @@ class Report():
         self.wiley = True
         self.oup = True
         self.frontiers = True
-        self.zd_parser = zendesk.Parser()
+        self.zd_parser = zendesk.Parser(zenexport)
 
         self.fieldnames = fieldnames
         self.articles=[]
 
-    def parse_cufs_data(self):
+    def parse_cufs_data(self, cufs_datasources=None):
+        '''
+        Populates self.zd_parser.zd_dict with data from CUFS reports
 
-
-    
+        :param cufs_datasources: An array of CUFS reports, each being a list in the format [filename, format, funder]
+        '''
+        if not self.zd_parser.zd_dict.keys():
+            self.zd_parser.index_zd_data()
+        for datasource in cufs_datasources:
+            logger.info('Parsing CUFS report {}'.format(datasource))
+            self.zd_parser.plug_in_payment_data(datasource[0], datasource[1], datasource[2])
 
 def valid_date(s):
     try:
@@ -117,7 +126,7 @@ parser.add_argument('-f', '--frontiers', dest='frontiers', default=True, type=bo
 parser.add_argument('-g', '--all-groups', dest='all_groups', action='store_true',
                     help='Include Zendesk tickets in all groups (default: %(default)s). If this option is not'
                          'specified, Zendesk tickets in the following groups will be ignored after the first'
-                         ' run: {}'.format(ZENDESK_EXCLUDED_GROUPS))
+                         ' run: {}'.format(mc.ZENDESK_EXCLUDED_GROUPS))
 parser.add_argument('-l', '--cottage-labs', dest='cottage-labs', default=False, type=bool, metavar='True or False',
                     help='Include results of Cottage Labs search in output report (default: %(default)s)')
 parser.add_argument('-r', '--rcuk', dest='rcuk', default=True, type=bool, metavar='True or False',
@@ -145,27 +154,33 @@ if __name__ == '__main__':
     if not os.path.exists(working_folder):
         os.makedirs(working_folder)
 
+    logfilename = os.path.join(working_folder, 'midas.log')
+    logging.config.fileConfig('logging.conf', defaults={'logfilename': logfilename})
+    logger = logging.getLogger('midas')
+
     # zenexport
-    if os.path.isdir(arguments.zenexport):
-        zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
-    else:
-        zenexport = arguments.zenexport
+    # if os.path.isdir(arguments.zenexport):
+    #     zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
+    # else:
+    #     zenexport = arguments.zenexport
+    zenexport = os.path.join(working_folder, 'export-2018-08-13-1310-234063-3600001227941889.csv')
     zen_path, zen_ext = os.path.splitext(zenexport)
     filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
     if not arguments.all_groups:
         if not os.path.exists(filtered_zenexport):
-            zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group':ZENDESK_EXCLUDED_GROUPS})
+            zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group':mc.ZENDESK_EXCLUDED_GROUPS})
         zenexport = filtered_zenexport
 
-    # input cufs reports
+    # input cufs reports [filename, format, funder]
     paymentfiles = [
-        ["RCUK_2018-08-09_all_VEJx_codes.csv", 'rcuk'],
-        ["RCUK_VEAG054_2018-08-09.csv", 'coaf'],
-        ['VEAG044_2018-08-09.csv', 'coaf'],
-        ['VEAG045_2018-08-09.csv', 'coaf'],
-        ['VEAG050_2018-08-09_with_resolved_journals.csv', 'coaf'],
-        ['VEAG052_2018-08-09.csv', 'coaf'],
+        [os.path.join(working_folder, "RCUK_2018-08-09_all_VEJx_codes.csv"), 'rcuk', 'rcuk'],
+        [os.path.join(working_folder, "RCUK_VEAG054_2018-08-09.csv"), 'coaf', 'rcuk'],
+        [os.path.join(working_folder, 'VEAG044_2018-08-09.csv'), 'coaf', 'coaf'],
+        [os.path.join(working_folder, 'VEAG045_2018-08-09.csv'), 'coaf', 'coaf'],
+        [os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv'), 'coaf', 'coaf'],
+        [os.path.join(working_folder, 'VEAG052_2018-08-09.csv'), 'coaf', 'coaf'],
     ]
 
     # get the report object
-    rep = Report(report_type='all')
+    rep = Report(zenexport, report_type='all')
+    rep.parse_cufs_data(paymentfiles)
