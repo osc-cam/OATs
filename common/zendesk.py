@@ -7,10 +7,10 @@ import os
 import re
 import sys
 
-import cufs
-# from . import cufs
-from oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
-# from .oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
+# import cufs
+from . import cufs
+# from oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
+from .oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
 
 # create logger
 logger = logging.getLogger(__name__)
@@ -473,7 +473,7 @@ class Parser():
                         ]:
                     initiate_or_append_list(v, dict, t.number)
 
-                self.zd2zd_dict[t.number] = t
+                self.zd2zd_dict[t.number] = [t]
                 self.zd_dict[t.number] = t
 
                 if (t.rcuk_payment == 'yes') or (t.rcuk_policy == 'yes'):
@@ -483,7 +483,7 @@ class Parser():
                     self.zd_dict_COAF[t.number] = t
                     initiate_or_append_list(t.article_title.upper(), self.title2zd_dict_COAF, t.number)
                 if t.dup_of not in ['', '-']:
-                    self.zd2oa_dups_dict[t.number] = t.dup_of
+                    self.zd2oa_dups_dict[t.number] = [t.dup_of]
 
                 t.zd_data = row
 
@@ -678,8 +678,8 @@ class Parser():
 
     def plug_in_metadata(self, metadata_file, matching_field, translation_dict, warning_message='', file_encoding='utf-8'):
         '''
-        This function appends data from various sources (Apollo, etc) to the main dictionary
-        produced from the zendesk export (self.zd_dict)
+        This function appends data from various sources (Apollo, etc) to the dictionaries
+        produced from the zendesk export (zd_dict and zd_dict_with_payments)
         :param metadata_file: input CSV file containing data from the new source
         :param matching_field: field to be used to match new data to zd_dict (e.g. doi, title, etc)
         :param translation_dict: dictionary to be used to match new data to a zendesk number
@@ -691,22 +691,18 @@ class Parser():
             row_counter = 0
             for row in reader:
                 mf = row[matching_field]
-                zd_number_list = []
+                if matching_field in ['doi', 'DOI']:
+                    mf = prune_and_cleanup_string(mf, DOI_CLEANUP)
                 try:
                     zd_number_list = translation_dict[mf]
                 except KeyError:
                     if warning_message:
-                        print(warning_message)
+                        logger.warning(warning_message)
+                    zd_number_list = []
 
                 if zd_number_list:
-                    for zd_number in zd_number_list:
-                        if row_counter < 4:
-                            for field in row.keys():
-                                if field in zd_dict[zd_number].keys():
-                                    logging.warning('Dictionary for ZD ticket {} already contains a field named {}.' 
-                                        'It will be overwritten by the value in file {}'.format(zd_number, field ,
-                                                                                                metadata_file))
-                        zd_dict[zd_number].update(row)
+                    for zd in zd_number_list:
+                        self.zd_dict[zd].update(row)
                 row_counter += 1
 
     def populate_grant_report(self):

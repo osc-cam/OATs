@@ -23,6 +23,28 @@ working_folder = os.path.join(home, 'Dropbox', 'OSC', 'ART-wd')
 zenexport = os.path.join(working_folder, 'export-2018-08-13-1310-234063-3600001227941889.csv')
 paymentfile = os.path.join(working_folder, 'RCUK_2018-08-09_all_VEJx_codes.csv')
 
+def translation_dicts_hold_lists():
+    '''
+    This was so far run as part of midas.py. Would need editing to run from here
+    :return:
+    '''
+    # get the report object
+    rep = Report(zenexport, report_type='all')
+
+    rep.zd_parser.index_zd_data()
+    dict_counter = 0
+    for dict in [rep.zd_parser.doi2zd_dict, rep.zd_parser.oa2zd_dict, rep.zd_parser.apollo2zd_dict,
+                 rep.zd_parser.title2zd_dict, rep.zd_parser.title2zd_dict_COAF, rep.zd_parser.title2zd_dict_RCUK,
+                 rep.zd_parser.zd2oa_dups_dict, rep.zd_parser.zd2zd_dict]:
+        logger.info('Analysing dict {}'.format(dict_counter))
+        not_all_list = False
+        for k, v in dict.items():
+            if type(v) != type([1, 2, 3]):
+                not_all_list = True
+        if not_all_list:
+            logger.error('Dict {} contains values that are not lists'.format(dict_counter))
+        dict_counter += 1
+
 def test_zendesk_integration():
     parser = zendesk.Parser(zenexport)
     parser.index_zd_data()
