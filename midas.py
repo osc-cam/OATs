@@ -25,7 +25,7 @@ import common.zendesk as zendesk
 from common.oatsutils import extract_csv_header, get_latest_csv
 
 # create logger
-logger = logging.getLogger('__main__' + __name__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 # create console handler and set level to debug
 ch = logging.StreamHandler()
@@ -78,6 +78,28 @@ class Report():
         self.fieldnames = fieldnames
         self.articles=[]
 
+    def output_csv(self):
+        filename = '{}_midas_report.csv'.format(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        with open(filename, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=self.fieldnames, extrasaction='ignore')
+            writer.writeheader()
+            # for ticket in report_dict:
+            #     exclude = 0
+            #     for field, value in exclusion_list:
+            #         # print('\n')
+            #         # print(report_dict[ticket].keys())
+            #         # print('APC:', zd_dict[a][field])
+            #         # print(value)
+            #         if (field in report_dict[ticket].keys()) and (str(report_dict[ticket][field]).strip() == value):
+            #             #   print('excluded')
+            #             exclude = 1
+            #     # print(report_dict[ticket])
+            #     if exclude == 0:
+            #         writer.writerow(report_dict[ticket])
+            #         included_in_report[ticket] = report_dict[ticket]
+            #     else:
+            #         excluded_recs[ticket] = report_dict[ticket]
+
     def parse_cufs_data(self, cufs_datasources=None):
         '''
         Populates self.zd_parser.zd_dict with data from CUFS reports
@@ -91,12 +113,94 @@ class Report():
             self.zd_parser.plug_in_payment_data(datasource[0], datasource[1], datasource[2])
 
     def plugin_apollo(self, apollo_exports=None):
+        '''
+        Populates self.zd_parser.zd_dict with data from Apollo reports
+
+        :param apollo_exports: A list of Apollo reports
+        '''
         if not self.zd_parser.zd_dict.keys():
             self.zd_parser.index_zd_data()
         for datasource in apollo_exports:
             logger.info('Parsing Apollo export {}'.format(datasource))
             self.zd_parser.plug_in_metadata(datasource, 'handle', self.zd_parser.apollo2zd_dict)
 
+    def plugin_pmc(self, pmc_exports=None):
+        '''
+        Populates self.zd_parser.zd_dict with data from Europe PMC
+        :param pmc_exports: A list of PMC exports
+        '''
+        if not self.zd_parser.zd_dict.keys():
+            self.zd_parser.index_zd_data()
+        for datasource in pmc_exports:
+            logger.info('Parsing EuropePMC export {}'.format(datasource))
+            self.zd_parser.plug_in_metadata(datasource, 'DOI', self.zd_parser.doi2zd_dict)
+
+    def populate_invoiced_articles(self):
+        '''
+        Iterates through self.zd_parser.zd_dict_with_payments and populates self.articles with zendesk.Ticket objects
+        containg payments
+        '''
+        for k, t in self.zd_parser.zd_dict_with_payments.items():
+            if self.rcuk and (t.rcuk_apc_total or t.rcuk_other_total):
+                self.articles.append(t)
+            elif self.coaf and t.coaf_apc_total or t.coaf_other_total):
+                self.articles.append(t)
+
+    def populate_report_fields(self, reporting_dict, report_template, default_publisher='', default_pubtype='',
+                                      default_deal='', default_notes=''):
+
+        #TODO: This function was copied from ART as is; needs editing to work here
+
+        '''
+        This function populates in the reporting dictionary the data fields that will be used in the output report
+
+        :param reporting_dict: the reporting dictionary
+        :param translation_dict: a dictionary mapping report fields to data source fields
+        :param default_publisher: used for prepayment deals; if set, publisher will be set to this value
+        :param default_pubtype: used for prepayment deals; if set, pubtype will be set to this value
+        :param default_deal: used for prepayment deals; if set, deal will be set to this value
+        :param default_notes: used for prepayment deals; if set, notes will be set to this value
+        :return: the reporting dictionary populated with data from several sources
+        '''
+
+        for k, ticket in reporting_dict.items():
+            ##DEAL WITH THE EASY FIELDS FIRST (ONE TO ONE CORRESPONDENCE)
+            for rep_f in translation_dict:
+                for zd_f in translation_dict[rep_f]:
+                    # if (rep_f not in ticket.keys()) and (zd_f in ticket.keys()): # this saves some time, but it means that info can come from fields that are not intended
+                    if zd_f in ticket.keys():
+                        if ticket[zd_f]:  # avoids AttributeError due to NoneType objects
+                            if not ticket[zd_f].strip() in ['-',
+                                                            'unknown']:  # ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence
+                                # convert dates to YYYY-MM-DD format
+                                if (rep_f in ['Date of APC payment', 'Date of publication']) and (
+                                    default_publisher == 'Wiley'):
+                                    ticket[zd_f] = convert_date_str_to_yyyy_mm_dd(ticket[zd_f])
+                                ticket[rep_f] = ticket[zd_f]
+                                # ticket[rep_f] = ticket[zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
+            ##THEN WITH THE CONDITIONAL FIELDS
+            ticket = process_repeated_fields(zd_fund_field_list, rep_fund_field_list, ticket)
+            ticket = process_repeated_fields(zd_allfunders, rep_funders, ticket)
+            ticket = process_repeated_fields(zd_grantfields, rep_grants, ticket)
+
+            if default_publisher:
+                ticket['Publisher'] = default_publisher
+            if default_pubtype:
+                ticket['Type of publication'] = default_pubtype
+            if default_deal:
+                ticket['Discounts, memberships & pre-payment agreements'] = default_deal
+            # add GBP as currency for Wiley
+            if default_publisher == 'Wiley':
+                ticket['Currency of APC'] = 'GBP'
+            # add discount value to notes
+            if 'Prepayment discount' in ticket.keys():
+                ticket['Notes'] = 'Prepayment discount: {}'.format(ticket['Prepayment discount'])
+            elif default_notes:
+                ticket['Notes'] = default_notes
+
+            reporting_dict[k] = ticket
+
+        return reporting_dict
 
 def valid_date(s):
     try:
@@ -106,6 +210,9 @@ def valid_date(s):
         raise argparse.ArgumentTypeError(msg)
 
 def main(arguments):
+
+    logger.info('This is main')
+
     # zenexport
     # if os.path.isdir(arguments.zenexport):
     #     zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
@@ -130,12 +237,15 @@ def main(arguments):
     ]
     # other input files
     apollo_exports = [os.path.join(working_folder, "Apollo_all_items-20180525.csv"), ]
+    pmc_exports = [os.path.join(working_folder, "PMID_PMCID_DOI.csv"), ]
 
     # get the report object
     rep = Report(zenexport, report_type='all')
     rep.zd_parser.index_zd_data()
     if not arguments.ignore_apollo:
         rep.plugin_apollo(apollo_exports)
+    if not arguments.ignore_pmc:
+        rep.plugin_pmc(pmc_exports)
     rep.parse_cufs_data(paymentfiles)
 
 if __name__ == '__main__':
@@ -188,6 +298,8 @@ http://www.gnu.org/copyleft/gpl.html
                         help='Path to folder where {} should save output files (default: %(default)s)'.format(
                             '%(prog)s'),
                         default=os.path.join(home, 'OATs', 'Midas-wd'))
+    parser.add_argument('-p', '--ignore-pmc', dest='ignore_pmc', action='store_true',
+                        help='Do not include metadata exported from Europe PMC (default: %(default)s)')
     parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
     parser.add_argument('-w', '--wiley', dest='wiley', default=True, type=bool, metavar='True or False',
                         help='Include articles approved via Wiley institutional account (default: %(default)s)')

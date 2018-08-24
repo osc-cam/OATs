@@ -345,7 +345,7 @@ class Ticket():
     '''
     def __init__(self):
         '''
-        :param self.zd_data: data stored in Zendesk about this ticket
+        :param self.metadata: data stored in Zendesk about this ticket
         :param self.rcuk_apc: APC amount charged to RCUK block grant
         :param self.rcuk_other: Amount of other publication fees charged to RCUK block grant
         :param self.decision_score: Integer indicating how likely this ticket is to contain a decision on policies
@@ -367,7 +367,7 @@ class Ticket():
         self.rcuk_other_total = 0
         self.rcuk_payment = None
         self.rcuk_policy = None
-        self.zd_data = {}
+        self.metadata = {}
 
 class Parser():
     '''
@@ -485,7 +485,7 @@ class Parser():
                 if t.dup_of not in ['', '-']:
                     self.zd2oa_dups_dict[t.number] = [t.dup_of]
 
-                t.zd_data = row
+                t.metadata = row
 
         return [
                 self.apollo2zd_dict,
@@ -702,7 +702,7 @@ class Parser():
 
                 if zd_number_list:
                     for zd in zd_number_list:
-                        self.zd_dict[zd].update(row)
+                        self.zd_dict[zd].metadata.update(row)
                 row_counter += 1
 
     def populate_grant_report(self):

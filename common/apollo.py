@@ -1,5 +1,22 @@
 from oatsutils import DOI_CLEANUP, DOI_FIX, prune_and_cleanup_string
 
+class MetadataMap():
+    '''
+    Mapping of Apollo metadata fields
+    '''
+    def __init__(self):
+        self.handle = 'handle'
+        self.url = 'dc.identifier.uri'
+        self.doi = 'rioxxterms.versionofrecord'
+        self.publisher = 'dc.publisher'
+        self.acceptance_date = 'dcterms.dateAccepted'
+        self.publication_date = 'dc.date.issued'
+        self.provenance = 'dcterms.provenance'
+        self.title = 'dc.title'
+        self.elements_id = 'pubs.elements-id'
+        self.journal = 'prism.publicationName'
+        self.publication_type = 'dc.type'
+
 class Parser():
 
     def __init__(self):

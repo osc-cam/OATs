@@ -50,7 +50,7 @@ print('Pandas finished after {} seconds'.format(time.time() - start_time))
 # with_title_counter = 0
 # without_title_counter = 0
 # for k, v in a.zd_dict.items():
-#     if v.zd_data['Manuscript title [txt]'] not in ['', '-']:
+#     if v.metadata['Manuscript title [txt]'] not in ['', '-']:
 #         with_title_counter += 1
 #     else:
 #         without_title_counter +=1
