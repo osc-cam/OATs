@@ -24,6 +24,36 @@ ZENDESK_EXCLUDED_REQUESTERS = ['Dspace',
                                'Authorhelpdesk'
                                ]
 
+ZDFUND2FUNDERSTR = {
+    'RCUK payment [flag]' : 'RCUK',
+    'COAF payment [flag]' : 'COAF',
+    'Other institution payment [flag]' : 'ERROR: OTHER INSTITUTION',
+    'Grant payment [flag]' : 'Institutional',
+    'Voucher/membership/offset payment [flag]' : 'Institutional',
+    'Author/department payment [flag]' : 'Institutional',
+    'Wellcome payment [flag]' : 'Wellcome Trust',
+    'Wellcome Supplement Payment [flag]' : 'Wellcome Trust',
+    'ERC [flag]' : 'ERC',
+    'Arthritis Research UK [flag]' : 'Arthritis Research UK',
+    'Breast Cancer Now (Breast Cancer Campaign) [flag]' : 'Breast Cancer Campaign',
+    "Parkinson's UK [flag]" : "Parkinson's UK",
+    'ESRC [flag]' : 'ESRC',
+    'NERC [flag]' : 'NERC' ,
+    'Bloodwise (Leukaemia & Lymphoma Research) [flag]' : 'Bloodwise',
+    'FP7 [flag]' : 'FP7',
+    'NIHR [flag]' : 'NIHR',
+    'H2020 [flag]' : 'H2020',
+    'AHRC [flag]' : 'AHRC',
+    'BBSRC [flag]' : 'BBSRC',
+    'EPSRC [flag]' : 'EPSRC',
+    'MRC [flag]' : 'MRC',
+    'Gates Foundation [flag]' : 'Bill and Melinda Gates Foundation',
+    'STFC [flag]' : 'STFC',
+    'Cancer Research UK [flag]' : 'Cancer Research UK',
+    'Wellcome Trust [flag]' : 'Wellcome Trust',
+    'British Heart Foundation [flag]': 'British Heart Foundation'
+    }
+
 # declare formats
 JISC_FORMAT = ['Date of acceptance',
  'PubMed ID',
@@ -94,13 +124,12 @@ class ReportTemplate():
                 ('Date of APC payment', [cufs_rcuk.paydate_field, cufs_coaf.paydate_field]),
                 #('APC paid (actual currency) excluding VAT', NA ##COULD PROBABLY OBTAIN FROM CUFS IF REALLY NECESSARY
                 #('Currency of APC', NA ##COULD PROBABLY OBTAIN FROM CUFS IF REALLY NECESSARY
-                #TODO: total_apc_field was populated by ART by function action_adjust_total_apc_values(), then added to report dict; decide what to do in Midas instead
-                ('APC paid (£) including VAT if charged', [total_apc_field]), ##CALCULATED FROM 'Amount'
-                ('Additional publication costs (£)', ['Page, colour or membership amount']), ##CALCULATED FROM 'Amount'
-                 #('Discounts, memberships & pre-payment agreements',
-                ('Amount of APC charged to COAF grant (including VAT if charged) in £', [total_coaf_payamount_field]),
-                ('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', [total_rcuk_payamount_field]),
-                ('Licence', ['EPMC Licence', 'Publisher Licence', 'Licence applied by publisher [list]'])
+                ('APC paid (£) including VAT if charged', ['ticket.apc_grand_total']), ##CALCULATED FROM 'Amount'
+                ('Additional publication costs (£)', ['ticket.other_grand_total']), ##CALCULATED FROM 'Amount'
+                #('Discounts, memberships & pre-payment agreements',
+                ('Amount of APC charged to COAF grant (including VAT if charged) in £', ['ticket.coaf_apc_total']),
+                ('Amount of APC charged to RCUK OA fund (including VAT if charged) in £', ['ticket.rcuk_apc_total']),
+                ('Licence', ['EPMC Licence', 'Publisher Licence', zd_map.licence_applied_by_publisher]),
                  #('Notes'
             ]
         )

@@ -7,10 +7,10 @@ import os
 import re
 import sys
 
-# import cufs
-from . import cufs
-# from oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
-from .oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
+import cufs
+# from . import cufs
+from oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
+# from .oatsutils import extract_csv_header, output_debug_csv, prune_and_cleanup_string, DOI_CLEANUP, DOI_FIX
 
 # create logger
 logger = logging.getLogger(__name__)
@@ -351,6 +351,8 @@ class Ticket():
         :param self.decision_score: Integer indicating how likely this ticket is to contain a decision on policies
                 and payments
         '''
+        self.apc_grand_total = 0
+        self.other_grand_total = 0
         self.apollo_handle = None
         self.article_title = None
         self.coaf_apc_total = 0
@@ -640,15 +642,19 @@ class Parser():
                     t = self.zd_dict[zd_number]
                     self.zd_dict_with_payments[zd_number] = t
 
+                    row_amount = float(row[self.cufs_map.amount_field].replace(',', ''))
                     if funder == 'coaf':
                         # Payments spreadsheet does not contain transaction field, so assume all payments are APCs
-                        t.coaf_apc_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
+                        t.coaf_apc_total += row_amount
+                        t.apc_grand_total += row_amount
                     elif funder == 'rcuk':
                         if cufs_export_type == 'rcuk':
                             if row[self.cufs_map.transaction_code] == 'EBDU':
-                                t.rcuk_apc_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
+                                t.rcuk_apc_total += row_amount
+                                t.apc_grand_total += row_amount
                             elif row[self.cufs_map.transaction_code] in ['EBDV', 'EBDW']:
-                                t.rcuk_other_total += float(row[self.cufs_map.amount_field].replace(',' , ''))
+                                t.rcuk_other_total += row_amount
+                                t.other_grand_total += row_amount
                             else:
                                 # Not a EBDU, EBDV or EBDW payment
                                 key = 'not_EBD*_payment_' + str(row_counter)
@@ -657,7 +663,8 @@ class Parser():
                                                               nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
                                 output_debug_csv(debug_filename, row, fileheader)
                         elif cufs_export_type == 'coaf':
-                            t.rcuk_apc_total += float(row[self.cufs_map.amount_field].replace(',', ''))
+                            t.rcuk_apc_total += row_amount
+                            t.apc_grand_total += row_amount
                         else:
                             sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(
                                 cufs_export_type))

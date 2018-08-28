@@ -1,3 +1,5 @@
+import datetime
+import dateutil.parser
 import os
 import csv
 
@@ -26,6 +28,23 @@ class oatslogger:
                     f.write('UnicodeEncodeError')
                     f.write(' ')
             f.write('\n')
+
+def convert_date_str_to_yyyy_mm_dd(string, dateutil_options=None):
+    '''
+    Function to convert dates to format YYYY-MM-DD
+    :param string: original date string
+    :param dateutil_options: options to be passed to dateutil
+    :return: converted date or empty string if failed to convert
+    '''
+    try:
+        d = dateutil.parser.parse(string, dateutil_options)
+    except ValueError:
+        d = datetime.datetime(1, 1, 1)
+    d = d.strftime('%Y-%m-%d')
+    if d == '1-01-01':
+        return('')
+    else:
+        return(d)
 
 def gen_chunks(reader, chunksize=100): # https://gist.github.com/miku/820490
     """
@@ -60,7 +79,7 @@ def get_latest_csv(folder_path):
     return(latestfilename)
 
 
-def prune_and_cleanup_string(string, pruning_list, typo_dict):
+def prune_and_cleanup_string(string, pruning_list, typo_dict=None):
     '''
     A function to prune substrings from a string and/or correct typos (replace original string
     by corrected string)
@@ -71,7 +90,7 @@ def prune_and_cleanup_string(string, pruning_list, typo_dict):
     '''
     for a in pruning_list:
         string = string.replace(a, '')
-    if string in typo_dict.keys():
+    if typo_dict and (string in typo_dict.keys()):
         string = typo_dict[string]
     return(string.strip())
 

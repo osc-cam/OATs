@@ -22,7 +22,7 @@ from difflib import SequenceMatcher
 import common.cufs as cufs
 import common.midas_constants as mc
 import common.zendesk as zendesk
-from common.oatsutils import extract_csv_header, get_latest_csv
+from common.oatsutils import convert_date_str_to_yyyy_mm_dd, extract_csv_header, get_latest_csv
 
 # create logger
 logger = logging.getLogger(__name__)
@@ -83,34 +83,47 @@ class Report():
         with open(filename, 'w') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=self.fieldnames, extrasaction='ignore')
             writer.writeheader()
-            # for ticket in report_dict:
-            #     exclude = 0
-            #     for field, value in exclusion_list:
-            #         # print('\n')
-            #         # print(report_dict[ticket].keys())
-            #         # print('APC:', zd_dict[a][field])
-            #         # print(value)
-            #         if (field in report_dict[ticket].keys()) and (str(report_dict[ticket][field]).strip() == value):
-            #             #   print('excluded')
-            #             exclude = 1
-            #     # print(report_dict[ticket])
-            #     if exclude == 0:
-            #         writer.writerow(report_dict[ticket])
-            #         included_in_report[ticket] = report_dict[ticket]
-            #     else:
-            #         excluded_recs[ticket] = report_dict[ticket]
+            for a in self.articles:
+                ticket = a.metadata
+                exclude = 0
+                # for field, value in exclusion_list:
+                #     # print('\n')
+                #     # print(report_dict[ticket].keys())
+                #     # print('APC:', zd_dict[a][field])
+                #     # print(value)
+                #     if (field in report_dict[ticket].keys()) and (str(report_dict[ticket][field]).strip() == value):
+                #         #   print('excluded')
+                #         exclude = 1
+                # # print(report_dict[ticket])
+                if exclude == 0:
+                    writer.writerow(ticket)
+                # else:
+                #     excluded_recs[ticket] = report_dict[ticket]
 
     def parse_cufs_data(self, cufs_datasources=None):
         '''
-        Populates self.zd_parser.zd_dict with data from CUFS reports
+        Populates self.zd_parser.zd_dict with data from CUFS reports. Once all CUFS reports have been parsed,
+        add zendesk.Ticket.apc_grand_total and other total amount fields as kwargs to self.zd_parser.zd_dict and
+        self.zd_parser.zd_dict_with_payments   
 
         :param cufs_datasources: An array of CUFS reports, each being a list in the format [filename, format, funder]
         '''
+
         if not self.zd_parser.zd_dict.keys():
             self.zd_parser.index_zd_data()
         for datasource in cufs_datasources:
             logger.info('Parsing CUFS report {}'.format(datasource))
             self.zd_parser.plug_in_payment_data(datasource[0], datasource[1], datasource[2])
+
+        for dict in [self.zd_parser.zd_dict, self.zd_parser.zd_dict_with_payments]:
+            for k, t in dict.items():
+                if t.apc_grand_total or t.other_grand_total:
+                    t.metadata['ticket.apc_grand_total'] = str(t.apc_grand_total)
+                    t.metadata['ticket.other_grand_total'] = str(t.other_grand_total)
+                    t.metadata['ticket.coaf_apc_total'] = str(t.coaf_apc_total)
+                    t.metadata['ticket.coaf_other_total'] = str(t.coaf_other_total)
+                    t.metadata['ticket.rcuk_apc_total'] = str(t.rcuk_apc_total)
+                    t.metadata['ticket.rcuk_other_total'] = str(t.rcuk_other_total)
 
     def plugin_apollo(self, apollo_exports=None):
         '''
@@ -143,35 +156,60 @@ class Report():
         for k, t in self.zd_parser.zd_dict_with_payments.items():
             if self.rcuk and (t.rcuk_apc_total or t.rcuk_other_total):
                 self.articles.append(t)
-            elif self.coaf and t.coaf_apc_total or t.coaf_other_total):
+            elif self.coaf and (t.coaf_apc_total or t.coaf_other_total):
                 self.articles.append(t)
 
-    def populate_report_fields(self, reporting_dict, report_template, default_publisher='', default_pubtype='',
+    def populate_report_fields(self, report_template, default_publisher='', default_pubtype='',
                                       default_deal='', default_notes=''):
-
-        #TODO: This function was copied from ART as is; needs editing to work here
-
         '''
-        This function populates in the reporting dictionary the data fields that will be used in the output report
+        This function iterates through self.articles and populates in self.articles.metadata the data fields that
+        will be used in the output report
 
-        :param reporting_dict: the reporting dictionary
-        :param translation_dict: a dictionary mapping report fields to data source fields
+        :param translation_dict: an instance of midas_constants.ReportTemplate, containing a dictionary mapping
+                    report fields to data source fields
         :param default_publisher: used for prepayment deals; if set, publisher will be set to this value
         :param default_pubtype: used for prepayment deals; if set, pubtype will be set to this value
         :param default_deal: used for prepayment deals; if set, deal will be set to this value
         :param default_notes: used for prepayment deals; if set, notes will be set to this value
-        :return: the reporting dictionary populated with data from several sources
         '''
 
-        for k, ticket in reporting_dict.items():
-            ##DEAL WITH THE EASY FIELDS FIRST (ONE TO ONE CORRESPONDENCE)
+        def process_repeated_fields(zd_list, report_field_list, ticket):
+            '''
+            This function populates fields in the output report that do NOT have a 1 to 1
+            correspondence to zendesk data fields (e.g. Fund that APC is paid from (1)(2) and (3))
+            :param dict: the reporting dictionary
+            :param zd_list: list of zendesk data fields that may be used to populate the output fields
+            :param report_field_list: list of output report fields that should be populated with data from
+                                        fields in zd_list
+            :param ticket: dictionary representation of ZD ticket to work on
+            :return:
+            '''
+            used_funders = []
+            for fund_f in report_field_list:  # e.g. Fund that APC is paid from (1)(2) and (3)
+                for zd_f in zd_list:  # 'RCUK payment [flag]', 'COAF payment [flag]', etc
+                    if (fund_f not in ticket.keys()) and (zd_f not in used_funders):
+                        ## 'Fund that APC is paid from 1, 2 or 3' NOT YET SET FOR THIS TICKET
+                        if '[flag]' in zd_f:
+                            if ticket[zd_f].strip().upper() == 'YES':
+                                # print('zdfund2funderstr[zd_f]:', zdfund2funderstr[zd_f])
+                                ticket[fund_f] = mc.ZDFUND2FUNDERSTR[zd_f]
+                                used_funders.append(zd_f)
+                        else:
+                            if not ticket[zd_f].strip() == '-':
+                                # print(ticket[zd_f]:', ticket[zd_f])
+                                ticket[fund_f] = ticket[zd_f]
+                                used_funders.append(zd_f)
+            return ticket
+
+        translation_dict = report_template.metadata_mapping
+
+        for a in self.articles:
+            ticket = a.metadata
             for rep_f in translation_dict:
                 for zd_f in translation_dict[rep_f]:
-                    # if (rep_f not in ticket.keys()) and (zd_f in ticket.keys()): # this saves some time, but it means that info can come from fields that are not intended
                     if zd_f in ticket.keys():
                         if ticket[zd_f]:  # avoids AttributeError due to NoneType objects
-                            if not ticket[zd_f].strip() in ['-',
-                                                            'unknown']:  # ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence
+                            if not ticket[zd_f].strip() in ['-', 'unknown']:  # ZD uses "-" to indicate NA #cottagelabs uses "unknown" to indicate NA for licence
                                 # convert dates to YYYY-MM-DD format
                                 if (rep_f in ['Date of APC payment', 'Date of publication']) and (
                                     default_publisher == 'Wiley'):
@@ -179,9 +217,10 @@ class Report():
                                 ticket[rep_f] = ticket[zd_f]
                                 # ticket[rep_f] = ticket[zd_f] + ' | ' + zd_f ##USE THIS IF YOU NEED TO FIND OUT WHERE EACH BIT OF INFO IS COMING FROM
             ##THEN WITH THE CONDITIONAL FIELDS
-            ticket = process_repeated_fields(zd_fund_field_list, rep_fund_field_list, ticket)
-            ticket = process_repeated_fields(zd_allfunders, rep_funders, ticket)
-            ticket = process_repeated_fields(zd_grantfields, rep_grants, ticket)
+            ticket = process_repeated_fields(report_template.zd_fund_field_list, report_template.rep_fund_field_list,
+                                             ticket)
+            ticket = process_repeated_fields(report_template.zd_allfunders, report_template.rep_funders, ticket)
+            ticket = process_repeated_fields(report_template.zd_grantfields, report_template.rep_grants, ticket)
 
             if default_publisher:
                 ticket['Publisher'] = default_publisher
@@ -198,10 +237,6 @@ class Report():
             elif default_notes:
                 ticket['Notes'] = default_notes
 
-            reporting_dict[k] = ticket
-
-        return reporting_dict
-
 def valid_date(s):
     try:
         return datetime.datetime.strptime(s, "%Y-%m-%d")
@@ -210,8 +245,6 @@ def valid_date(s):
         raise argparse.ArgumentTypeError(msg)
 
 def main(arguments):
-
-    logger.info('This is main')
 
     # zenexport
     # if os.path.isdir(arguments.zenexport):
@@ -247,6 +280,9 @@ def main(arguments):
     if not arguments.ignore_pmc:
         rep.plugin_pmc(pmc_exports)
     rep.parse_cufs_data(paymentfiles)
+    rep.populate_invoiced_articles()
+    rep.populate_report_fields(report_template=mc.ReportTemplate())
+    rep.output_csv()
 
 if __name__ == '__main__':
 
