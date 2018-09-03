@@ -137,6 +137,25 @@ class Report():
             logger.info('Parsing Apollo export {}'.format(datasource))
             self.zd_parser.plug_in_metadata(datasource, 'handle', self.zd_parser.apollo2zd_dict)
 
+    def plugin_old_payments_spreadsheet(self, csv_path=None):
+        '''
+        Populates self.zd_parser.zd_dict with data from the main sheet of the spreadsheet of payments
+        (LST_AllFinancialData_V3_20160721_Main_Sheet.csv) maintained by the OA Team
+        to record payments of Open Access tickets received before 01/01/2016 (before all payment data began to
+        be recorded in Zendesk)
+        '''
+        if not self.zd_parser.zd_dict.keys():
+            self.zd_parser.index_zd_data()
+        if not csv_path:
+            try:
+                csv_path = os.path.join('~', 'OSC-shared-drive', 'OSC', 'DataSources', 'FinanceReports',
+                                        'LST_AllFinancialData_V3_20160721_Main_Sheet.csv')
+            except Exception as e:
+                sys.exit('{}; {}'.format(e, e.args))
+
+        logger.info('Parsing old payment spreadsheet {}'.format(csv_path))
+        self.zd_parser.plug_in_metadata(csv_path, 'Zendesk Number', self.zd_parser.zd2zd_dict)
+
     def plugin_pmc(self, pmc_exports=None):
         '''
         Populates self.zd_parser.zd_dict with data from Europe PMC
@@ -272,6 +291,19 @@ def main(arguments):
     apollo_exports = [os.path.join(working_folder, "Apollo_all_items-20180525.csv"), ]
     pmc_exports = [os.path.join(working_folder, "PMID_PMCID_DOI.csv"), ]
 
+
+
+    rep = Report(zenexport, report_type='all')
+    rep.zd_parser.index_zd_data()
+    dict_counter = 0
+    for dict in [rep.zd_parser.invoice2zd_dict]:
+        logger.info('Analysing dict {}'.format(dict_counter))
+        for k, v in dict.items():
+            logger.info('k: {}; v: {}'.format(k, v))
+        dict_counter += 1
+    raise
+
+
     # get the report object
     rep = Report(zenexport, report_type='all')
     rep.zd_parser.index_zd_data()
@@ -279,6 +311,7 @@ def main(arguments):
         rep.plugin_apollo(apollo_exports)
     if not arguments.ignore_pmc:
         rep.plugin_pmc(pmc_exports)
+    rep.plugin_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
     rep.parse_cufs_data(paymentfiles)
     rep.populate_invoiced_articles()
     rep.populate_report_fields(report_template=mc.ReportTemplate())

@@ -84,7 +84,7 @@ JISC_FORMAT = ['Date of acceptance',
  'Licence',
  'Notes']
 
-JISC_FORMAT_EXPANDED = JISC_FORMAT + ['id',  # ZD number from zd
+JISC_FORMAT_EXPANDED = JISC_FORMAT + ['Id',  # ZD number from zd
                          '#externalID [txt]',  # OA number from zd
                          'Reason for exclusion',  # field calculated and appended by ART
                          # 'Description',             # field from CUFS (RCUK)
