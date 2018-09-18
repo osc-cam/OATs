@@ -293,25 +293,25 @@ def main(arguments):
 
 
 
-    rep = Report(zenexport, report_type='all')
-    rep.zd_parser.index_zd_data()
-    dict_counter = 0
-    for dict in [rep.zd_parser.invoice2zd_dict]:
-        logger.info('Analysing dict {}'.format(dict_counter))
-        for k, v in dict.items():
-            logger.info('k: {}; v: {}'.format(k, v))
-        dict_counter += 1
-    raise
+    # rep = Report(zenexport, report_type='all')
+    # rep.zd_parser.index_zd_data()
+    # dict_counter = 0
+    # for dict in [rep.zd_parser.invoice2zd_dict]:
+    #     logger.info('Analysing dict {}'.format(dict_counter))
+    #     for k, v in dict.items():
+    #         logger.info('k: {}; v: {}'.format(k, v))
+    #     dict_counter += 1
+    # raise
 
 
     # get the report object
     rep = Report(zenexport, report_type='all')
     rep.zd_parser.index_zd_data()
-    if not arguments.ignore_apollo:
-        rep.plugin_apollo(apollo_exports)
-    if not arguments.ignore_pmc:
-        rep.plugin_pmc(pmc_exports)
-    rep.plugin_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
+    # if not arguments.ignore_apollo:
+    #     rep.plugin_apollo(apollo_exports)
+    # if not arguments.ignore_pmc:
+    #     rep.plugin_pmc(pmc_exports)
+    # rep.plugin_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
     rep.parse_cufs_data(paymentfiles)
     rep.populate_invoiced_articles()
     rep.populate_report_fields(report_template=mc.ReportTemplate())
@@ -389,5 +389,7 @@ http://www.gnu.org/copyleft/gpl.html
     logfilename = os.path.join(working_folder, 'midas.log')
     logging.config.fileConfig('logging.conf', defaults={'logfilename': logfilename})
     logger = logging.getLogger('midas')
+
+    os.chdir(working_folder)
 
     main(arguments)

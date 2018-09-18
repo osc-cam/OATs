@@ -514,6 +514,7 @@ class Parser():
     def plug_in_payment_data(self, paymentsfile, cufs_export_type='rcuk', funder='rcuk', file_encoding='utf-8'):
         #TODO: Add support for other financial codes that were used in the past for OA charges: VEJE.EDDK.EBKH , GAAB.EBDU
         #TODO: If a OA or ZD number reference is not found in the CUFS report being parsed, try to find a match using invoice number
+        #TODO: Output report rows not matched to ZD to a debug log file
         '''
         This function parses financial reports produced by CUFS. It tries to mach each payment in the CUFS report
         to a zd ticket and, if successful, it produces summations of payments per zd ticket and appends these
