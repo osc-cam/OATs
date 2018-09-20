@@ -1,4 +1,4 @@
-from oatsutils import DOI_CLEANUP, DOI_FIX, prune_and_cleanup_string
+from common.oatsutils import DOI_CLEANUP, DOI_FIX, prune_and_cleanup_string
 
 class MetadataMap():
     '''

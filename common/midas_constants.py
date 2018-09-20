@@ -1,7 +1,7 @@
 import collections
 
-from apollo import MetadataMap
-from cufs import CoafFieldsMapping, RcukFieldsMapping
+from common.apollo import MetadataMap
+from common.cufs import CoafFieldsMapping, RcukFieldsMapping
 
 RCUK_FUNDER_STR = 'rcuk'
 COAF_FUNDER_STR = 'coaf'
@@ -162,7 +162,7 @@ JISC_FORMAT_EXPANDED = JISC_FORMAT + ['Id',  # ZD number from zd
 class ReportTemplate():
     def __init__(self, format=JISC_FORMAT_EXPANDED):
 
-        from zendesk import ZdFieldsMapping
+        from common.zendesk import ZdFieldsMapping
         zd_map = ZdFieldsMapping()
         apollo_map = MetadataMap()
         cufs_rcuk = RcukFieldsMapping()

@@ -22,7 +22,7 @@ from difflib import SequenceMatcher
 import common.cufs as cufs
 import common.midas_constants as mc
 import common.zendesk as zendesk
-from common.oatsutils import convert_date_str_to_yyyy_mm_dd, extract_csv_header, get_latest_csv
+from common.oatsutils import convert_date_str_to_yyyy_mm_dd, extract_csv_header, get_latest_csv, output_debug_csv
 
 # create logger
 logger = logging.getLogger(__name__)
@@ -167,7 +167,8 @@ class Report():
             logger.info('Parsing EuropePMC export {}'.format(datasource))
             self.zd_parser.plug_in_metadata(datasource, 'DOI', self.zd_parser.doi2zd_dict)
 
-    def populate_invoiced_articles(self):
+    def populate_invoiced_articles(self, debug_csv='Midas_debug_tickets_without_payments_from_report_requester_or_a_'
+                                                   'balance_of_zero.csv'):
         '''
         Iterates through self.zd_parser.zd_dict_with_payments and populates self.articles with zendesk.Ticket objects
         containg payments
@@ -175,8 +176,15 @@ class Report():
         for k, t in self.zd_parser.zd_dict_with_payments.items():
             if self.rcuk and (t.rcuk_apc_total or t.rcuk_other_total):
                 self.articles.append(t)
+                logger.debug('ZD number {} contains RCUK payments. Adding ticket to Report.articles'.format(k))
             elif self.coaf and (t.coaf_apc_total or t.coaf_other_total):
                 self.articles.append(t)
+                logger.debug('ZD number {} contains COAF payments. Adding ticket to Report.articles'.format(k))
+            else:
+                logger.debug('Adding ZD ticket info to {}. ZD number {} either does not contain payments from report requester '
+                             '(e.g. RCUK and/or COAF) or the balance of payments is zero. It will '
+                             'not be included in Report.articles'.format(debug_csv, k))
+                t.output_metadata_as_csv(os.path.join(working_folder, debug_csv))
 
     def populate_report_fields(self, report_template, default_publisher='', default_pubtype='',
                                       default_deal='', default_notes=''):
