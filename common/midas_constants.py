@@ -2,7 +2,67 @@ import collections
 
 from apollo import MetadataMap
 from cufs import CoafFieldsMapping, RcukFieldsMapping
-from zendesk import ZdFieldsMapping
+
+RCUK_FUNDER_STR = 'rcuk'
+COAF_FUNDER_STR = 'coaf'
+ARCADIA_FUNDER_STR = 'arcadia'
+
+class CostCentreAndSofCombo():
+    def __init__(self, cost_centre, sof, funder):
+        self.cost_centre = cost_centre
+        self.sof = sof
+        self.funder = funder
+
+RCUK_FORMAT_COST_CENTRE_SOF_COMBOS = [
+    CostCentreAndSofCombo('VEJE', 'EDDJ', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJE', 'JUDB', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJE', 'EDDK', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJE', 'GAAA', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJE', 'GAAB', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJF', 'GAAA', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJF', 'JUDB', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJG', 'HANK', ARCADIA_FUNDER_STR),
+    CostCentreAndSofCombo('VEJH', 'JUDB', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJI', 'JUDB', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJJ', 'JUDB', RCUK_FUNDER_STR),
+    CostCentreAndSofCombo('VEJK', 'JUDB', RCUK_FUNDER_STR),
+    ]
+
+COAF_FORMAT_PROJECT_AWARD_COMBOS = [
+    CostCentreAndSofCombo('VEAG/044', 'RG80512', COAF_FUNDER_STR),
+    CostCentreAndSofCombo('VEAG/045', 'RG82831', COAF_FUNDER_STR),
+    CostCentreAndSofCombo('VEAG/050', 'RG88122', COAF_FUNDER_STR),
+    CostCentreAndSofCombo('VEAG/052', 'RG93375', COAF_FUNDER_STR),
+    CostCentreAndSofCombo('VEAG/054', 'RG96299', RCUK_FUNDER_STR),
+    ]
+
+APC_TRANSACTION_CODES = [
+    'EBDM',
+    'EBDN',
+    'EBDU',
+    'EBHB',
+    'EBKF',
+    'EBKG',
+    'EBKH',
+    'EBKL',
+    'EHRB',
+    'ERHB',
+    'ERHZ',
+    'ERJA',
+    'EXZZ',
+    'EZZM',
+    'FKAA',
+    'LKAA',
+    'LKMB',
+    'LKMD',
+    'LNBA',
+    'VBAK',
+]
+
+OTHER_PUB_CHARGES_TRANSACTION_CODES = [
+    'EBDV',
+    'EBDW',
+]
 
 
 ZENDESK_EXCLUDED_GROUPS = ['Cron Jobs',
@@ -102,6 +162,7 @@ JISC_FORMAT_EXPANDED = JISC_FORMAT + ['Id',  # ZD number from zd
 class ReportTemplate():
     def __init__(self, format=JISC_FORMAT_EXPANDED):
 
+        from zendesk import ZdFieldsMapping
         zd_map = ZdFieldsMapping()
         apollo_map = MetadataMap()
         cufs_rcuk = RcukFieldsMapping()

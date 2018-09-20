@@ -75,11 +75,12 @@ class RcukFieldsMapping():
     def __init__(self):
         # self.field_names = extract_csv_header(rcuk_paymentsfile, "utf-8")
         self.amount_field = 'Amount'
+        self.cost_centre = 'CC'
         self.invoice_field = 'Ref 5'
         self.oa_number =  'Description'
         self.paydate_field = 'Posted'
-        self.transaction_code = 'Tran'
         self.source_of_funds = 'SOF'
+        self.transaction_code = 'Tran'
 
 class RcukOutputMapping():
     '''

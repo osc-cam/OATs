@@ -280,12 +280,13 @@ def main(arguments):
 
     # input cufs reports [filename, format, funder]
     paymentfiles = [
-        [os.path.join(working_folder, "RCUK_2018-08-09_all_VEJx_codes.csv"), 'rcuk', 'rcuk'],
-        [os.path.join(working_folder, "RCUK_VEAG054_2018-08-09.csv"), 'coaf', 'rcuk'],
-        [os.path.join(working_folder, 'VEAG044_2018-08-09.csv'), 'coaf', 'coaf'],
-        [os.path.join(working_folder, 'VEAG045_2018-08-09.csv'), 'coaf', 'coaf'],
-        [os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv'), 'coaf', 'coaf'],
-        [os.path.join(working_folder, 'VEAG052_2018-08-09.csv'), 'coaf', 'coaf'],
+        [os.path.join(working_folder, "rcuk_tiny_test.csv"), 'rcuk', 'rcuk'],
+        # [os.path.join(working_folder, "RCUK_2018-08-09_all_VEJx_codes.csv"), 'rcuk', 'rcuk'],
+        # [os.path.join(working_folder, "RCUK_VEAG054_2018-08-09.csv"), 'coaf', 'rcuk'],
+        # [os.path.join(working_folder, 'VEAG044_2018-08-09.csv'), 'coaf', 'coaf'],
+        # [os.path.join(working_folder, 'VEAG045_2018-08-09.csv'), 'coaf', 'coaf'],
+        # [os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv'), 'coaf', 'coaf'],
+        # [os.path.join(working_folder, 'VEAG052_2018-08-09.csv'), 'coaf', 'coaf'],
     ]
     # other input files
     apollo_exports = [os.path.join(working_folder, "Apollo_all_items-20180525.csv"), ]
