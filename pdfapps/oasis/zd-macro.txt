@@ -53,6 +53,8 @@
 \newcommand{\yshift}{-4} %in cm; moves the invoice stamp vertically by given amount; use -9 for RightsLink invoices
 {% endif %}\newcommand{\invref}{ {{ticket.external_id}} }
 \newcommand{\invrefzd}{ ZD-{{ticket.id}} }
+\newcommand{\foo}{}
+\newcommand{\zdid}{\foo {{ticket.id}} }
 \newcommand{\currentagent}{ {{current_user.name}} }
 
 %%%%TYPE OF INVOICE

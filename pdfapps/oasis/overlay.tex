@@ -7,6 +7,7 @@
 ]{geometry}
 \usepackage[ddmmyyyy]{datetime}
 \usepackage[utf8]{inputenc}
+\usepackage{hyperref}
 \renewcommand*{\familydefault}{\ttdefault}
 \thispagestyle{empty}
 
@@ -47,7 +48,9 @@
 \path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 1.4) node[red, inner sep=0pt, anchor=south]{\LARGE{Open Access}};
 \path [xshift=\xshift cm, yshift=\yshift cm] (0.1 , 4.9) node[red, inner sep=0pt, anchor=north west]{Reference No.};
 \path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 3.5) node[blue, inner sep=0pt, anchor=base]{\large{\textbf{\invref}}};
-\path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 2.8) node[blue, inner sep=0pt, anchor=base]{\large{\textbf{\invrefzd}}};
+\path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 2.8) node[blue, inner sep=0pt, anchor=base]{
+					\href{https://camacuk.zendesk.com/agent/tickets/\zdid}{\large{\textbf{\invrefzd}}}
+						};
 \path [xshift=\xshift cm, yshift=\yshift cm] (2.5 , 2.3) node[blue, inner sep=0pt, anchor=base]{\scriptsize{Invoice no:\textbf{\invoiceno}}};
 \path [xshift=\xshift cm, yshift=\yshift cm] (5.1 , 4.9) node[red, inner sep=0pt, anchor=north west]{Processed by};
 \path [xshift=\xshift cm, yshift=\yshift cm] (5.1 , 4.4) node[blue, inner sep=0pt, anchor=north west]{\textbf{\currentagent}};
