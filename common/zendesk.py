@@ -373,12 +373,35 @@ class Ticket():
         self.metadata = {}
 
     def output_metadata_as_csv(self, outcsv):
-        #TODO logger.info(outcsv)
-        with open(outcsv, 'a') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=self.metadata.keys())
-            if not csvfile.read(): # file is empty; write header
+        fieldnames = self.metadata.keys()
+        if not os.path.exists(outcsv):
+            with open(outcsv, 'w') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
+        with open(outcsv, 'a') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow(self.metadata)
+
+    def output_payment_summary_as_csv(self, outcsv):
+        columns_mapping = [
+            ['ZD number', self.number],
+            ['OA/SE number', self.external_id],
+            ['Article title', self.article_title],
+            ['DOI', self.doi],
+            ['APC total', self.apc_grand_total],
+            ['Other total', self.other_grand_total],
+            ['COAF total', self.coaf_apc_total],
+            ['RCUK apc', self.rcuk_apc_total],
+            ['RCUK other', self.rcuk_other_total],
+            ['Zendesk data', '{}'.format(self.metadata)],
+        ]
+        if not os.path.exists(outcsv):
+            with open(outcsv, 'w') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow([a[0] for a in columns_mapping])
+        with open(outcsv, 'a') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([a[1] for a in columns_mapping])
 
 class Parser():
     '''
@@ -591,10 +614,32 @@ class Parser():
             unmatched_oa_numbers = []
             for row in reader:
                 logger.debug('-------------- {} Working on {} row: {}'.format(row_counter, csvfile, row))
-                if row[self.cufs_map.oa_number] in cufs.OA_NUMBER_TYPOS.keys():
+
+                descriptions_of_transactions_processed_manually = []
+                if row[self.cufs_map.oa_number] in cufs.AGGREGATED_PAYMENTS.keys():
+                    # Transaction aggregating more than one article (e.g. invoice for several articles)
+                    # Requires manual break down of charges and addition of description to
+                    # descriptions_of_transactions_processed_manually to prevent these aggregated transactions
+                    # to be counted more than once
+                    if row[self.cufs_map.oa_number] not in descriptions_of_transactions_processed_manually):
+                        logger.debug('Aggregated transaction detected ({}). Processing it manually'.format(
+                                        self.cufs_map.oa_number))
+                        for breakdown in cufs.AGGREGATED_PAYMENTS[row[self.cufs_map.oa_number]]:
+                            t = self.zd_dict[breakdown.zd_number]
+                            t.rcuk_apc_total = breakdown.rcuk_apc
+                            t.coaf_apc_total = breakdown.coaf_apc
+                            t.apc_grand_total = t.rcuk_apc_total + t.coaf_apc_total
+                            t.rcuk_other_total = breakdown.rcuk_other
+                        descriptions_of_transactions_processed_manually.append(row[self.cufs_map.oa_number])
+                    else:
+                        logger.debug('Transaction skipped because an aggregated transaction matching this description '
+                                    '({}) has already been processed.'.format(self.cufs_map.oa_number))
+
+                elif row[self.cufs_map.oa_number] in cufs.OA_NUMBER_TYPOS.keys():
                     logger.debug('Corrected typo in OA number; from {} to {}'.format(row[self.cufs_map.oa_number],
                                                         cufs.OA_NUMBER_TYPOS[row[self.cufs_map.oa_number]]))
                     row[self.cufs_map.oa_number] = cufs.OA_NUMBER_TYPOS[row[self.cufs_map.oa_number]]
+
                 m_oa = t_oa.search(row[self.cufs_map.oa_number].upper())
                 m_zd = t_zd.search(row[self.cufs_map.oa_number].upper())
                 zd_number = None

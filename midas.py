@@ -137,7 +137,8 @@ class Report():
             logger.info('Parsing Apollo export {}'.format(datasource))
             self.zd_parser.plug_in_metadata(datasource, 'handle', self.zd_parser.apollo2zd_dict)
 
-    def plugin_old_payments_spreadsheet(self, csv_path=None):
+    def parse_old_payments_spreadsheet(self, csv_path=None):
+        #TODO: This function can probably be deleted. Pluging in data from this old spreadsheet is probably the wrong way to go about this. It is probably better to use this old sheet only to try to identify CUFS transactions that could not be easily linked to ZD
         '''
         Populates self.zd_parser.zd_dict with data from the main sheet of the spreadsheet of payments
         (LST_AllFinancialData_V3_20160721_Main_Sheet.csv) maintained by the OA Team
@@ -184,7 +185,7 @@ class Report():
                 logger.debug('Adding ZD ticket info to {}. ZD number {} either does not contain payments from report requester '
                              '(e.g. RCUK and/or COAF) or the balance of payments is zero. It will '
                              'not be included in Report.articles'.format(debug_csv, k))
-                t.output_metadata_as_csv(os.path.join(working_folder, debug_csv))
+                t.output_payment_summary_as_csv(os.path.join(working_folder, debug_csv))
 
     def populate_report_fields(self, report_template, default_publisher='', default_pubtype='',
                                       default_deal='', default_notes=''):
@@ -320,7 +321,7 @@ def main(arguments):
     #     rep.plugin_apollo(apollo_exports)
     # if not arguments.ignore_pmc:
     #     rep.plugin_pmc(pmc_exports)
-    # rep.plugin_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
+     rep.parse_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
     rep.parse_cufs_data(paymentfiles)
     rep.populate_invoiced_articles()
     rep.populate_report_fields(report_template=mc.ReportTemplate())

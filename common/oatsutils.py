@@ -164,6 +164,10 @@ def output_debug_csv(outcsv, row_dict, csvheader = []):
     :param row_dict: dictionary containing the row to be output
     :param csvheader: the header of the CSV file
     '''
+    if not os.path.exists(outcsv):
+        with open(outcsv, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csvheader)
+            writer.writeheader()
     with open(outcsv, 'a') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=csvheader)
         writer.writerow(row_dict)
