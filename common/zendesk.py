@@ -68,10 +68,10 @@ def output_pruned_zendesk_export(zenexport, output_filename, **kwargs):
             output_ticket = False
             for field, values in kwargs.items():
                 for value in values:
-                    if ticket.zd_data[field] != value:
+                    if ticket.metadata[field] != value:
                         output_ticket = True
             if output_ticket:
-                writer.writerow(ticket.zd_data)
+                writer.writerow(ticket.metadata)
 
 class ZdFieldsMapping():
     '''
@@ -478,6 +478,8 @@ class Parser():
         logger.info('Indexing Zendesk data')
         t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
         with open(self.zenexport, encoding = "utf-8") as csvfile:
+            # header_reader = csv.reader(csvfile)
+            # self.zenexport_fieldnames = next(header_reader)
             reader = csv.DictReader(csvfile)
             self.zenexport_fieldnames = next(reader).keys()
             for row in reader:
@@ -585,6 +587,8 @@ class Parser():
             self.cufs_map = cufs.RcukFieldsMapping()
         elif cufs_export_type == 'coaf':
             self.cufs_map = cufs.CoafFieldsMapping()
+        elif cufs_export_type == 'rge':
+            self.cufs_map = cufs.RgeFieldsMapping()
         else:
             sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(cufs_export_type))
 
@@ -621,10 +625,11 @@ class Parser():
                     # Requires manual break down of charges and addition of description to
                     # descriptions_of_transactions_processed_manually to prevent these aggregated transactions
                     # to be counted more than once
-                    if row[self.cufs_map.oa_number] not in descriptions_of_transactions_processed_manually):
+                    if row[self.cufs_map.oa_number] not in descriptions_of_transactions_processed_manually:
                         logger.debug('Aggregated transaction detected ({}). Processing it manually'.format(
-                                        self.cufs_map.oa_number))
+                                        row[self.cufs_map.oa_number]))
                         for breakdown in cufs.AGGREGATED_PAYMENTS[row[self.cufs_map.oa_number]]:
+                            logger.debug("self.zd_dict.keys(): {}".format(self.zd_dict.keys()))
                             t = self.zd_dict[breakdown.zd_number]
                             t.rcuk_apc_total = breakdown.rcuk_apc
                             t.coaf_apc_total = breakdown.coaf_apc
@@ -759,6 +764,14 @@ class Parser():
                             t.apc_grand_total += row_amount
                             logger.debug(
                                 'Funder is RCUK but CUFS report format is coaf. Increased APC amount charged to RCUK '
+                                'grant and total APC amount by {}; t.rcuk_apc_total = {}; t.apc_grand_total = {}'.format(
+                                    row_amount, t.rcuk_apc_total, t.apc_grand_total))
+                        #TODO: The elif case for rge export type below is an identical copy of the elif for coaf export type; this should be fine for reports where funder is coaf; for rcuk reports, this might need refinement
+                        elif cufs_export_type == 'rge':
+                            t.rcuk_apc_total += row_amount
+                            t.apc_grand_total += row_amount
+                            logger.debug(
+                                'Funder is RCUK but CUFS report format is rge. Increased APC amount charged to RCUK '
                                 'grant and total APC amount by {}; t.rcuk_apc_total = {}; t.apc_grand_total = {}'.format(
                                     row_amount, t.rcuk_apc_total, t.apc_grand_total))
                         else:

@@ -279,7 +279,7 @@ def main(arguments):
     #     zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
     # else:
     #     zenexport = arguments.zenexport
-    zenexport = os.path.join(working_folder, 'export-2018-08-13-1310-234063-3600001227941889.csv')
+    zenexport = os.path.join(working_folder, 'export-2018-11-26-1308-234063-36000022879338d5.csv')
     zen_path, zen_ext = os.path.splitext(zenexport)
     filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
     if not arguments.all_groups:
@@ -289,16 +289,18 @@ def main(arguments):
 
     # input cufs reports [filename, format, funder]
     paymentfiles = [
-        [os.path.join(working_folder, "rcuk_tiny_test.csv"), 'rcuk', 'rcuk'],
+        # [os.path.join(working_folder, "rcuk_tiny_test.csv"), 'rcuk', 'rcuk'],
         # [os.path.join(working_folder, "RCUK_2018-08-09_all_VEJx_codes.csv"), 'rcuk', 'rcuk'],
         # [os.path.join(working_folder, "RCUK_VEAG054_2018-08-09.csv"), 'coaf', 'rcuk'],
         # [os.path.join(working_folder, 'VEAG044_2018-08-09.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG045_2018-08-09.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv'), 'coaf', 'coaf'],
-        # [os.path.join(working_folder, 'VEAG052_2018-08-09.csv'), 'coaf', 'coaf'],
+        [os.path.join(working_folder, 'VEAG052_expenditures-detail_2018-11-26.csv'), 'rge', 'coaf'],
+        [os.path.join(working_folder, 'VEAG054_expenditures-detail_2018-11-26.csv'), 'rge', 'rcuk'],
+        [os.path.join(working_folder, 'VEJx_2018-11-12.csv'), 'rcuk', 'rcuk'],
     ]
     # other input files
-    apollo_exports = [os.path.join(working_folder, "Apollo_all_items-20180525.csv"), ]
+    apollo_exports = [os.path.join(working_folder, "Apollo_all_items_2018-11-26.csv"), ]
     pmc_exports = [os.path.join(working_folder, "PMID_PMCID_DOI.csv"), ]
 
 
@@ -315,13 +317,13 @@ def main(arguments):
 
 
     # get the report object
-    rep = Report(zenexport, report_type='all')
+    rep = Report(zenexport, report_type='coaf')
     rep.zd_parser.index_zd_data()
     # if not arguments.ignore_apollo:
     #     rep.plugin_apollo(apollo_exports)
     # if not arguments.ignore_pmc:
     #     rep.plugin_pmc(pmc_exports)
-     rep.parse_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
+    # rep.parse_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
     rep.parse_cufs_data(paymentfiles)
     rep.populate_invoiced_articles()
     rep.populate_report_fields(report_template=mc.ReportTemplate())
@@ -393,6 +395,7 @@ http://www.gnu.org/copyleft/gpl.html
 
     # working folder
     working_folder = arguments.working_folder
+    working_folder = os.path.join(home, 'Dropbox', 'Midas-wd')
     if not os.path.exists(working_folder):
         os.makedirs(working_folder)
 

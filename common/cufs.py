@@ -1018,7 +1018,6 @@ INVOICE2ZD_NUMBER = {
     'W1267955': '7280',
     '3402544': '7281',
     '11536CV9': '7283',
-    'N/A': '22530',
     'E08748670': '7298',
     'W1264936': '7302',
     '3635497': '7306',
@@ -1864,7 +1863,7 @@ MANUAL_OA2ZD_DICT = {
     }
 
 class Aggregated_breakdown():
-    def __init__(self, zd_number=zd_number, rcuk_apc=0, coaf_apc=0, rcuk_other=0, coaf_other=0):
+    def __init__(self, zd_number=None, rcuk_apc=0, coaf_apc=0, rcuk_other=0, coaf_other=0):
         self.zd_number = zd_number
         self.rcuk_apc = rcuk_apc
         self.coaf_apc = coaf_apc
@@ -1914,6 +1913,18 @@ class RcukFieldsMapping():
         self.paydate_field = 'Posted'
         self.source_of_funds = 'SOF'
         self.transaction_code = 'Tran'
+
+class RgeFieldsMapping():
+    '''
+    Mapping of column names in CUFS reports produced by the Research Grant Expenditure website:
+    http://www.expenditure.admin.cam.ac.uk
+    '''
+    def __init__(self):
+        # self.field_names = extract_csv_header(rcuk_paymentsfile, "utf-8")
+        self.amount_field = 'Amount'
+        self.invoice_field = 'Invoice'
+        self.oa_number = 'Expenditure Comment'
+        self.paydate_field = 'Expenditure Item Date'
 
 class RcukOutputMapping():
     '''
