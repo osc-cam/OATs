@@ -13,18 +13,18 @@ from midas import ZENDESK_EXCLUDED_GROUPS
 
 
 
-data_sources = '/home/asartori/OATs/Midas-DataSources'
+data_sources = '/home/asartori/Dropbox/Midas-wd'
 #data_sources = 'L:\OSC\DataSources\ZendeskExports'
-zd_file = 'export-2018-04-20-1120-234063-360000053233b409.csv'
+zd_file = 'export-2018-11-26-1308-234063-36000022879338d5.csv'
 # zd_file = 'test_10000_lines.csv'
 #zd_file = 'cropping_test.csv'
-cufs_export_type = 'RCUK'
-paymentsfile = 'VEJJ/VEJJ_2017-10-31.csv'
+# cufs_export_type = 'RCUK'
+# paymentsfile = 'VEJJ/VEJJ_2017-10-31.csv'
 
-zenexport = os.path.join(data_sources, 'ZendeskExports', zd_file)
+zenexport = os.path.join(data_sources, zd_file)
 
-parse_zd_fieldnames(zenexport)
-raise
+# parse_zd_fieldnames(zenexport)
+# raise
 
 # # CSV VERSUS PANDAS
 # with open(zenexport, encoding="utf-8") as csvfile:

@@ -16,6 +16,7 @@ import collections
 import logging
 import logging.config
 import sys
+import xlsxwriter
 from pprint import pprint
 from difflib import SequenceMatcher
 
@@ -272,8 +273,15 @@ def valid_date(s):
         msg = "Not a valid date: '{0}'.".format(s)
         raise argparse.ArgumentTypeError(msg)
 
+def clear_debug_files(wf):
+    for i in os.listdir(wf):
+        if not os.path.isdir(i):
+            if i[0:12] == 'Midas_debug_':
+                os.remove(i)
+
 def main(arguments):
 
+    clear_debug_files(working_folder)
     # zenexport
     # if os.path.isdir(arguments.zenexport):
     #     zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
@@ -281,11 +289,11 @@ def main(arguments):
     #     zenexport = arguments.zenexport
     zenexport = os.path.join(working_folder, 'export-2018-11-26-1308-234063-36000022879338d5.csv')
     zen_path, zen_ext = os.path.splitext(zenexport)
-    filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
-    if not arguments.all_groups:
-        if not os.path.exists(filtered_zenexport):
-            zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group': mc.ZENDESK_EXCLUDED_GROUPS})
-        zenexport = filtered_zenexport
+    # filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
+    # if not arguments.all_groups:
+    #     if not os.path.exists(filtered_zenexport):
+    #         zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group': mc.ZENDESK_EXCLUDED_GROUPS})
+    #     zenexport = filtered_zenexport
 
     # input cufs reports [filename, format, funder]
     paymentfiles = [

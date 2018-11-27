@@ -370,6 +370,9 @@ class Ticket():
         self.rcuk_other_total = 0
         self.rcuk_payment = None
         self.rcuk_policy = None
+        self.invoice_apc = None
+        self.invoice_page = None
+        self.invoice_membership = None
         self.metadata = {}
 
     def output_metadata_as_csv(self, outcsv):
@@ -492,6 +495,9 @@ class Parser():
                 t.rcuk_policy = row[self.zd_fields.rcuk_policy]
                 t.coaf_payment = row[self.zd_fields.coaf_payment]
                 t.coaf_policy = row[self.zd_fields.coaf_policy]
+                t.invoice_apc = row[self.zd_fields.apc_invoice_number]
+                t.invoice_page = row[self.zd_fields.pagecolour_invoice_number]
+                t.invoice_membership = row[self.zd_fields.membership_invoice_number]
                 t.apollo_handle = row[self.zd_fields.repository_link].replace('https://www.repository.cam.ac.uk/handle/' , '')
                 t.doi = prune_and_cleanup_string(row[self.zd_fields.doi], DOI_CLEANUP, DOI_FIX)
                 row[self.zd_fields.doi] = t.doi
@@ -510,9 +516,9 @@ class Parser():
                         ([t.doi], self.doi2zd_dict),
                         ([t.external_id], self.oa2zd_dict),
                         ([
-                            row[self.zd_fields.apc_invoice_number],
-                            row[self.zd_fields.pagecolour_invoice_number],
-                            row[self.zd_fields.membership_invoice_number]
+                            row[self.zd_fields.apc_invoice_number].lower(),
+                            row[self.zd_fields.pagecolour_invoice_number].lower(),
+                            row[self.zd_fields.membership_invoice_number].lower()
                           ], self.invoice2zd_dict)
                         ]:
                     initiate_or_append_list(v, dict, t.number)
@@ -534,6 +540,7 @@ class Parser():
         return [
                 self.apollo2zd_dict,
                 self.doi2zd_dict,
+                self.invoice2zd_dict,
                 self.oa2zd_dict,
                 self.title2zd_dict,
                 self.title2zd_dict_COAF,
@@ -608,7 +615,8 @@ class Parser():
         fileheader = extract_csv_header(paymentsfile)
 
         t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
-        t_zd = re.compile("ZD[ \-]?[0-9]{4,8}")
+        t_zd = re.compile("ZD[ \-]{0,3}[0-9]{4,8}")
+        t_invoice_number_in_description = re.compile(", inv:([a-zA-Z0-9\-]{4,})")
         payments_dict_apc = {}
         payments_dict_other = {}
 
@@ -647,6 +655,7 @@ class Parser():
 
                 m_oa = t_oa.search(row[self.cufs_map.oa_number].upper())
                 m_zd = t_zd.search(row[self.cufs_map.oa_number].upper())
+                m_invoice_number_in_description = t_invoice_number_in_description.search(row[self.cufs_map.oa_number])
                 zd_number = None
 
                 if m_zd:
@@ -687,6 +696,32 @@ class Parser():
                     logger.debug('Matched row to ZD number {} via description: {}'.format(zd_number,
                                                                                         row[self.cufs_map.oa_number]))
 
+                elif row[self.cufs_map.invoice_field].strip().lower() in self.invoice2zd_dict.keys():
+                    zd_number_list = self.invoice2zd_dict[row[self.cufs_map.invoice_field].strip().lower()]
+                    if len(zd_number_list) > 1:
+                        logger.warning('More than one ZD ticket ({}) matched invoice number {}. Arbitrarily using '
+                                       'the first match'.format(zd_number_list,
+                                                                row[self.cufs_map.invoice_field].strip()))
+                    zd_number = zd_number_list[0]
+                    logger.debug('Matched row to ZD number {} via invoice number {} '
+                                 'resolved with invoice2zd_dict'.format(zd_number, row[self.cufs_map.invoice_field]))
+
+                elif m_invoice_number_in_description:
+                    inv_n = m_invoice_number_in_description.group(1)
+                    logger.debug('Invoice number found in description field: {}'.format(inv_n))
+                    if inv_n in cufs.INVOICE2ZD_NUMBER.keys():
+                        zd_number = cufs.INVOICE2ZD_NUMBER[inv_n]
+                        logger.debug('Matched row to ZD number {} via invoice number {} '
+                                     'found in description {}'.format(zd_number, inv_n, row[self.cufs_map.oa_number]))
+                    elif inv_n.lower() in self.invoice2zd_dict.keys():
+                        zd_number_list = self.invoice2zd_dict[inv_n.lower()]
+                        if len(zd_number_list) > 1:
+                            logger.warning('More than one ZD ticket ({}) matched invoice number {}. Arbitrarily using '
+                                       'the first match'.format(zd_number_list, inv_n))
+                        zd_number = zd_number_list[0]
+                        logger.debug('Matched row to ZD number {} via invoice number {} '
+                                 'found in description {} resolved with invoice2zd_dict'.format(zd_number,
+                                                                                inv_n, row[self.cufs_map.oa_number]))
 
                 if zd_number:
                     logger.debug('--- Working on ZD ticket {}'.format(zd_number))

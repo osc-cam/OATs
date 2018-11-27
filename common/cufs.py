@@ -1851,7 +1851,8 @@ INVOICE2ZD_NUMBER = {
     '12609CV3': '12885',
     '12609CV4': '12895',
     '6106163564': '12929',
-
+    'viruses-228487/ADDITIONAL': '134327',
+    '1014293': '207012',
 }
 MANUAL_OA2ZD_DICT = {
     'OA-13907':'83033',
@@ -1872,8 +1873,8 @@ class Aggregated_breakdown():
 
 AGGREGATED_PAYMENTS = {
     'ZD 6380 & ZD 6393A' : [
-        Aggregated_breakdown(zd_number=174623, coaf_apc=2060.70),
-        Aggregated_breakdown(zd_number=229679, rcuk_apc=564.6, coaf_apc=564.6)
+        Aggregated_breakdown(zd_number='174623', coaf_apc=2060.70),
+        Aggregated_breakdown(zd_number='229679', rcuk_apc=564.6, coaf_apc=564.6)
     ],
 }
 
