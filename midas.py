@@ -333,6 +333,7 @@ def main(arguments):
     #     rep.plugin_pmc(pmc_exports)
     # rep.parse_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
     rep.parse_cufs_data(paymentfiles)
+
     rep.populate_invoiced_articles()
     rep.populate_report_fields(report_template=mc.ReportTemplate())
     rep.output_csv()

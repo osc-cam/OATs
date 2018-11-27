@@ -45,7 +45,8 @@ ch.setFormatter(formatter)
 ### SET UP WORKING FOLDER
 home = os.path.expanduser("~")
 #working_folder = os.path.join(home, 'OATs', 'ART-wd')
-working_folder = os.path.join(home, 'Dropbox', 'OSC', 'ART-wd')
+#working_folder = os.path.join(home, 'Dropbox', 'OSC', 'ART-wd')
+working_folder = os.path.join(home, 'Dropbox', 'Midas-wd')
 
 DOI_CLEANUP = ['http://dx.doi.org/', 'https://doi.org/', 'http://dev.biologists.org/lookup/doi/', 'http://www.hindawi.com/journals/jdr/aip/2848759/']
 DOI_FIX = {'0.1136/jmedgenet-2016-104295':'10.1136/jmedgenet-2016-104295'}
@@ -153,6 +154,63 @@ manual_title2zd_dict = {
     'Gender patterns in academic entrepreneurship' : '19129',
     'Application of a multi-gene next-generation sequencing panel to a non-invasive oesophageal cell-sampling device to diagnose dysplastic Barrett?s oesophagus' : '103034',
     'TIBLE: a web-based, freely accessible resource for small-molecule binding data for mycobacterial species' : '89577',
+    #INPUT FOR COAF 2018 REPORT
+    'A Critical Review on the Contributions of Chemical and Physical Factors towards the Nucleation and Growth of Large-area Graphene': '152886',
+    'Detecting vortices within unsteady flows when using single-shot PIV.': '193498',
+    'Outcomes of Cartilage Repair Techniques for Chondral Injury in the Hip - A Systematic Review': '169792',
+    'Detecting changes in sediment overburden using distributed temperature sensing - an experimental and numerical study': '219786',
+    "The Role of Gender Role Attitudes and Immigrant Generation in Ethnic Minority Women's Labor Force Participation in Britain": '182551',
+    'Developmental Aspects of Schizotypy and Suspiciousness: A Review': '157901',
+    'Effects of microclimatic and human parameters on outdoor thermal sensation in the high-density tropical context of Dhaka': '222109',
+    'Laser-induced incandescence particle image velocimetry (LII-PIV) for two phase flow velocity measurement': '228318',
+    'Ab initio approach and its impact on superconductivity': '230030',
+    'Virtual Reality Hip Arthroscopy Simulator Demonstrates Sufficient Face Validity': '209718',
+    'Diet, Sex and Social Status in the Late Avar Period: Stable Isotope Investigations at Nuštar Cemetery, Croatia': '178012',
+    'Optimal Cerebral Perfusion Pressure via Transcranial Doppler in TBI: Application of Robotic Technology': '227673',
+    'Superficial and Multiple Calcifications and Ulceration Associate with Intraplaque Hemorrhage in the Carotid Atherosclerotic Plaque': '190381',
+    "A Note on Horwich's Notion of Grounding": '180649',
+    'WHO/ISUP classification, grading and pathological staging of renal cell carcinoma: standards and controversies': '220201',
+    'The first plant bast fibre technology: identifying splicing in archaeological textiles': '209951',
+    'ENT audit and research in the era of trainee collaboratives': '199140',
+    'Maltreated children use more grammatical negations.': '125128',
+    "Against Crane's Psychologistic Account of Intentionality": '163352',
+    'The Provenance, Use, and Circulation of Metals in the European Bronze Age: The State of Debate': '203755',
+    'Notch sensitivity of orthotropic solids : interaction of tensile and shear damage zones': '225967',
+    'Midline Shift is Unrelated to Subjective Pupillary Reactivity Assessment on Admission in Moderate and Severe Traumatic Brain Injury': '171132',
+    'On the Development and Early Observations from a Towing Tank Based Transverse Wing-Gust Encounter Test Rig': '216392',
+    'Turbulent drag reduction using anisotropic permeable substrates': '183366',
+    'What experiments on pinned nanobubbles can tell about the critical nucleus for bubble nucleation': '147190',
+    'Temperature and strain rate effects on the mechanical properties of a polymer bonded explosive': '230813',
+    'cGMP at the centre of attention: Emerging strategies for activating the cardioprotective PKG pathway': '180647',
+    'Sliding to Predict: Vision-Based Beating Heart Motion Estimation by Modeling Temporal Interactions': '152890',
+    '3D imaging of cells in scaffolds: direct labelling for micro CT': '193471',
+    'Effect of screening for type 2 diabetes on healthcare costs: a register-based study among 139,075 individuals diagnosed with diabetes in Denmark between 2001 and 2009': '170726',
+    "Pressing for Sentence? An Examination of the New Zealand Crown Prosecutor's Role in Sentencing": '200128',
+    'The homeostatic ensemble for cells': '240521',
+    'The swimming of a deforming helix': '229319',
+    'Critical Thresholds for Intracranial Pressure Vary Over Time in Non-Craniectomized Traumatic Brain Injury Patients': '183590',
+    'Editorial Comment: Structured Reporting of Pelvic MRI Leads to Better Treatment Planning of Uterine Leiomyomas': '176008',
+    '''"Sovereign" Islam and Tatar "Aqīdah": Normative Religious Narratives and Grassroots Criticism amongst Tatarstan's Muslims''': '229341',
+    'Pharmacological management of post-traumatic seizures in adults: current practice patterns in the United Kingdom and the Republic of Ireland': '223365',
+    'Local alkylating chemotherapy applied immediately after 5-ALA guided resection of Glioblastoma does not provide additional benefit': '173013',
+    'Buber, educational technology and the expansion of dialogic space': '166314',
+    'Association of Subchondral Bone Texture on Magnetic Resonance Imaging with Radiographic Knee Osteoarthritis Progression: Data from the Osteoarthritis Initiative Bone Ancillary Study': '178030',
+    'From "Gut Feeling" to Objectivity: Machine Preservation of the Liver as a Tool to Assess Organ Viability': '152455',
+    'Genetics of antigen processing and presentation': '223355',
+    'Cognitive Flexibility and Religious Disbelief': '199818',
+    'Alperin-McKay natural correspondences in solvable and symmetric groups for the prime p=2': '132355',
+    'Prioritising Risk Factors for Type 2 Diabetes: Causal Inference Through Genetic Approaches': '188212',
+    'Kuhnian revolutions in neuroscience: the role of tool development': '188188',
+    'A comparison of semi-automated volumetric versus linear measurement of small vestibular schwannomas': '152037',
+    'Active quenching technique: quench acceleration and protection': '163744',
+    'Diet and food strategies in a southern al-Andalusian urban environment during Caliphal period, Écija, Sevilla.': '223614',
+    'MoS2/C/C Nanofiber with Double Layer Carbon Coating for High Cycling Stability and Rate Capability Lithium-Ion Battery': '246799',
+    'Hereditary renal cell carcinoma syndromes: diagnosis, surveillance and management': '181971',
+    'The British Neurosurgical Trainee Research Collaborative: Five Years On': '123453',
+    'Quality of life outcomes in patients with localised renal cancer: a literature review': '214502',
+    'Cortical bone mapping: measurement and statistical analysis of localised skeletal changes': '218558',
+    'A Multi-Dimensional Spatial Lag Panel Data Model with Spatial Moving Average Nested Random Effects Errors': '153065',
+    'Timelike completeness as an obstruction to C^0-extensions': '133238',
     ###WILEY
     # 'Refining Genotype-Phenotype Correlation in Alström Syndrome Through Study of Primary Human Fibroblasts' : '81394',
     # 'The canine POMC gene, obesity in Labrador retrievers and susceptibility to diabetes mellitus' : '39491',
@@ -1652,7 +1710,7 @@ lf = os.path.dirname(os.path.realpath(__file__))
 os.chdir(lf)
 
 # SETUP REPORT
-reporttype = "ALL" #Report requester. Supported values are: RCUK, COAF, ALL
+reporttype = "COAF" #Report requester. Supported values are: RCUK, COAF, ALL
 rcuk_paydate_field = 'Posted' #Name of field in rcuk_paymentsfile containing the payment date
 rcuk_payamount_field = 'Amount' #Name of field in rcuk_paymentsfile containing the payment amount
 total_rcuk_payamount_field = 'RCUK APC Amount' #Name of field we want the calculated total RCUK APC to be stored in
@@ -1695,26 +1753,26 @@ doifile = os.path.join(working_folder, "DOIs_for_cottagelabs.csv")
 # rcuk_vejj = os.path.join(working_folder, "VEJI_and_VEJJ_1_April_2017_to_31_March_2018_290518.csv")
 rcuk_vejx = os.path.join(working_folder, "RCUK_2018-08-09_all_VEJx_codes.csv")
 # rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
-rcuk_paymentsfilename = "RCUK_2018-08-09_all_VEJx_codes.csv"
+rcuk_paymentsfilename = "VEJx_2018-11-12.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 # merge_csv_files([rcuk_vejx, rcuk_veag054], rcuk_paymentsfile)
 rcuk_veag054 = os.path.join(working_folder, "RCUK_VEAG054_2018-08-09.csv") # this sheet has the same format as COAF ones
 rcuk_paymentsfile_veag = os.path.join(working_folder, rcuk_veag054)
 
-# COAF GRANT REPORTS FROM CUFS
-coaf_veag044 = os.path.join(working_folder, 'VEAG044_2018-08-09.csv')
-coaf_veag045 = os.path.join(working_folder, 'VEAG045_2018-08-09.csv')
-coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv')
-coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-08-09.csv')
-coaf_paymentsfilename = "COAF_merged_payments_file.csv"
+# # COAF GRANT REPORTS FROM CUFS
+# coaf_veag044 = os.path.join(working_folder, 'VEAG044_2018-08-09.csv')
+# coaf_veag045 = os.path.join(working_folder, 'VEAG045_2018-08-09.csv')
+# coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv')
+# coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-08-09.csv')
+coaf_paymentsfilename = "VEAG052_expenditures-detail_2018-11-26.csv"
 # coaf_paymentsfilename = "VEAG050_2018-08-09_with_resolved_journals.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
-merge_csv_files([coaf_veag044, coaf_veag045, coaf_veag050, coaf_veag052], coaf_paymentsfile)
+# merge_csv_files([coaf_veag044, coaf_veag045, coaf_veag050, coaf_veag052], coaf_paymentsfile)
 
 # METADATA SOURCES
-zenexport = os.path.join(working_folder, "export-2018-08-13-1310-234063-3600001227941889.csv")
-zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-05-25-2207.csv")
-apolloexport = os.path.join(working_folder, "Apollo_all_items-20180525.csv")
+zenexport = os.path.join(working_folder, "export-2018-11-26-1308-234063-36000022879338d5.csv")
+zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-11-27-1110.csv")
+apolloexport = os.path.join(working_folder, "Apollo_all_items_2018-11-26.csv")
 # instead of running results via Cottage Labs, let's use PMID-PMCID-DOI mappings available from
 # https://europepmc.org/downloads
 europepmc_map = os.path.join(working_folder, "PMID_PMCID_DOI.csv")
@@ -1727,20 +1785,20 @@ cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
 # PREPAYMENT ACCOUNTS REPORTS
 # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
 # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
-springercompactexport = os.path.join(working_folder, "article_approval_2016-10-01_to_2017-09-30.csv")
+springercompactexport = os.path.join(working_folder, "Springer_article_approval_2017-01-01_to_2018-11-27.csv")
 # merge_csv_files([springercompact_last_year, springercompact_this_year], springercompactexport)
 wileyrcukcoaf = os.path.join(working_folder, "Wiley_RCUK_COAF_ArticleHistoryReport.csv")
 wileycredit = os.path.join(working_folder, "Wiley_CREDIT_ArticleHistoryReport.csv")
 wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
 merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
-oupexport = os.path.join(working_folder, "OUP_OA_Charge_Data_20180810.csv")
+oupexport = os.path.join(working_folder, "OUP_OA_Charge_Data_2018-11-26.csv")
 
 # SETUP REPORT
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
-report_start_date = datetime.datetime(1900, 1, 1) #(2016, 10, 1) COAF
-report_end_date = datetime.datetime(2018, 8, 20, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
-green_start_date = datetime.datetime(1900, 1, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
-green_end_date = datetime.datetime(2017, 12, 31, hour = 23, minute = 59, second = 59)
+report_start_date = datetime.datetime(2017, 10, 1) #(2016, 10, 1) COAF
+report_end_date = datetime.datetime(2018, 9, 30, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
+green_start_date = datetime.datetime(2017, 10, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
+green_end_date = datetime.datetime(2018, 9, 30, hour = 23, minute = 59, second = 59)
 
 unmatched_payment_file_prefix = 'ART_debug_payments_not_matched_to_zd_numbers__'
 nonJUDB_payment_file_prefix = 'ART_debug_non_JUDB_payments__'
@@ -1825,8 +1883,8 @@ if __name__ == '__main__':
     logging.config.fileConfig('logging.conf', defaults={'logfilename': logfilename})
     logger = logging.getLogger('art')
 
-    parse_invoice_data = True
-    parse_springer_compact = False
+    parse_invoice_data = False
+    parse_springer_compact = True
     parse_wiley_dashboard = False
     parse_oup_prepayment = False
     estimate_green_compliance = False
