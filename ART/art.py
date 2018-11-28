@@ -1770,7 +1770,7 @@ coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 # merge_csv_files([coaf_veag044, coaf_veag045, coaf_veag050, coaf_veag052], coaf_paymentsfile)
 
 # METADATA SOURCES
-zenexport = os.path.join(working_folder, "export-2018-11-26-1308-234063-36000022879338d5.csv")
+zenexport = os.path.join(working_folder, "export-2018-11-27-1531-234063-360000239434e71a.csv")
 zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-11-27-1110.csv")
 apolloexport = os.path.join(working_folder, "Apollo_all_items_2018-11-26.csv")
 # instead of running results via Cottage Labs, let's use PMID-PMCID-DOI mappings available from
@@ -1884,12 +1884,12 @@ if __name__ == '__main__':
     logger = logging.getLogger('art')
 
     parse_invoice_data = False
-    parse_springer_compact = True
+    parse_springer_compact = False
     parse_wiley_dashboard = False
-    parse_oup_prepayment = False
+    parse_oup_prepayment = True
     estimate_green_compliance = False
     list_green_papers = False
-    resolve_pmc_id = False
+    resolve_pmc_id = True
 
     ############################ACTION STARTS HERE##################################
 

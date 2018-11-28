@@ -590,6 +590,99 @@ class Parser():
             n_amount = float(row[self.cufs_map.amount_field].replace(',', ''))
             return existing_payment, str(p_amount + n_amount)
 
+        def process_zd_number(self, zd_number):
+            logger.debug('--- Working on ZD ticket {}'.format(zd_number))
+            if zd_number in cufs.ZD_NUMBER_TYPOS.keys():
+                logger.debug('Corrected typo in ZD number; from {} to {}'.format(zd_number,
+                                                                                 cufs.ZD_NUMBER_TYPOS[zd_number]))
+                zd_number = cufs.ZD_NUMBER_TYPOS[zd_number]
+
+            t = self.zd_dict[zd_number]
+            self.zd_dict_with_payments[zd_number] = t
+
+            row_amount = float(row[self.cufs_map.amount_field].replace(',', ''))
+            if funder == 'coaf':
+                # Payments spreadsheet does not contain transaction field, so assume all payments are APCs
+                t.coaf_apc_total += row_amount
+                t.apc_grand_total += row_amount
+                logger.debug('Funder is COAF. Increased APC amount charged to COAF grant and total APC amount '
+                             'by {}; t.coaf_apc_total = {}; t.apc_grand_total = {}'.format(row_amount,
+                                                                                           t.coaf_apc_total,
+                                                                                           t.apc_grand_total))
+            elif funder == 'rcuk':
+                if cufs_export_type == 'rcuk':
+
+                    logger.debug('Funder and report format are RCUK. Checking payment codes...')
+
+                    if [row[self.cufs_map.cost_centre],
+                        row[self.cufs_map.source_of_funds]] in valid_cc_sof_combos:
+
+                        logger.debug('Checking transaction codes. Row cost centre ({}) and source of funds ({}) '
+                                     'codes in list of codes used for publication charges: {}'.format(
+                            row[self.cufs_map.cost_centre],
+                            row[self.cufs_map.source_of_funds], valid_cc_sof_combos))
+
+                        if row[self.cufs_map.transaction_code] in APC_TRANSACTION_CODES:
+                            t.rcuk_apc_total += row_amount
+                            t.apc_grand_total += row_amount
+                            logger.debug('Row contains APC payment (transaction code {}). Increased APC amount '
+                                         'charged to RCUK grant and total APC amount by {}; t.rcuk_apc_total '
+                                         '= {}; t.apc_grand_total'
+                                         ' = {}'.format(row[self.cufs_map.transaction_code], row_amount,
+                                                        t.rcuk_apc_total, t.apc_grand_total))
+
+                        elif row[self.cufs_map.transaction_code] in OTHER_PUB_CHARGES_TRANSACTION_CODES:
+                            t.rcuk_other_total += row_amount
+                            t.other_grand_total += row_amount
+                            logger.debug('Row contains publication charges unrelated to Open Access '
+                                         '(transaction code {}). Increased other amount charged to RCUK grant '
+                                         'and total other amount by {}; t.rcuk_other_total = {}; t.other_grand_total = '
+                                         '{}'.format(row[self.cufs_map.transaction_code],
+                                                     row_amount, t.rcuk_other_total, t.other_grand_total))
+                        else:
+                            # Not a supported transaction code
+                            key = 'not_supported_transaction_code_payment_' + str(row_counter)
+                            self.rejected_payments[key] = row
+                            debug_filename = os.path.join(os.getcwd(),
+                                                          nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
+                            logger.debug('Row transaction code ({}) not supported. '
+                                         'Adding row to {}'.format(row[self.cufs_map.transaction_code],
+                                                                   debug_filename))
+                            output_debug_csv(debug_filename, row, fileheader)
+
+                    else:
+                        # Not a supported cost centre/sof combo
+                        key = 'not_supported_cc_sof_payment_' + str(row_counter)
+                        self.rejected_payments[key] = row
+                        debug_filename = os.path.join(os.getcwd(),
+                                                      nonJUDB_payment_file_prefix + paymentsfile.split('/')[-1])
+                        logger.debug('Adding row to {}. Row cost centre ({}) and source of funds ({}) codes not '
+                                     'in list of codes used for publication charges: {}'.format(
+                            debug_filename, row[self.cufs_map.cost_centre],
+                            row[self.cufs_map.source_of_funds], valid_cc_sof_combos))
+                        output_debug_csv(debug_filename, row, fileheader)
+
+                elif cufs_export_type == 'coaf':
+                    t.rcuk_apc_total += row_amount
+                    t.apc_grand_total += row_amount
+                    logger.debug(
+                        'Funder is RCUK but CUFS report format is coaf. Increased APC amount charged to RCUK '
+                        'grant and total APC amount by {}; t.rcuk_apc_total = {}; t.apc_grand_total = {}'.format(
+                            row_amount, t.rcuk_apc_total, t.apc_grand_total))
+                # TODO: The elif case for rge export type below is an identical copy of the elif for coaf export type; this should be fine for reports where funder is coaf; for rcuk reports, this might need refinement
+                elif cufs_export_type == 'rge':
+                    t.rcuk_apc_total += row_amount
+                    t.apc_grand_total += row_amount
+                    logger.debug(
+                        'Funder is RCUK but CUFS report format is rge. Increased APC amount charged to RCUK '
+                        'grant and total APC amount by {}; t.rcuk_apc_total = {}; t.apc_grand_total = {}'.format(
+                            row_amount, t.rcuk_apc_total, t.apc_grand_total))
+                else:
+                    sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(
+                        cufs_export_type))
+            else:
+                sys.exit('{} is not a supported funder'.format(funder))
+
         if cufs_export_type == 'rcuk':
             self.cufs_map = cufs.RcukFieldsMapping()
         elif cufs_export_type == 'coaf':
@@ -637,16 +730,18 @@ class Parser():
                         logger.debug('Aggregated transaction detected ({}). Processing it manually'.format(
                                         row[self.cufs_map.oa_number]))
                         for breakdown in cufs.AGGREGATED_PAYMENTS[row[self.cufs_map.oa_number]]:
-                            logger.debug("self.zd_dict.keys(): {}".format(self.zd_dict.keys()))
                             t = self.zd_dict[breakdown.zd_number]
                             t.rcuk_apc_total = breakdown.rcuk_apc
                             t.coaf_apc_total = breakdown.coaf_apc
                             t.apc_grand_total = t.rcuk_apc_total + t.coaf_apc_total
                             t.rcuk_other_total = breakdown.rcuk_other
+                            process_zd_number(self, breakdown.zd_number)
                         descriptions_of_transactions_processed_manually.append(row[self.cufs_map.oa_number])
                     else:
                         logger.debug('Transaction skipped because an aggregated transaction matching this description '
                                     '({}) has already been processed.'.format(self.cufs_map.oa_number))
+                    continue    # Do not proceed with normal processing because ZD number of aggregated payment
+                                # should not be included in report
 
                 elif row[self.cufs_map.oa_number] in cufs.OA_NUMBER_TYPOS.keys():
                     logger.debug('Corrected typo in OA number; from {} to {}'.format(row[self.cufs_map.oa_number],
@@ -724,96 +819,7 @@ class Parser():
                                                                                 inv_n, row[self.cufs_map.oa_number]))
 
                 if zd_number:
-                    logger.debug('--- Working on ZD ticket {}'.format(zd_number))
-                    if zd_number in cufs.ZD_NUMBER_TYPOS.keys():
-                        logger.debug('Corrected typo in ZD number; from {} to {}'.format(zd_number,
-                                                                                cufs.ZD_NUMBER_TYPOS[zd_number]))
-                        zd_number = cufs.ZD_NUMBER_TYPOS[zd_number]
-
-                    t = self.zd_dict[zd_number]
-                    self.zd_dict_with_payments[zd_number] = t
-
-                    row_amount = float(row[self.cufs_map.amount_field].replace(',', ''))
-                    if funder == 'coaf':
-                        # Payments spreadsheet does not contain transaction field, so assume all payments are APCs
-                        t.coaf_apc_total += row_amount
-                        t.apc_grand_total += row_amount
-                        logger.debug('Funder is COAF. Increased APC amount charged to COAF grant and total APC amount '
-                                     'by {}; t.coaf_apc_total = {}; t.apc_grand_total = {}'.format(row_amount,
-                                                                            t.coaf_apc_total, t.apc_grand_total))
-                    elif funder == 'rcuk':
-                        if cufs_export_type == 'rcuk':
-
-                            logger.debug('Funder and report format are RCUK. Checking payment codes...')
-
-                            if [row[self.cufs_map.cost_centre],
-                                row[self.cufs_map.source_of_funds]] in valid_cc_sof_combos:
-
-                                logger.debug('Checking transaction codes. Row cost centre ({}) and source of funds ({}) '
-                                             'codes in list of codes used for publication charges: {}'.format(
-                                                        row[self.cufs_map.cost_centre],
-                                                        row[self.cufs_map.source_of_funds], valid_cc_sof_combos))
-
-                                if row[self.cufs_map.transaction_code] in APC_TRANSACTION_CODES:
-                                    t.rcuk_apc_total += row_amount
-                                    t.apc_grand_total += row_amount
-                                    logger.debug('Row contains APC payment (transaction code {}). Increased APC amount '
-                                                 'charged to RCUK grant and total APC amount by {}; t.rcuk_apc_total '
-                                                 '= {}; t.apc_grand_total'
-                                                 ' = {}'.format(row[self.cufs_map.transaction_code], row_amount,
-                                                                t.rcuk_apc_total, t.apc_grand_total))
-
-                                elif row[self.cufs_map.transaction_code] in OTHER_PUB_CHARGES_TRANSACTION_CODES:
-                                    t.rcuk_other_total += row_amount
-                                    t.other_grand_total += row_amount
-                                    logger.debug('Row contains publication charges unrelated to Open Access '
-                                                 '(transaction code {}). Increased other amount charged to RCUK grant '
-                                                 'and total other amount by {}; t.rcuk_other_total = {}; t.other_grand_total = '
-                                                 '{}'.format(row[self.cufs_map.transaction_code],
-                                                             row_amount, t.rcuk_other_total, t.other_grand_total))
-                                else:
-                                    # Not a supported transaction code
-                                    key = 'not_supported_transaction_code_payment_' + str(row_counter)
-                                    self.rejected_payments[key] = row
-                                    debug_filename = os.path.join(os.getcwd(),
-                                                                  nonEBDU_payment_file_prefix + paymentsfile.split('/')[-1])
-                                    logger.debug('Row transaction code ({}) not supported. '
-                                                 'Adding row to {}'.format(row[self.cufs_map.transaction_code],
-                                                                           debug_filename))
-                                    output_debug_csv(debug_filename, row, fileheader)
-
-                            else:
-                                # Not a supported cost centre/sof combo
-                                key = 'not_supported_cc_sof_payment_' + str(row_counter)
-                                self.rejected_payments[key] = row
-                                debug_filename = os.path.join(os.getcwd(),
-                                                              nonJUDB_payment_file_prefix + paymentsfile.split('/')[-1])
-                                logger.debug('Adding row to {}. Row cost centre ({}) and source of funds ({}) codes not '
-                                             'in list of codes used for publication charges: {}'.format(
-                                                        debug_filename, row[self.cufs_map.cost_centre],
-                                                        row[self.cufs_map.source_of_funds], valid_cc_sof_combos))
-                                output_debug_csv(debug_filename, row, fileheader)
-
-                        elif cufs_export_type == 'coaf':
-                            t.rcuk_apc_total += row_amount
-                            t.apc_grand_total += row_amount
-                            logger.debug(
-                                'Funder is RCUK but CUFS report format is coaf. Increased APC amount charged to RCUK '
-                                'grant and total APC amount by {}; t.rcuk_apc_total = {}; t.apc_grand_total = {}'.format(
-                                    row_amount, t.rcuk_apc_total, t.apc_grand_total))
-                        #TODO: The elif case for rge export type below is an identical copy of the elif for coaf export type; this should be fine for reports where funder is coaf; for rcuk reports, this might need refinement
-                        elif cufs_export_type == 'rge':
-                            t.rcuk_apc_total += row_amount
-                            t.apc_grand_total += row_amount
-                            logger.debug(
-                                'Funder is RCUK but CUFS report format is rge. Increased APC amount charged to RCUK '
-                                'grant and total APC amount by {}; t.rcuk_apc_total = {}; t.apc_grand_total = {}'.format(
-                                    row_amount, t.rcuk_apc_total, t.apc_grand_total))
-                        else:
-                            sys.exit('{} is not a supported type of financial report (cufs_export_type)'.format(
-                                cufs_export_type))
-                    else:
-                        sys.exit('{} is not a supported funder'.format(funder))
+                    process_zd_number(self, zd_number)
                 else:
                     # Payment could not be linked to a zendesk number
                     key = 'no_zd_match_' + str(row_counter)

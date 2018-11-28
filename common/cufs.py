@@ -18,7 +18,11 @@ ch.setFormatter(formatter)
 # logger.addHandler(ch)
 
 ###MANUAL FIXES FOR PAYMENT FILES
-ZD_NUMBER_TYPOS = {'30878':'50878'}
+ZD_NUMBER_TYPOS = {'30878':'50878',
+                   '106512': '109512',
+                   '116243': '119243',
+                   '164388': '164338',
+                   }
 OA_NUMBER_TYPOS = {'OA 10768':'OA 10468'}
 DESCRIPTION2ZD_NUMBER = {
     "OPEN ACCESS FOR R DERVAN'S ARTICLE 'ON K-STABILITY OF FINITE COVERS' IN THE LMS BULLETIN" : '16490',
@@ -1872,9 +1876,22 @@ class Aggregated_breakdown():
         self.coaf_other = coaf_other
 
 AGGREGATED_PAYMENTS = {
-    'ZD 6380 & ZD 6393A' : [
-        Aggregated_breakdown(zd_number='174623', coaf_apc=2060.70),
-        Aggregated_breakdown(zd_number='229679', rcuk_apc=564.6, coaf_apc=564.6)
+    #TODO: It appears that at present, items listed here make their way into the final report if they match any of the input cufs files. They should only be included if they appear in the main funder file. Fix this
+    # 'ZD 6380 & ZD 6393A' : [
+    #     Aggregated_breakdown(zd_number='174623', coaf_apc=2060.70),
+    #     Aggregated_breakdown(zd_number='229679', rcuk_apc=564.6, coaf_apc=564.6)
+    # ],
+    "Bank chg USD IPO:VE 18151, inv:2018-0128399-0_FRONTIERS MEDIA SA_ZD 189498": [
+        Aggregated_breakdown(zd_number='183374', coaf_apc=0), # charges already included in breakdown below
+    ],
+    'ZD 189498': [
+        Aggregated_breakdown(zd_number='183374', coaf_apc=2342.962),
+        Aggregated_breakdown(zd_number='189686', rcuk_apc=932.2426, coaf_apc=933.8756),
+        Aggregated_breakdown(zd_number='189680', rcuk_apc=1081.727, coaf_apc=1083.622),
+    ],
+    'ZD 223311': [
+        Aggregated_breakdown(zd_number='225975', rcuk_apc=810.7812, coaf_apc=810.7796),
+        Aggregated_breakdown(zd_number='225977', coaf_apc=2265.92),
     ],
 }
 

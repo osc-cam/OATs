@@ -16,7 +16,7 @@ import collections
 import logging
 import logging.config
 import sys
-import xlsxwriter
+# import xlsxwriter
 from pprint import pprint
 from difflib import SequenceMatcher
 
@@ -287,7 +287,7 @@ def main(arguments):
     #     zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
     # else:
     #     zenexport = arguments.zenexport
-    zenexport = os.path.join(working_folder, 'export-2018-11-26-1308-234063-36000022879338d5.csv')
+    zenexport = os.path.join(working_folder, 'export-2018-11-27-1531-234063-360000239434e71a.csv')
     zen_path, zen_ext = os.path.splitext(zenexport)
     # filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
     # if not arguments.all_groups:
@@ -303,7 +303,8 @@ def main(arguments):
         # [os.path.join(working_folder, 'VEAG044_2018-08-09.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG045_2018-08-09.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv'), 'coaf', 'coaf'],
-        [os.path.join(working_folder, 'VEAG052_expenditures-detail_2018-11-26.csv'), 'rge', 'coaf'],
+        # [os.path.join(working_folder, 'VEAG052_expenditures-detail_2018-11-26.csv'), 'rge', 'coaf'],
+        [os.path.join(working_folder, 'VEJJ.GAAB_wellcome_supplement_report_separately.csv'), 'rcuk', 'coaf'],
         [os.path.join(working_folder, 'VEAG054_expenditures-detail_2018-11-26.csv'), 'rge', 'rcuk'],
         [os.path.join(working_folder, 'VEJx_2018-11-12.csv'), 'rcuk', 'rcuk'],
     ]
@@ -327,10 +328,10 @@ def main(arguments):
     # get the report object
     rep = Report(zenexport, report_type='coaf')
     rep.zd_parser.index_zd_data()
-    # if not arguments.ignore_apollo:
-    #     rep.plugin_apollo(apollo_exports)
-    # if not arguments.ignore_pmc:
-    #     rep.plugin_pmc(pmc_exports)
+    if not arguments.ignore_apollo:
+        rep.plugin_apollo(apollo_exports)
+    if not arguments.ignore_pmc:
+        rep.plugin_pmc(pmc_exports)
     # rep.parse_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
     rep.parse_cufs_data(paymentfiles)
 
