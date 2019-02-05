@@ -283,17 +283,17 @@ def main(arguments):
 
     clear_debug_files(working_folder)
     # zenexport
-    # if os.path.isdir(arguments.zenexport):
-    #     zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
-    # else:
-    #     zenexport = arguments.zenexport
-    zenexport = os.path.join(working_folder, 'export-2018-11-27-1531-234063-360000239434e71a.csv')
+    if os.path.isdir(arguments.zenexport):
+        zenexport = os.path.join(arguments.zenexport, get_latest_csv(arguments.zenexport))
+    else:
+        zenexport = arguments.zenexport
+    #zenexport = os.path.join(working_folder, 'export-2018-11-27-1531-234063-360000239434e71a.csv')
     zen_path, zen_ext = os.path.splitext(zenexport)
-    # filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
-    # if not arguments.all_groups:
-    #     if not os.path.exists(filtered_zenexport):
-    #         zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group': mc.ZENDESK_EXCLUDED_GROUPS})
-    #     zenexport = filtered_zenexport
+    filtered_zenexport = zen_path + '_filtered_groups' + zen_ext
+    if not arguments.all_groups:
+        if not os.path.exists(filtered_zenexport):
+            zendesk.output_pruned_zendesk_export(zenexport, filtered_zenexport, **{'Group': mc.ZENDESK_EXCLUDED_GROUPS})
+        zenexport = filtered_zenexport
 
     # input cufs reports [filename, format, funder]
     paymentfiles = [
@@ -363,14 +363,14 @@ http://www.gnu.org/copyleft/gpl.html
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-a', '--ignore-apollo', dest='ignore_apollo', action='store_true',
                         help='Do not include metadata exported from Apollo (default: %(default)s)')
-    parser.add_argument('-b', '--report-beginning', dest='report_start', type=valid_date,
+    parser.add_argument('--report-beginning', dest='report_start', type=valid_date,
                         default='2000-01-01', metavar='YYYY-MM-DD',
                         help='The report start date in the format YYYY-MM-DD (default: %(default)s)')
     parser.add_argument('-c', '--coaf', dest='coaf', default=True, type=bool, metavar='True or False',
                         help='Report on all APCs paid using COAF funds during the reporting period (default: %(default)s)')
     parser.add_argument('-d', '--dois', dest='dois', default=False, type=bool, metavar='True or False',
                         help='Output list of DOIs for Cottage Labs compliance check (default: %(default)s)')
-    parser.add_argument('-e', '--report-end', dest='report_end', type=valid_date,
+    parser.add_argument('--report-end', dest='report_end', type=valid_date,
                         default='2100-01-01', metavar='YYYY-MM-DD',
                         help='The report end date in the format YYYY-MM-DD (default: %(default)s)')
     parser.add_argument('-f', '--frontiers', dest='frontiers', default=True, type=bool, metavar='True or False',
@@ -379,13 +379,17 @@ http://www.gnu.org/copyleft/gpl.html
                         help='Include Zendesk tickets in all groups (default: %(default)s). If this option is not'
                              'specified, Zendesk tickets in the following groups will be ignored after the first'
                              ' run: {}'.format(mc.ZENDESK_EXCLUDED_GROUPS))
+    parser.add_argument('--input-folder', dest='input_folder', type=str, metavar='<path>',
+                        help='Path to folder where {} can find input files (default: %(default)s)'.format(
+                            '%(prog)s'),
+                        default=datasources)
     parser.add_argument('-l', '--cottage-labs', dest='cottage-labs', default=False, type=bool, metavar='True or False',
                         help='Include results of Cottage Labs search in output report (default: %(default)s)')
     parser.add_argument('-r', '--rcuk', dest='rcuk', default=True, type=bool, metavar='True or False',
                         help='Report on all APCs paid using RCUK funds during the reporting period (default: %(default)s)')
     parser.add_argument('-s', '--springer', dest='springer', default=True, type=bool, metavar='True or False',
                         help='Include articles approved via Springer Compact (default: %(default)s)')
-    parser.add_argument('-o', '--output-folder', dest='working_folder', type=str, metavar='<path>',
+    parser.add_argument('--output-folder', dest='working_folder', type=str, metavar='<path>',
                         help='Path to folder where {} should save output files (default: %(default)s)'.format(
                             '%(prog)s'),
                         default=os.path.join(home, 'OATs', 'Midas-wd'))
@@ -396,7 +400,7 @@ http://www.gnu.org/copyleft/gpl.html
                         help='Include articles approved via Wiley institutional account (default: %(default)s)')
     parser.add_argument('-x', '--oxford', dest='oxford', default=True, type=bool, metavar='True or False',
                         help='Include articles approved via OUP institutional account (default: %(default)s)')
-    parser.add_argument('-z', '--zendesk-export', dest='zenexport', type=str, metavar='<path>',
+    parser.add_argument('--zendesk-export', dest='zenexport', type=str, metavar='<path>',
                         default=os.path.join(datasources, 'ZendeskExports'),
                         help='Path to csv file containing ticket data exported from zendesk. If <path> is a folder, '
                              'the most recently modified file in that folder will be used (default: %(default)s)')
@@ -405,7 +409,7 @@ http://www.gnu.org/copyleft/gpl.html
 
     # working folder
     working_folder = arguments.working_folder
-    working_folder = os.path.join(home, 'Dropbox', 'Midas-wd')
+#    working_folder = os.path.join(home, 'Dropbox', 'Midas-wd')
     if not os.path.exists(working_folder):
         os.makedirs(working_folder)
 
