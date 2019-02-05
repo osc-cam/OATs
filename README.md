@@ -10,6 +10,10 @@ Scripts in the OATs package rely on external tools for most of their functionali
 * [TeX Live](https://www.tug.org/texlive) or another LaTeX installation containing the TikZ package
 * [PDFtk](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit) (a portable version of PDFtk for Windows is included in OATs, so Windows users can ignore this dependency)
 
+#### PDFtk on Ubuntu 18.04
+
+PDFtk is not available from the official Ubuntu 18.04 repositories. See https://askubuntu.com/a/1028983 for installation instructions.
+
 ## Installation
 
 Simply clone or download this Github repository (C:\Users\<<your CRSid>>\OATs is the recommended installation path).
