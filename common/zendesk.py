@@ -73,6 +73,40 @@ def output_pruned_zendesk_export(zenexport, output_filename, **kwargs):
             if output_ticket:
                 writer.writerow(ticket.metadata)
 
+def filter_zendesk_export(zenexport, output_filename, match_type='or', **kwargs):
+    '''
+    This function filters a CSV export from Zendesk, outputing only tickets that match kwargs
+    :param zenexport: the CSV file exported from Zendesk
+    :param output_filename: the name of the file we will save pruned data to
+    :param match_type: if 'or' tickets matching any kwarg will be included in output;
+            if 'and' tickets matching all kwargs will be included in output
+    :param kwargs: a dictionary where k are Zendesk field names and v are lists of values to exclude
+    '''
+    p = Parser(zenexport)
+    p.index_zd_data()
+    fieldnames = p.zenexport_fieldnames
+    with open(output_filename, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames)
+        writer.writeheader()
+        ticket_counter = 0
+        for _, ticket in p.zd_dict.items():
+            ticket_counter += 1
+            logger.debug('Working on ticket {} of {}'.format(ticket_counter, zenexport))
+            if match_type == 'or':
+                output_ticket = False
+                for field, values in kwargs.items():
+                    for value in values:
+                        if ticket.metadata[field] == value:
+                            output_ticket = True
+            elif match_type == 'or':
+                output_ticket = True
+                for field, values in kwargs.items():
+                    for value in values:
+                        if ticket.metadata[field] != value:
+                            output_ticket = False
+            if output_ticket:
+                writer.writerow(ticket.metadata)
+
 class ZdFieldsMapping():
     '''
     A mapping of current Zendesk field names.
