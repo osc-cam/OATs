@@ -80,7 +80,7 @@ def filter_zendesk_export(zenexport, output_filename, match_type='or', **kwargs)
     :param output_filename: the name of the file we will save pruned data to
     :param match_type: if 'or' tickets matching any kwarg will be included in output;
             if 'and' tickets matching all kwargs will be included in output
-    :param kwargs: a dictionary where k are Zendesk field names and v are lists of values to exclude
+    :param kwargs: a dictionary where k are Zendesk field names and v are values to include
     '''
     p = Parser(zenexport)
     p.index_zd_data()
@@ -95,12 +95,23 @@ def filter_zendesk_export(zenexport, output_filename, match_type='or', **kwargs)
             if match_type == 'or':
                 output_ticket = False
                 for field, values in kwargs.items():
+                    logger.debug('kwargs fields and values: {}: {};'.format(field, values))
+                    logger.debug('ticket.metadata[{}]: {}'.format(field, ticket.metadata[field]))
+                    if type(values) not in [type([1,2,3]), type((1,2,3))]:
+                        values = [values]
                     for value in values:
-                        if ticket.metadata[field] == value:
+                        if ticket.metadata[field].lower().strip() == str(value).lower().strip():
                             output_ticket = True
-            elif match_type == 'or':
+                            logger.debug("Value of ticket metadata ({}) "
+                                         "matches query ({})".format(ticket.metadata[field], value))
+                        else:
+                            logger.debug("Value of ticket metadata ({}) does not "
+                                         "match query ({})".format(ticket.metadata[field], value))
+            elif match_type == 'and':
                 output_ticket = True
                 for field, values in kwargs.items():
+                    if type(values) not in [type([1,2,3]), type((1,2,3))]:
+                        values = [values]
                     for value in values:
                         if ticket.metadata[field] != value:
                             output_ticket = False

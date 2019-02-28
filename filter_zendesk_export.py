@@ -22,7 +22,7 @@ from common.zendesk import ZdFieldsMapping as FieldMap
 
 FM = FieldMap()
 
-USER_QUERY = {FM.wellcome_payment: 'yes', FM.wellcome_trust: 'yes'}
+USER_QUERY = {FM.wellcome_trust: 'yes'}
 
 # create logger
 logger = logging.getLogger(__name__)
