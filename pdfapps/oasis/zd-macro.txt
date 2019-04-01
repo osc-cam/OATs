@@ -16,6 +16,9 @@
 {% elsif ticket.ticket_field_24069543 == "Cold Spring Harbor Laboratory Press" or ticket.ticket_field_24069543 == "CSHLP" %}
 \newcommand{\xshift}{-4}
 \newcommand{\yshift}{-1.5}
+{% elsif ticket.ticket_field_24069543 == "eLIFE" or ticket.ticket_field_24069543 == "eLife Sciences Publications Ltd" or ticket.ticket_field_24069543 == "eLife" %}
+\newcommand{\xshift}{-4.5}
+\newcommand{\yshift}{10}
 {% elsif ticket.ticket_field_24069543 == "Elsevier BV" or ticket.ticket_field_24069543 == "Elsevier" or ticket.ticket_field_24069543 == "elsevier" %}
 \newcommand{\xshift}{-4.5}
 \newcommand{\yshift}{8.5}
@@ -30,7 +33,7 @@
 {% elsif ticket.ticket_field_24069543 == "JMIR Publications" or ticket.ticket_field_24069543 == "JMIR" %}
 \newcommand{\xshift}{-4.5}
 \newcommand{\yshift}{4}
-{% elsif ticket.ticket_field_24069543 == "MDPI" or ticket.ticket_field_24069543 == "mdpi" %}
+{% elsif ticket.ticket_field_24069543 == "MDPI" or ticket.ticket_field_24069543 == "mdpi" or ticket.ticket_field_24069543 == "MDPI AG" %}
 \newcommand{\xshift}{-7.5}
 \newcommand{\yshift}{9}
 {% elsif ticket.ticket_field_24069543 == "Oxford University Press" or ticket.ticket_field_24069543 == "OUP" or ticket.ticket_field_24069543 == "Oxford" %}
@@ -97,6 +100,7 @@
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejj_judb' %}{\mbox{\begin{tabular}{ll}\VEJJJUDB\transactionTWO \\ \VEJJJUDB\transaction\end{tabular}}}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejk_judb' %}{\mbox{\begin{tabular}{ll}\VEJKJUDB\transactionTWO \\ \VEJKJUDB\transaction\end{tabular}}}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_054_rg96299' %}{\mbox{\begin{tabular}{ll}\RCUKeighteen\transactionTWO \\ \RCUKeighteen\transaction\end{tabular}}}
+        {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_060_g100709' %}{\mbox{\begin{tabular}{ll}\RCUKnineteen\transactionTWO \\ \RCUKnineteen\transaction\end{tabular}}}
         {% else%}{\ERROR{RCUK cost centre not recognized}}{% endif %}
     {% else %}
         {% if ticket.ticket_field_46241307 == 'rcuk_cost_centre_veje_judb' %}{\VEJEJUDB\transaction}
@@ -105,6 +109,7 @@
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejj_judb' %}{\VEJJJUDB\transaction}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejk_judb' %}{\VEJKJUDB\transaction}
         {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_054_rg96299' %}{\RCUKeighteen\transaction}
+        {% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_060_g100709' %}{\RCUKnineteen\transaction}
         {% else%}{\ERROR{RCUK cost centre not recognized}}{% endif %}
     {% endif %}
 }{% else %}{}
