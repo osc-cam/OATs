@@ -5,6 +5,7 @@ import logging
 import logging.config
 import os
 import re
+import shelve
 import sys
 
 import common.cufs as cufs
@@ -68,8 +69,14 @@ def output_pruned_zendesk_export(zenexport, output_filename, **kwargs):
             output_ticket = False
             for field, values in kwargs.items():
                 for value in values:
-                    if ticket.metadata[field] != value:
-                        output_ticket = True
+                    try:
+                        if ticket.metadata[field] != value:
+                            output_ticket = True
+                    except KeyError:
+                        logger.debug('KeyError: "Group"; ticket.metadata.keys: {}'.format(ticket.metadata.keys()))
+                        logger.debug('ticket.metadata: {}'.format(ticket.metadata))
+                        logger.debug('ticket.number: {}'.format(ticket.number))
+                        sys.exit('KeyError')
             if output_ticket:
                 writer.writerow(ticket.metadata)
 
@@ -458,30 +465,64 @@ class Parser():
     dictionaries.
     '''
     def __init__(self, zenexport):
-        self.apollo2zd_dict = {}
         self.cufs_map = None
-        self.doi2zd_dict = {}
-        self.oa2zd_dict = {}
-        self.parsed_payments = {}
-        self.grant_report = {}
         self.grant_report_requester = None
         self.grant_report_start_date = None
         self.grant_report_end_date = None
-        self.invoice2zd_dict = {}
         self.output_map = None
-        self.rejected_payments = {}
-        self.title2zd_dict = {}
-        self.title2zd_dict_COAF = {}
-        self.title2zd_dict_RCUK = {}
-        self.zd2oa_dups_dict = {}
-        self.zd2zd_dict = {}
-        self.zd_dict = {}
-        self.zd_dict_COAF = {}
-        self.zd_dict_RCUK = {}
-        self.zd_dict_with_payments = {}
         self.zd_fields = ZdFieldsMapping()
         self.zenexport = zenexport
         self.zenexport_fieldnames = None
+
+        # self.apollo2zd_dict = {}
+        # self.doi2zd_dict = {}
+        # self.oa2zd_dict = {}
+        # self.parsed_payments = {}
+        # self.grant_report = {}
+        # self.invoice2zd_dict = {}
+        # self.rejected_payments = {}
+        # self.title2zd_dict = {}
+        # self.title2zd_dict_COAF = {}
+        # self.title2zd_dict_RCUK = {}
+        # self.zd2oa_dups_dict = {}
+        # self.zd2zd_dict = {}
+        # self.zd_dict = {}
+        # self.zd_dict_COAF = {}
+        # self.zd_dict_RCUK = {}
+        # self.zd_dict_with_payments = {}
+
+        apollo2zd_dict_db = 'shelve_apollo2zd_dict.db'
+        self.apollo2zd_dict = shelve.open(apollo2zd_dict_db)
+        doi2zd_dict_db = 'shelve_doi2zd_dict.db'
+        self.doi2zd_dict = shelve.open(doi2zd_dict_db)
+        oa2zd_dict_db = 'shelve_oa2zd_dict.db'
+        self.oa2zd_dict = shelve.open(oa2zd_dict_db)
+        parsed_payments_db = 'shelve_parsed_payments.db'
+        self.parsed_payments = shelve.open(parsed_payments_db)
+        grant_report_db = 'shelve_grant_report.db'
+        self.grant_report = shelve.open(grant_report_db)
+        invoice2zd_dict_db = 'shelve_invoice2zd_dict.db'
+        self.invoice2zd_dict = shelve.open(invoice2zd_dict_db)
+        rejected_payments_db = 'shelve_rejected_payments.db'
+        self.rejected_payments = shelve.open(rejected_payments_db)
+        title2zd_dict_db = 'shelve_title2zd_dict.db'
+        self.title2zd_dict = shelve.open(title2zd_dict_db)
+        title2zd_dict_COAF_db = 'shelve_title2zd_dict_COAF.db'
+        self.title2zd_dict_COAF = shelve.open(title2zd_dict_COAF_db)
+        title2zd_dict_RCUK_db = 'shelve_title2zd_dict_RCUK.db'
+        self.title2zd_dict_RCUK = shelve.open(title2zd_dict_RCUK_db)
+        zd2oa_dups_dict_db = 'shelve_zd2oa_dups_dict.db'
+        self.zd2oa_dups_dict = shelve.open(zd2oa_dups_dict_db)
+        zd2zd_dict_db = 'shelve_zd2zd_dict.db'
+        self.zd2zd_dict = shelve.open(zd2zd_dict_db)
+        zd_dict_db = 'shelve_zd_dict.db'
+        self.zd_dict = shelve.open(zd_dict_db)
+        zd_dict_COAF_db = 'shelve_zd_dict_COAF.db'
+        self.zd_dict_COAF = shelve.open(zd_dict_COAF_db)
+        zd_dict_RCUK_db = 'shelve_zd_dict_RCUK.db'
+        self.zd_dict_RCUK = shelve.open(zd_dict_RCUK_db)
+        zd_dict_with_payments_db = 'shelve_zd_dict_with_payments.db'
+        self.zd_dict_with_payments = shelve.open(zd_dict_with_payments_db)
 
     def index_zd_data(self):
         """ This function parses a csv file exported from the UoC OSC zendesk account
@@ -519,68 +560,83 @@ class Parser():
             for value in v_list:
                 if value not in ['', '-']:
                     if value in dict.keys():
-                        dict[value].append(zd_number)
+                        temp = dict[value] # Need this because of shelve. See: https://docs.python.org/3/library/shelve.html
+                        temp.append(zd_number)
+                        dict[value] = temp
                     else:
                         dict[value] = [zd_number]
 
-        logger.info('Indexing Zendesk data')
-        t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
-        with open(self.zenexport, encoding = "utf-8") as csvfile:
-            # header_reader = csv.reader(csvfile)
-            # self.zenexport_fieldnames = next(header_reader)
-            reader = csv.DictReader(csvfile)
-            self.zenexport_fieldnames = next(reader).keys()
-            for row in reader:
-                t = Ticket()  # create a new Ticket object
-                t.number = row[self.zd_fields.id]
-                t.dup_of = row[self.zd_fields.duplicate_of]
-                t.external_id = row[self.zd_fields.external_id]
-                t.article_title = row[self.zd_fields.manuscript_title].upper()
-                t.rcuk_payment = row[self.zd_fields.rcuk_payment]
-                t.rcuk_policy = row[self.zd_fields.rcuk_policy]
-                t.coaf_payment = row[self.zd_fields.coaf_payment]
-                t.coaf_policy = row[self.zd_fields.coaf_policy]
-                t.invoice_apc = row[self.zd_fields.apc_invoice_number]
-                t.invoice_page = row[self.zd_fields.pagecolour_invoice_number]
-                t.invoice_membership = row[self.zd_fields.membership_invoice_number]
-                t.apollo_handle = row[self.zd_fields.repository_link].replace('https://www.repository.cam.ac.uk/handle/' , '')
-                t.doi = prune_and_cleanup_string(row[self.zd_fields.doi], DOI_CLEANUP, DOI_FIX)
-                row[self.zd_fields.doi] = t.doi
-                dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
-                t.publication_date = convert_date_str_to_yyyy_mm_dd(row[self.zd_fields.publication_date], dateutil_options)
-                row[self.zd_fields.publication_date] = t.publication_date
+        already_indexed = True
+        for shelf in [self.apollo2zd_dict, self.doi2zd_dict, self.oa2zd_dict, self.parsed_payments, self.grant_report,
+                   self.invoice2zd_dict, self.rejected_payments, self.title2zd_dict, self.title2zd_dict_COAF,
+                      self.title2zd_dict_RCUK, self.zd2oa_dups_dict, self.zd2zd_dict, self.zd_dict, self.zd_dict_COAF,
+                      self.zd_dict_RCUK, self.zd_dict_with_payments]:
+            if len(shelf) == 0:
+                already_indexed = False
 
-                # Old OA- tickets (created before October 2014) do not have field external_id populated, so check if
-                # subject line contains OA- reference number
-                if (t.external_id in ['', '-']) and (row[self.zd_fields.subject][:23] == 'Open Access enquiry OA-'):
-                    t.external_id = row[self.zd_fields.subject][20:]
+        if already_indexed:
+            logger.info('Importing Zendesk data already indexed in previous run')
+        else:
+            logger.info('Indexing Zendesk data')
+            t_oa = re.compile("OA[ \-]?[0-9]{4,8}")
+            with open(self.zenexport, encoding = "utf-8") as csvfile:
+                # header_reader = csv.reader(csvfile)
+                # self.zenexport_fieldnames = next(header_reader)
+                reader = csv.DictReader(csvfile)
+                self.zenexport_fieldnames = next(reader).keys()
+                row_counter = 0
+                for row in reader:
+                    row_counter += 1
+                    logger.debug("Working on row {}".format(row_counter))
+                    t = Ticket()  # create a new Ticket object
+                    t.metadata = row
+                    t.number = row[self.zd_fields.id]
+                    t.dup_of = row[self.zd_fields.duplicate_of]
+                    t.external_id = row[self.zd_fields.external_id]
+                    t.article_title = row[self.zd_fields.manuscript_title].upper()
+                    t.rcuk_payment = row[self.zd_fields.rcuk_payment]
+                    t.rcuk_policy = row[self.zd_fields.rcuk_policy]
+                    t.coaf_payment = row[self.zd_fields.coaf_payment]
+                    t.coaf_policy = row[self.zd_fields.coaf_policy]
+                    t.invoice_apc = row[self.zd_fields.apc_invoice_number]
+                    t.invoice_page = row[self.zd_fields.pagecolour_invoice_number]
+                    t.invoice_membership = row[self.zd_fields.membership_invoice_number]
+                    t.apollo_handle = row[self.zd_fields.repository_link].replace('https://www.repository.cam.ac.uk/handle/' , '')
+                    t.doi = prune_and_cleanup_string(row[self.zd_fields.doi], DOI_CLEANUP, DOI_FIX)
+                    row[self.zd_fields.doi] = t.doi
+                    dateutil_options = dateutil.parser.parserinfo(dayfirst=True)
+                    t.publication_date = convert_date_str_to_yyyy_mm_dd(row[self.zd_fields.publication_date], dateutil_options)
+                    row[self.zd_fields.publication_date] = t.publication_date
 
-                for v, dict in [
-                        ([t.apollo_handle], self.apollo2zd_dict),
-                        ([t.article_title], self.title2zd_dict),
-                        ([t.doi], self.doi2zd_dict),
-                        ([t.external_id], self.oa2zd_dict),
-                        ([
-                            row[self.zd_fields.apc_invoice_number].lower(),
-                            row[self.zd_fields.pagecolour_invoice_number].lower(),
-                            row[self.zd_fields.membership_invoice_number].lower()
-                          ], self.invoice2zd_dict)
-                        ]:
-                    initiate_or_append_list(v, dict, t.number)
+                    # Old OA- tickets (created before October 2014) do not have field external_id populated, so check if
+                    # subject line contains OA- reference number
+                    if (t.external_id in ['', '-']) and (row[self.zd_fields.subject][:23] == 'Open Access enquiry OA-'):
+                        t.external_id = row[self.zd_fields.subject][20:]
 
-                self.zd2zd_dict[t.number] = [t]
-                self.zd_dict[t.number] = t
+                    for v, dict in [
+                            ([t.apollo_handle], self.apollo2zd_dict),
+                            ([t.article_title], self.title2zd_dict),
+                            ([t.doi], self.doi2zd_dict),
+                            ([t.external_id], self.oa2zd_dict),
+                            ([
+                                row[self.zd_fields.apc_invoice_number].lower(),
+                                row[self.zd_fields.pagecolour_invoice_number].lower(),
+                                row[self.zd_fields.membership_invoice_number].lower()
+                              ], self.invoice2zd_dict)
+                            ]:
+                        initiate_or_append_list(v, dict, t.number)
 
-                if (t.rcuk_payment == 'yes') or (t.rcuk_policy == 'yes'):
-                    self.zd_dict_RCUK[t.number] = t
-                    initiate_or_append_list([t.article_title.upper()], self.title2zd_dict_RCUK, t.number)
-                if (t.coaf_payment == 'yes') or (t.coaf_policy == 'yes'):
-                    self.zd_dict_COAF[t.number] = t
-                    initiate_or_append_list([t.article_title.upper()], self.title2zd_dict_COAF, t.number)
-                if t.dup_of not in ['', '-']:
-                    self.zd2oa_dups_dict[t.number] = [t.dup_of]
+                    self.zd2zd_dict[t.number] = [t]
+                    self.zd_dict[t.number] = t
 
-                t.metadata = row
+                    if (t.rcuk_payment == 'yes') or (t.rcuk_policy == 'yes'):
+                        self.zd_dict_RCUK[t.number] = t
+                        initiate_or_append_list([t.article_title.upper()], self.title2zd_dict_RCUK, t.number)
+                    if (t.coaf_payment == 'yes') or (t.coaf_policy == 'yes'):
+                        self.zd_dict_COAF[t.number] = t
+                        initiate_or_append_list([t.article_title.upper()], self.title2zd_dict_COAF, t.number)
+                    if t.dup_of not in ['', '-']:
+                        self.zd2oa_dups_dict[t.number] = [t.dup_of]
 
         return [
                 self.apollo2zd_dict,

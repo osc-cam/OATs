@@ -10,6 +10,8 @@
 \usepackage{pdfpages}
 \usepackage{fancyhdr}
 \usepackage{lastpage}
+\usepackage{setspace}
+
 
 \pagestyle{fancy}
 \fancyhead[C]{normal pages}
@@ -34,41 +36,87 @@
   \gdef\pdfpagesheaderright{\emph{Open Access Project Board Meeting \meetingdate} --- \textbf{#3}}%
 }
 
+\newcommand{\coversheet}[8]{% #1 paper number; #2 title; #3 description; #4 actions; #5 other comments; 
+                                                    % #6 list of additional papers; #7 author; #8 follow-up
+    \thispagestyle{pdfpages}
+    {\LARGE \bfseries ORSC-#1}
+    \vspace{2em}
+    \begin{center}
+    \large\onehalfspacing
+    University of Cambridge
+
+    Open Research Steering Group
+
+    {\large #2}
+    \end{center}
+    \vspace{3em}
+
+    \setlength{\tabcolsep}{0 em}
+    \renewcommand{\arraystretch}{2}
+    \newcommand{\myrule}{\rule[-6em]{0pt}{6em}}
+    \begin{tabular}{|p{1em}p{0.9\textwidth}p{1em}|}
+        \hline
+        \myrule& \textbf{Brief description}:  #3&\\
+        \hline
+        \myrule&\textbf{Actions required}: #4&\\
+        \hline
+        \myrule&\textbf{Other comments}: #5&\\
+        \hline
+        \myrule&\textbf{List of additional papers submitted with this coversheet}: #6&\\
+        \hline
+        \myrule&\textbf{Author/originating body}: #7&\\
+        \hline
+        \myrule&\textbf{Follow-up action}: #8&\\
+        \hline
+    \end{tabular}
+    }
+
+\newcommand{\includepaper}[9]{% #1 paper number; #2 title; #3 description; #4 actions; #5 other comments; 
+                                                    % #6 list of additional papers; #7 author; #8 follow-up; #9 filename; 
+    \coversheet{#1}{#2}{#3}{#4}{#5}{#6}{#7}{#8}
+    \includepdf[pages=-,
+    pagecommand=\setlayout{}{}{ORSC-#1}%,
+    %  width=\textwidth,height=\textheight,keepaspectratio
+    ]{#9}}
+
 \begin{document}
+
 \includepdf[pages=-,
   pagecommand=\setlayout{}{}{Agenda}%,
 %  width=\textwidth,height=\textheight,keepaspectratio
-]{AGD-OAPBV5-20180216.pdf}
+]{../agenda-minutes.pdf}
 
-\includepdf[pages=-,
-  pagecommand=\setlayout{}{}{OAPB-85}%,
-%  width=\textwidth,height=\textheight,keepaspectratio
-]{OAPB-85-Min-OAP-V6-20180105.pdf}
 
-\includepdf[pages=-,
-  pagecommand=\setlayout{}{}{OAPB-86}%,
-%  width=\textwidth,height=\textheight,keepaspectratio
-]{OAPB-86-REP-OAPBJan2018-V1-20180220.pdf}
-
-\includepdf[pages=-,
-  pagecommand=\setlayout{}{}{OAPB-87}%,
-%  width=\textwidth,height=\textheight,keepaspectratio
-]{OAPB-87_REP_RDMOAPBMar18_V2_20180218.pdf}
-
-\includepdf[pages=-,
-  pagecommand=\setlayout{}{}{OAPB-88}%,
-%  width=\textwidth,height=\textheight,keepaspectratio
-]{OAPB-88-Annual-Report-OAPB-V2-Feb-2018.pdf}
-
-\includepdf[pages=1-2,
-  pagecommand=\setlayout{}{}{OAPB-89}%,
-%  width=\textwidth,height=\textheight,keepaspectratio
-]{VPAGR-UK-SCL-update-2018-02.pdf}
-
-\includepdf[pages=10,
-  pagecommand=\setlayout{\textbf{\Large Imperial College, London}}{}{OAPB-89}%,
-%  width=\textwidth,height=\textheight,keepaspectratio
-]{VPAGR-UK-SCL-update-2018-02.pdf}
+% 
+% \includepdf[pages=-,
+%   pagecommand=\setlayout{}{}{OAPB-85}%,
+% %  width=\textwidth,height=\textheight,keepaspectratio
+% ]{OAPB-85-Min-OAP-V6-20180105.pdf}
+% 
+% \includepdf[pages=-,
+%   pagecommand=\setlayout{}{}{OAPB-86}%,
+% %  width=\textwidth,height=\textheight,keepaspectratio
+% ]{OAPB-86-REP-OAPBJan2018-V1-20180220.pdf}
+% 
+% \includepdf[pages=-,
+%   pagecommand=\setlayout{}{}{OAPB-87}%,
+% %  width=\textwidth,height=\textheight,keepaspectratio
+% ]{OAPB-87_REP_RDMOAPBMar18_V2_20180218.pdf}
+% 
+% \includepdf[pages=-,
+%   pagecommand=\setlayout{}{}{OAPB-88}%,
+% %  width=\textwidth,height=\textheight,keepaspectratio
+% ]{OAPB-88-Annual-Report-OAPB-V2-Feb-2018.pdf}
+% 
+% \includepdf[pages=1-2,
+%   pagecommand=\setlayout{}{}{OAPB-89}%,
+% %  width=\textwidth,height=\textheight,keepaspectratio
+% ]{VPAGR-UK-SCL-update-2018-02.pdf}
+% 
+% \includepdf[pages=10,
+%   pagecommand=\setlayout{\textbf{\Large Imperial College, London}}{}{OAPB-89}%,
+% %  width=\textwidth,height=\textheight,keepaspectratio
+% ]{VPAGR-UK-SCL-update-2018-02.pdf}
 
 \end{document}
 
