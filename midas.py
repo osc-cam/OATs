@@ -304,15 +304,12 @@ def main(arguments):
         # [os.path.join(working_folder, 'VEAG045_2018-08-09.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG052_expenditures-detail_2018-11-26.csv'), 'rge', 'coaf'],
-        # [os.path.join(working_folder, 'VEJJ.GAAB_wellcome_supplement_report_separately.csv'), 'rcuk', 'coaf'],
-        # [os.path.join(working_folder, 'VEAG054_expenditures-detail_2018-11-26.csv'), 'rge', 'rcuk'],
-        # [os.path.join(working_folder, 'VEJx_2018-11-12.csv'), 'rcuk', 'rcuk'],
-        [os.path.join(working_folder, 'UKRI-054_expenditures-detail_2019-04-30.csv'), 'rge', 'rcuk'],
-        [os.path.join(working_folder, 'COAF-052_expenditures-detail_2019-04-30.csv'), 'rge', 'coaf'],
-        [os.path.join(working_folder, 'COAF-055_expenditures-detail_2019-04-30.csv'), 'rge', 'coaf'],
+        [os.path.join(working_folder, 'VEJJ.GAAB_wellcome_supplement_report_separately.csv'), 'rcuk', 'coaf'],
+        [os.path.join(working_folder, 'VEAG054_expenditures-detail_2018-11-26.csv'), 'rge', 'rcuk'],
+        [os.path.join(working_folder, 'VEJx_2018-11-12.csv'), 'rcuk', 'rcuk'],
     ]
     # other input files
-    apollo_exports = [os.path.join(working_folder, "Apollo_all_items_2019-04-30.csv"), ]
+    apollo_exports = [os.path.join(working_folder, "Apollo_all_items_2018-11-26.csv"), ]
     pmc_exports = [os.path.join(working_folder, "PMID_PMCID_DOI.csv"), ]
 
 
