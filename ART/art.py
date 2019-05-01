@@ -46,7 +46,8 @@ ch.setFormatter(formatter)
 home = os.path.expanduser("~")
 #working_folder = os.path.join(home, 'OATs', 'ART-wd')
 #working_folder = os.path.join(home, 'Dropbox', 'OSC', 'ART-wd')
-working_folder = os.path.join(home, 'Dropbox', 'Midas-wd')
+#working_folder = os.path.join(home, 'Dropbox', 'Midas-wd')
+working_folder = os.path.join(home, 'OATs', 'Midas-wd')
 
 DOI_CLEANUP = ['http://dx.doi.org/', 'https://doi.org/', 'http://dev.biologists.org/lookup/doi/', 'http://www.hindawi.com/journals/jdr/aip/2848759/']
 DOI_FIX = {'0.1136/jmedgenet-2016-104295':'10.1136/jmedgenet-2016-104295'}
@@ -238,6 +239,12 @@ manual_title2zd_dict = {
     'Random projection ensemble classification' : '78583', # match not found by ART
     'Specificity effects of amino acid substitutions in promiscuous hydrolases-context-dependence of catalytic residue contributions to local fitness landscapes in nearby sequence space' : '71156', # match not found by ART
     'Lymphotoxin and lipopolysaccharide induce NF‐κB‐p52 generation by a co‐translational mechanism' : '127412', # match not found by ART (Wiley error: Article title: Transposon-driven transcription is a conserved feature of vertebrate spermatogenesis and transcript evolution)
+    #INPUT FOR RCUK 2019 REPORT
+    'Chronic fetal hypoxia disrupts the peri-conceptual environment in next-generation adult female rats': '297396',
+    '''Context and Implications Document for: Secondary students’ proof constructions in mathematics: the role of written vs. oral mode of argument representation''': '232497',
+    'Synthesis of structurally diverse N-substituted quaternary carbon containing small molecules from á,á-disubstituted propargyl amino esters': '213758',
+    'IL-1? cleavage by inflammatory caspases of the non-canonical inflammasome controls the senescence-associated secretory phenotype': '316701',
+    'Naïve Realism, Seeing Stars,and Perceiving the Past': '177450',
     ###OUP
     'Changes over time in the health and functioning of older people moving into care homes: Analysis of data from the English Longitudinal Study of Ageing' : '76550',
     'Disease-free and overall survival at 3.5 years for neoadjuvant bevacizumab added to docetaxel followed by fluorouracil, epirubicin and cyclophosphamide, for women with HER2 negative early breast cancer: ARTemis Trial.' : '81145',
@@ -252,6 +259,8 @@ manual_title2zd_dict = {
     #INPUT FOR RCUK 2018 REPORT
     'Unexpected corporate outcomes from hedge fund activism in Japan' : '156418', # match not found by ART
     'Dysglycaemia, inflammation and psychosis: findings from the U.K. ALSPAC birth cohort' : '174630', # match not found by ART
+    #INPUT FOR RCUK 2019 REPORT
+    "T. S. Eliot and the Point of Intersesction": "210756",
     }
 
 
@@ -1710,7 +1719,7 @@ lf = os.path.dirname(os.path.realpath(__file__))
 os.chdir(lf)
 
 # SETUP REPORT
-reporttype = "COAF" #Report requester. Supported values are: RCUK, COAF, ALL
+reporttype = "RCUK" #Report requester. Supported values are: RCUK, COAF, ALL
 rcuk_paydate_field = 'Posted' #Name of field in rcuk_paymentsfile containing the payment date
 rcuk_payamount_field = 'Amount' #Name of field in rcuk_paymentsfile containing the payment amount
 total_rcuk_payamount_field = 'RCUK APC Amount' #Name of field we want the calculated total RCUK APC to be stored in
@@ -1753,7 +1762,7 @@ doifile = os.path.join(working_folder, "DOIs_for_cottagelabs.csv")
 # rcuk_vejj = os.path.join(working_folder, "VEJI_and_VEJJ_1_April_2017_to_31_March_2018_290518.csv")
 rcuk_vejx = os.path.join(working_folder, "RCUK_2018-08-09_all_VEJx_codes.csv")
 # rcuk_paymentsfilename = "RCUK_merged_payments_file.csv"
-rcuk_paymentsfilename = "VEJx_2018-11-12.csv"
+rcuk_paymentsfilename = "UKRI-054_expenditures-detail_2019-04-30.csv"
 rcuk_paymentsfile = os.path.join(working_folder, rcuk_paymentsfilename)
 # merge_csv_files([rcuk_vejx, rcuk_veag054], rcuk_paymentsfile)
 rcuk_veag054 = os.path.join(working_folder, "RCUK_VEAG054_2018-08-09.csv") # this sheet has the same format as COAF ones
@@ -1764,15 +1773,15 @@ rcuk_paymentsfile_veag = os.path.join(working_folder, rcuk_veag054)
 # coaf_veag045 = os.path.join(working_folder, 'VEAG045_2018-08-09.csv')
 # coaf_veag050 = os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv')
 # coaf_veag052 = os.path.join(working_folder, 'VEAG052_2018-08-09.csv')
-coaf_paymentsfilename = "VEAG052_expenditures-detail_2018-11-26.csv"
+coaf_paymentsfilename = "COAF-055_expenditures-detail_2019-04-30.csv"
 # coaf_paymentsfilename = "VEAG050_2018-08-09_with_resolved_journals.csv"
 coaf_paymentsfile = os.path.join(working_folder, coaf_paymentsfilename)
 # merge_csv_files([coaf_veag044, coaf_veag045, coaf_veag050, coaf_veag052], coaf_paymentsfile)
 
 # METADATA SOURCES
-zenexport = os.path.join(working_folder, "export-2018-11-27-1531-234063-360000239434e71a.csv")
-zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2018-11-27-1110.csv")
-apolloexport = os.path.join(working_folder, "Apollo_all_items_2018-11-26.csv")
+zenexport = os.path.join(working_folder, "export-2019-04-30-0958-234063-36000492035352a6_filtered_groups.csv")
+zendatefields = os.path.join(working_folder, "rcuk-report-active-date-fields-for-export-view-2017-11-13-2307.csv")
+apolloexport = os.path.join(working_folder, "Apollo_all_items_2019-04-30.csv")
 # instead of running results via Cottage Labs, let's use PMID-PMCID-DOI mappings available from
 # https://europepmc.org/downloads
 europepmc_map = os.path.join(working_folder, "PMID_PMCID_DOI.csv")
@@ -1785,20 +1794,20 @@ cottagelabsexport = os.path.join(working_folder, "Cottagelabs_results.csv")
 # PREPAYMENT ACCOUNTS REPORTS
 # springercompact_last_year = "Springer_Compact-December_2016_Springer_Compact_Report_for_UK_Institutions.csv"
 # springercompact_this_year = "Springer_Compact-March_2017_Springer_Compact_Report_for_UK_Institutions.csv"
-springercompactexport = os.path.join(working_folder, "Springer_article_approval_2017-01-01_to_2018-11-27.csv")
+springercompactexport = os.path.join(working_folder, "Springer_Compact_article_approval_2018-04-01_to_2019-03-31.csv")
 # merge_csv_files([springercompact_last_year, springercompact_this_year], springercompactexport)
-wileyrcukcoaf = os.path.join(working_folder, "Wiley_RCUK_COAF_ArticleHistoryReport.csv")
-wileycredit = os.path.join(working_folder, "Wiley_CREDIT_ArticleHistoryReport.csv")
+wileyrcukcoaf = os.path.join(working_folder, "Wiley_RCUK-COAF_article_approval_2018-04-01_to_2019-03-31.csv")
+wileycredit = os.path.join(working_folder, "Wiley_CREDIT_article_approval_2018-04-01_to_2019-03-31.csv")
 wileyexport = os.path.join(working_folder, "Wiley_all_accounts.csv")
 merge_csv_files([wileyrcukcoaf, wileycredit], wileyexport)
-oupexport = os.path.join(working_folder, "OUP_OA_Charge_Data_2018-11-26.csv")
+oupexport = os.path.join(working_folder, "OUP_OA_Charge_Data.csv")
 
 # SETUP REPORT
 report_template = os.path.join(working_folder, "Jisc_template_v4.csv")
-report_start_date = datetime.datetime(2017, 10, 1) #(2016, 10, 1) COAF
-report_end_date = datetime.datetime(2018, 9, 30, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
-green_start_date = datetime.datetime(2017, 10, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
-green_end_date = datetime.datetime(2018, 9, 30, hour = 23, minute = 59, second = 59)
+report_start_date = datetime.datetime(2018, 4, 1) #(2016, 10, 1) COAF
+report_end_date = datetime.datetime(2019, 3, 31, hour = 23, minute = 59, second = 59) #(2017, 9, 30, hour = 23, minute = 59, second = 59) COAF
+green_start_date = datetime.datetime(2018, 4, 1)#Using 1 Jan to 31 Dec for green compliance estimate to match WoS period
+green_end_date = datetime.datetime(2019, 3, 31, hour = 23, minute = 59, second = 59)
 
 unmatched_payment_file_prefix = 'ART_debug_payments_not_matched_to_zd_numbers__'
 nonJUDB_payment_file_prefix = 'ART_debug_non_JUDB_payments__'
@@ -1884,12 +1893,12 @@ if __name__ == '__main__':
     logger = logging.getLogger('art')
 
     parse_invoice_data = False
-    parse_springer_compact = False
+    parse_springer_compact = True
     parse_wiley_dashboard = False
-    parse_oup_prepayment = True
+    parse_oup_prepayment = False
     estimate_green_compliance = False
     list_green_papers = False
-    resolve_pmc_id = True
+    resolve_pmc_id = False
 
     ############################ACTION STARTS HERE##################################
 
@@ -2231,6 +2240,22 @@ if __name__ == '__main__':
             '''Progressive multifocal leukoencephalopathy in the absence of immunosuppression''',
             '''Long-term changes in lowland calcareous grassland plots using Tephroseris integrifolia subsp. integrifolia as an indicator species.''',
             '''Biface knapping skill in the East African Acheulean: progressive trends and random walks''',
+            ### RCUK REPORT 2019
+            ## NOT FOUND IN ZENDESK
+            '''Comparative quasi-static mechanical characterization of fresh and stored porcine trachea specimens''',
+            '''State Failure, Polarisation, and Minority Engagement in Germany’s Refugee Crisis''',
+            '''Tandem Androgenic and Psychological Shifts in Male Reproductive Effort Following a Manipulated "Win" or "Loss" in a Sporting Competition''',
+            '''Pre-chamber ignition mechanism: simulations of transient autoignition in a mixing layer between reactants and partially-burnt products''',
+            '''The Danish Crime Harm Index: How it Works and Why it Matters''',
+            '''The First Metallurgy in the Pityusic Islands (Balearic Archipelago, Mediterranean Sea)''',
+            '''On the Relations of the spaces A^p (Ω) and C^p (∂Ω)''',
+            '''Mechanical support for high risk coronary artery bypass grafting''',
+            '''Should we subtype ADHD according to the context in which symptoms occur? Criterion validity of context-based ADHD subtypes''',
+            '''A mathematical model for velodrome cycling''',
+            '''Laparoscopic adhesiolysis: not for all patients, not for all surgeons, not in all centers''',
+            '''Severing telicity from result: on two types of resultative compound verb in Dongying Mandarin''',
+            '''Predictors of early progression of surgically treated atypical meningiomas''',
+            '''Emergence of novel phenomena on the border of low dimensional spin and charge order''',
         ]
         exclude_titles_springer = []
         import_prepayment_data_and_link_to_zd(springercompactexport, springer_dict, rejection_dict_springer,

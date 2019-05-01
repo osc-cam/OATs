@@ -304,12 +304,16 @@ def main(arguments):
         # [os.path.join(working_folder, 'VEAG045_2018-08-09.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG050_2018-08-09_with_resolved_journals.csv'), 'coaf', 'coaf'],
         # [os.path.join(working_folder, 'VEAG052_expenditures-detail_2018-11-26.csv'), 'rge', 'coaf'],
-        [os.path.join(working_folder, 'VEJJ.GAAB_wellcome_supplement_report_separately.csv'), 'rcuk', 'coaf'],
-        [os.path.join(working_folder, 'VEAG054_expenditures-detail_2018-11-26.csv'), 'rge', 'rcuk'],
-        [os.path.join(working_folder, 'VEJx_2018-11-12.csv'), 'rcuk', 'rcuk'],
+        # [os.path.join(working_folder, 'VEJJ.GAAB_wellcome_supplement_report_separately.csv'), 'rcuk', 'coaf'],
+        # [os.path.join(working_folder, 'VEAG054_expenditures-detail_2018-11-26.csv'), 'rge', 'rcuk'],
+        # [os.path.join(working_folder, 'VEJx_2018-11-12.csv'), 'rcuk', 'rcuk'],
+        [os.path.join(working_folder, 'UKRI-054_expenditures-detail_2019-04-30.csv'), 'rge', 'rcuk'],
+        [os.path.join(working_folder, 'COAF-052_expenditures-detail_2019-04-30.csv'), 'rge', 'coaf'],
+        [os.path.join(working_folder, 'COAF-055_expenditures-detail_2019-04-30.csv'), 'rge', 'coaf'],
+
     ]
     # other input files
-    apollo_exports = [os.path.join(working_folder, "Apollo_all_items_2018-11-26.csv"), ]
+    apollo_exports = [os.path.join(working_folder, "Apollo_all_items_2019-04-30.csv"), ]
     pmc_exports = [os.path.join(working_folder, "PMID_PMCID_DOI.csv"), ]
 
 
@@ -324,14 +328,25 @@ def main(arguments):
     #     dict_counter += 1
     # raise
 
+    report_type = None
+    if arguments.coaf and arguments.rcuk:
+        report_type = 'all'
+    elif arguments.coaf:
+        report_type = 'coaf'
+    elif arguments.rcuk:
+        report_type = 'rcuk'
 
     # get the report object
-    rep = Report(zenexport, report_type='coaf')
+    rep = Report(zenexport, report_type=report_type)
+    # logger.info('arguments.coaf: {}; arguments.rcuk: {}; report_type: {}; rep.coaf: {}; '
+    #             'rep.rcuk: {}'.format(arguments.coaf, arguments.rcuk, report_type, rep.coaf, rep.rcuk))
     rep.zd_parser.index_zd_data()
+
     if not arguments.ignore_apollo:
         rep.plugin_apollo(apollo_exports)
     if not arguments.ignore_pmc:
         rep.plugin_pmc(pmc_exports)
+
     # rep.parse_old_payments_spreadsheet(os.path.join(working_folder, 'LST_AllFinancialData_V3_20160721_Main_Sheet.csv'))
     rep.parse_cufs_data(paymentfiles)
 
@@ -340,6 +355,12 @@ def main(arguments):
     rep.output_csv()
 
 if __name__ == '__main__':
+
+    def add_bool_arg(parser, name, help_text, default=False): # https://stackoverflow.com/a/31347222
+        group = parser.add_mutually_exclusive_group(required=False)
+        group.add_argument('--' + name, dest=name, action='store_true', help=help_text)
+        group.add_argument('--no-' + name, dest=name, action='store_false')
+        parser.set_defaults(**{name:default})
 
     home = os.path.expanduser("~")
     datasources = os.path.join(home, 'OSC-shared-drive', 'OSC', 'DataSources')
@@ -366,8 +387,8 @@ http://www.gnu.org/copyleft/gpl.html
     parser.add_argument('--report-beginning', dest='report_start', type=valid_date,
                         default='2000-01-01', metavar='YYYY-MM-DD',
                         help='The report start date in the format YYYY-MM-DD (default: %(default)s)')
-    parser.add_argument('-c', '--coaf', dest='coaf', default=True, type=bool, metavar='True or False',
-                        help='Report on all APCs paid using COAF funds during the reporting period (default: %(default)s)')
+    add_bool_arg(parser, 'coaf', 'Report on all APCs paid using COAF funds during the reporting period '
+                                 '(default: %(default)s)')
     parser.add_argument('-d', '--dois', dest='dois', default=False, type=bool, metavar='True or False',
                         help='Output list of DOIs for Cottage Labs compliance check (default: %(default)s)')
     parser.add_argument('--report-end', dest='report_end', type=valid_date,
@@ -385,8 +406,8 @@ http://www.gnu.org/copyleft/gpl.html
                         default=datasources)
     parser.add_argument('-l', '--cottage-labs', dest='cottage-labs', default=False, type=bool, metavar='True or False',
                         help='Include results of Cottage Labs search in output report (default: %(default)s)')
-    parser.add_argument('-r', '--rcuk', dest='rcuk', default=True, type=bool, metavar='True or False',
-                        help='Report on all APCs paid using RCUK funds during the reporting period (default: %(default)s)')
+    add_bool_arg(parser, 'rcuk', 'Report on all APCs paid using RCUK funds during the reporting period '
+                                 '(default: %(default)s)')
     parser.add_argument('-s', '--springer', dest='springer', default=True, type=bool, metavar='True or False',
                         help='Include articles approved via Springer Compact (default: %(default)s)')
     parser.add_argument('--output-folder', dest='working_folder', type=str, metavar='<path>',
