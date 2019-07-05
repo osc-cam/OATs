@@ -86,6 +86,7 @@ except FileNotFoundError:
     texworks = open_cmd
 
 warning_counter = 0
+error_counter = 0
 
 if not os.path.exists(config_folder):
     os.makedirs(config_folder)
@@ -168,15 +169,20 @@ else:
     nopages = 1
 
 # print "OASIS: This invoice has", str(nopages), "pages"
+pdftk_error = False
 if nopages > 1:
     logger.plog("OASIS: Splitting", str(nopages), "pages")
-    subprocess.check_call([pdftk, invoicefile, "burst", "output",
+    try:
+        subprocess.check_call([pdftk, invoicefile, "burst", "output",
                            os.path.join(oasisfolder, "tempinv%02d.pdf")])
+    except subprocess.CalledProcessError:
+        logger.plog("ERROR: pdftk failed to split pages. Output will contain only 1st page of document")
+        error_counter += 1
+        pdftk_error = True
+        shutil.move(invoicefile, os.path.join(oasisfolder, "tempinv01.pdf"))
 else:
     logger.plog("OASIS: This invoice has only", str(nopages), "page\n")
-    src = invoicefile
-    dst = os.path.join(oasisfolder, "tempinv01.pdf")
-    shutil.move(src, dst)
+    shutil.move(invoicefile, os.path.join(oasisfolder, "tempinv01.pdf"))
 
 # SUMMON waiver_var_file AND overlayfile, THEN PROMPTS USER TO STAMP INVOICE
 #subprocess.run([open_cmd, waiver_var_file]) # Not sure why on Windows this is generating error FileNotFoundError:
@@ -224,7 +230,7 @@ oats_copy(src, dst)
 
 # MERGE PAGES AGAIN IF INVOICE HAS MORE THAN ONE PAGE OR RENAME 1 PAGE INVOICES
 stampedinvoice = os.path.join(oasisfolder, "stamped_invoice.pdf")
-if nopages > 1:
+if nopages > 1 and not pdftk_error:
     logger.plog("OASIS: Merging stamped page with remaining invoice pages")
     subprocess.run(pdftk + ' ' + os.path.join(oasisfolder, "tempinv*.pdf") + " cat " + 
                     " output " + stampedinvoice, stdout=open(os.devnull, 'w'),
@@ -354,10 +360,13 @@ with open(logcsv, 'a', encoding='utf-8', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow([refno, invno, publisher, invtype, agent, start_time, end_time, processing_time])
 
-if warning_counter > 0:
+if error_counter > 0:
+    logger.plog("\nOASIS: Processing finished with", error_counter, "ERRORS.")
+    logger.plog("Please review the log above carefully for details")
+elif warning_counter > 0:
     logger.plog("\nOASIS: Processing finished with", warning_counter, "warnings.")
     logger.plog("Please review the log above carefully for details")
 else:
-    logger.plog("\nThank you for using the Open Access Service Invoice Stamper!")
+    logger.plog("\nThank you for using OASIS (Open Access Service Invoice Stamper)!")
 
 
