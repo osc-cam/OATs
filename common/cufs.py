@@ -1913,6 +1913,7 @@ class CoafFieldsMapping():
         self.paydate_field = 'GL Posting Date'
         self.transaction_code = None
         self.source_of_funds = None
+        self.supplier = "Employee / Supplier"
 
 class CoafOutputMapping():
     '''
@@ -1934,6 +1935,7 @@ class RcukFieldsMapping():
         self.oa_number =  'Description'
         self.paydate_field = 'Posted'
         self.source_of_funds = 'SOF'
+        self.supplier = "Ref 1"
         self.transaction_code = 'Tran'
 
 class RgeFieldsMapping():
@@ -1947,6 +1949,7 @@ class RgeFieldsMapping():
         self.invoice_field = 'Invoice'
         self.oa_number = 'Expenditure Comment'
         self.paydate_field = 'Expenditure Item Date'
+        self.supplier = "Vendor"
 
 class RcukOutputMapping():
     '''

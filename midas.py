@@ -307,6 +307,7 @@ def main(arguments):
         # [os.path.join(working_folder, 'VEJJ.GAAB_wellcome_supplement_report_separately.csv'), 'rcuk', 'coaf'],
         # [os.path.join(working_folder, 'VEAG054_expenditures-detail_2018-11-26.csv'), 'rge', 'rcuk'],
         # [os.path.join(working_folder, 'VEJx_2018-11-12.csv'), 'rcuk', 'rcuk'],
+        [os.path.join(working_folder, 'VEJK_010519.csv'), 'rcuk', 'rcuk'],
         [os.path.join(working_folder, 'UKRI-054_expenditures-detail_2019-04-30.csv'), 'rge', 'rcuk'],
         [os.path.join(working_folder, 'COAF-052_expenditures-detail_2019-04-30.csv'), 'rge', 'coaf'],
         [os.path.join(working_folder, 'COAF-055_expenditures-detail_2019-04-30.csv'), 'rge', 'coaf'],
