@@ -2,3 +2,4 @@
 venv
 activate_venv.sh
 *.log
+*_local.py
