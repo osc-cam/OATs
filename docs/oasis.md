@@ -1,11 +1,11 @@
 ## OASIS (Open Access Service Invoice Stamper)
 
-OASIS is OATs' flagship utility. It can be used to digitally stamp and file PDFs of invoices sent to the OA helpdesk. To run OASIS on Windows, you may either:
+OASIS is OATs' flagship utility. It can be used to digitally stamp and file PDFs of invoices sent to the OA helpdesk. To run OASIS on Windows, 
 
-* Double-click on file `C:\Users\<<your CRSid>>\OATs\oasis.cmd`
-* Issue the following command on Command prompt: `%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\OATs\oasis.py`
+* Open the program "Command prompt"
+* Issue the following command on the Command prompt window: `C:\Applications\<WinPython folder>\<python version folder>\python.exe %USERPROFILE%\OATs\oasis.py`, replacing <WinPython folder>\<python version folder> for the correct path in your machine. See the [troubleshooting](#specifying-the-correct-path) section below for more details if you encounter problems here.
 
-Or, on UNIX:
+If you are a UNIX user (Linux, Mac OS), issue these commands in your terminal:
 
 ```
 $ cd <path to OATS folder>
@@ -74,4 +74,13 @@ The valid ranges of values for these two parameters are:
 
 ### Troubleshooting
 
-If when attempting to run OASIS you encounter error message "The system cannot find the path specified", this means that python 3 is not installed in the location we expected it to be (%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe). To fix this, search for python.exe using Windows Explorer and then adjust the last line of the Zendesk macro output accordingly. It will most likely be in a similar path if you installed a different version of python 3 using the default settings (the last subfolder of the path indicates the python version).
+#### Specifying the correct path
+
+If when attempting to run OASIS you encounter error message "The system cannot find the path specified", this means that python 3 is not installed in the location (the "path") we expected it to be (i.e. "C:\Applications\Wpy [...] \python.exe"). To fix this, search for the installed python application (file python.exe) through Windows Explorer (clicking "Local disk C:", then "Applications"; then "WinPython" folder. When this is done, click on the search bar at the top of Windows Explorer and copy paste the line that appears. Add “\python.exe” at the end and this gives you the "path" to that file. Send this full path to one of your coleagues who is responsible for updating Zendesk Macros.
+
+Your colleague should then update the [OASIS Zendesk macro](../pdfapps/oasis/zd-macro.txt) to include, near the end of the file, your personal path, written as follows leave the % signs as they are):
+
+```
+%% YOUR FIRST NAME
+% [copy/paste the python path here without brackets] %USERPROFILE%\OATS\oasis.py
+```

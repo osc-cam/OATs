@@ -1,19 +1,17 @@
 # OATs
 
-OATs (Open Access Tools) is a collection of scripts to automate some of the tasks performed by the Open Access Team at the Office of Scholarly Communication (OSC), University of Cambridge. Documentation for OSC staff on how to install and use these tools is provided below.
+OATs (Open Access Tools) is a collection of software to automate some of the tasks performed by the Open Access Team at the Office of Scholarly Communication (OSC), University of Cambridge. Documentation for OSC staff on how to install and use these tools is provided below.
 
 ## Dependencies
 
-Scripts in the OATs package rely on external tools for most of their functionality, so the following software will need to be installed in your machine in order for OATs to work:
+Software in the OATs package rely on external tools for most of their functionality, so the following software will need to be installed in your machine in order for OATs to work:
 
 ### [Python 3](https://www.python.org)
 
 You have (at least) two choices to solve this dependency:
 
-* (recommended) install the latest stable version of WinPython, which is a portable python distribution. You can install it wherever you like. If you don't have a preference, a sensible place would be: C:\Applications\WinPython\
-* download and run the Windows installer of the official Python release. As you do not have admin rights to your machine, you will need to untick the box "Install launcher for all users" before clicking "Install Now".
-
-The first method is the recommended one because, if you are installing OATs in a second UL machine (i.e. you have installed it previously in a different UL computer using the official release), it is very likely that the second method will fail due to errors associated with your network user profile.
+* (recommended) install the latest version of [WinPython](https://sourceforge.net/projects/winpython), which is a portable python distribution. You can install it wherever you like. If you don't have a preference, a sensible place would be: C:\Applications\WinPython\ (you can easily create an "Applications" folder using Windows Explorer if needed).
+* download and run the Windows installer of the official Python release. This option is only recommended for users that have administrative rights to their machines (not the case for Windows desktops available to OSC members). 
 
 ### [TeX Live](https://www.tug.org/texlive) 
 
