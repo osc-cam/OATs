@@ -76,11 +76,11 @@ The valid ranges of values for these two parameters are:
 
 #### Specifying the correct path
 
-If when attempting to run OASIS you encounter error message "The system cannot find the path specified", this means that python 3 is not installed in the location (the "path") we expected it to be (i.e. "C:\Applications\Wpy [...] \python.exe"). To fix this, search for the installed python application (file python.exe) through Windows Explorer (clicking "Local disk C:", then "Applications"; then "WinPython" folder. When this is done, click on the search bar at the top of Windows Explorer and copy paste the line that appears. Add “\python.exe” at the end and this gives you the "path" to that file. Send this full path to one of your coleagues who is responsible for updating Zendesk Macros.
+If when attempting to run OASIS you encounter error message "The system cannot find the path specified", this means that WinPython is not installed in the location (the "path") we expected it to be (i.e. "C:\Applications\Wpy [...] \python.exe"). To fix this, search for the installed python application (file python.exe) through Windows Explorer (clicking "Local disk C:", then "Applications"; then "WinPython" folder. When this is done, click on the search bar at the top of Windows Explorer and copy paste the line that appears. Add “\python.exe” at the end and this gives you the "path" to that file. Send this full path to one of your coleagues who is responsible for updating Zendesk Macros.
 
 Your colleague should then update the [OASIS Zendesk macro](../pdfapps/oasis/zd-macro.txt) to include, near the end of the file, your personal path, written as follows leave the % signs as they are):
 
 ```
 %% YOUR FIRST NAME
-% [copy/paste the python path here without brackets] %USERPROFILE%\OATS\oasis.py
+% [copy/paste the python path here without brackets] %USERPROFILE%\OATS-master\oasis.py
 ```
