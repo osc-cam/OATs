@@ -12,10 +12,22 @@ $ cd <path to OATS folder>
 $ ./oasis.py
 ```
 
-The first time it runs, the program will create a configuration file `~/.OATs/OASIS/config.txt` and ask you to edit this file to provide the full paths of:
+The first time it runs, the program will create a configuration file `~/.OATs/OASIS/config.txt` and will open it in a text editor window (Notepad on Windows; your default text editor on UNIX). It will look somewhat like this:
 
-* your browser download folder (i.e. the folder where OASIS will be able to find invoices you have just downloaded)
-* path to the shared OSC drive (this path can be different from the default if you are using the library's VPN, etc; please check). If, for any reason, you need to reconfigure OASIS to save invoices somewhere else, you may edit `C:\Users\<<your CRSid>>\.OATs\OASIS\config.txt` using your favorite plain text editor (e.g. Notepad++).
+![](./screenshots/first_run_editing_config_file.png)
+
+Please edit this file to provide:
+
+* the full path of your browser download folder (i.e. the folder where OASIS will be able to find invoices you have just downloaded)
+* the full path to the shared OSC drive (this path can be different from the default if you are using the library's VPN, etc; please check). 
+
+If you are working on Windows, just delete the first three lines related to UNIX. Check both paths carefully (using the Windows Explorer search bar just like you did previously when [setting the python path](#specifying-the-correct-path)) and replace them if necessary.
+
+Please remember to save the text file after editing it.
+
+If, for any reason, you need to reconfigure OASIS to save invoices somewhere else, you may edit `C:\Users\<<your CRSid>>\.OATs\OASIS\config.txt` using your favorite plain text editor (e.g. Notepad++).
+
+Congratulations! OASIS should now be ready to process your first invoice. 
 
 ### Usage
 
