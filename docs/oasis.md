@@ -19,6 +19,8 @@ The first time it runs, the program will create a configuration file `~/.OATs/OA
 
 ### Usage
 
+[This short video](https://sms.cam.ac.uk/media/3075499) demonstrates OASIS typical usage. The steps to follow in a Windows machine are:
+
 * Download the invoice (if your browser is not configured to automatically save PDF files, you will need to save the invoice file to the folder you configured above)
 * Navigate to the relevant ticket in Zendesk (the one with a decision on the manuscript)
 * Fill in the relevant details in Zendesk (funding codes, invoice number, invoice date, etc)
