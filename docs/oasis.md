@@ -33,13 +33,13 @@ Congratulations! OASIS should now be ready to process your first invoice.
 
 [This short video](https://sms.cam.ac.uk/media/3075499) demonstrates OASIS typical usage. The steps to follow in a Windows machine are:
 
-* Download the invoice (if your browser is not configured to automatically save PDF files, you will need to save the invoice file to the folder you configured above)
-* Navigate to the relevant ticket in Zendesk (the one with a decision on the manuscript)
+* Download the invoice (if your browser is not configured to automatically save PDF files, you will need to save the invoice file to the folder you configured above). OASIS assumes that the last PDF you download is the invoice you intend to process, so make sure the invoice is the last file you downloaded before proceeding to the next step.  
+* Navigate to the submission ticket in Zendesk (the one with a decision on the manuscript; usually starting with SE-)
 * Fill in the relevant details in Zendesk (funding codes, invoice number, invoice date, etc)
 * Apply Zendesk macro "Export invoice data (OASIS)" (but do not save the ticket)
 * Summon OASIS by:
     * If this is the first invoice you are processing today:
-        * Copying the line of the Zendesk macro output that is tagged with %%YOUR NAME
+        * From the Zendesk macro output, copy the line that is just below the tag %%YOUR NAME (this is your python path; see [troubleshooting](#troubleshooting) below for details)
         * Opening program "Command prompt"
         * Pasting and hiting "Enter/Return" (the shortcut Ctrl+V does not work in the command prompt, so you will need to right click the prompt and select "paste")
         * Leave the command prompt window to facilitate processing subsequent invoices
@@ -49,7 +49,7 @@ Congratulations! OASIS should now be ready to process your first invoice.
 * Follow the instructions on the screen, which will involve:
     * Selecting and copying all the text of the internal note that was produced in Zendesk (Ctrl+A, Ctrl+C)
     * Pasting that text into invoice-variables.txt and saving that file (Ctrl+V, Ctrl+S)
-    * Using Texworks to stamp the invoice (please close TexWorks once you have done this)
+    * Using Texworks to stamp the invoice (please close the two windows of TexWorks once you have done this)
     * Confirming that you are happy with the result (by typing "y" and pressing Enter on the command prompt window)
 
 * Either delete the text produced in Zendesk by the OASIS macro or replace it with a reference to the ticket containing the original invoice.
