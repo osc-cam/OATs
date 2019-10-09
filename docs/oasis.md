@@ -63,8 +63,6 @@ Regularly send all invoices in the print folder to the printer and move then to 
  * please delete the contents of the "Printed_just_now" subfolder
  * place the printed invoices in the bottom tray of the black 3-compartments organiser labelled "INVOICES for Danny"
 
-### Tips
-
 #### Moving the stamp
 
 You can adjust the position of the electronic stamp produced by OASIS by changing the following two lines of the output produced by the OASIS Zendesk macro:
@@ -86,6 +84,53 @@ The valid ranges of values for these two parameters are:
 * xshift: -10 (left margin) to -5 (right margin)  
 * yshift: -15.5 (bottom of page) to 12.5 (top of page)
 
+
+#### Processing two separate invoices associated with the same Zendesk ticket
+
+Say you received two invoices for the same journal article, one for Open Access charges and one for colour charges. In this case, when processing the second invoice, you will need to explicitly tell OASIS what type of invoice you intend to process. To do this, simply set the value of the drop-down form field "OASIS type" in Zendesk to match the invoice type, and then follow the basic [usage](#usage) instructions. 
+
+
+#### Processing invoices for *both* Open Access and other publication charges
+
+[This short video](https://sms.cam.ac.uk/media/3076552) demonstrates the workflow for processing invoices for both Open Access and other publication charges. The process is very similar to [typical usage](#usage), but the following additional steps are required:
+
+* In Zendesk, you will need to select the value "APC + page/colour" for drop-down form field "OASIS type" before activating the OASIS macro.
+* You will need to edit the output of the macro to indicate how much should be charged to each transaction code. To do this, look for the "FUND SPLIT" block of the macro output and replace the following placemarkers as appropriate:
+    * "Enter page charges here": replace this with the value charged for page and colour charges.
+    * "Enter RCUK apc amount amount here": replace this with the amount of the APC that will be charged to RCUK 
+    * "Enter COAF apc amount amount here": replace this with the amount of the APC that will be charged to COAF
+
+```
+%%%%FUND SPLIT
+\newcommand{\RCUKratio}{\mbox{\begin{tabular}{ll}(Enter page charges here) \\ (Enter RCUK apc amount amount here)\end{tabular}}} \newcommand{\COAFratio}{(Enter COAF apc amount here)}
+```
+ 
+
+### Adding support for a new grant code
+
+To add support for new grant codes, edit the block "RCUK COST CENTRE AND SOURCE OF FUNDS" if you intend to add a new UKRI grant code, or the block "COAF COST CENTRE AND SOURCE OF FUNDS" of the [OASIS Zendesk macro](../pdfapps/oasis/zd-macro.txt).
+
+Those blocks will contain if else statements defining what OASIS should print for each Zendesk tag associated with dropdown fields "RCUK cost centre" and "COAF cost centre". For example: 
+
+```
+{% if ticket.ticket_field_46241307 == 'rcuk_cost_centre_veje_judb' %}{\VEJEJUDB\transaction}
+{% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veji_judb' %}{\VEJIJUDB\transaction}
+{% elsif ticket.ticket_field_46241307 == 'vejf_judb_iop_fund' %}{\VEJFJUDB\transaction}
+{% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejj_judb' %}{\VEJJJUDB\transaction}
+{% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_vejk_judb' %}{\VEJKJUDB\transaction}
+{% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_054_rg96299' %}{\RCUKeighteen\transaction}
+{% elsif ticket.ticket_field_46241307 == 'rcuk_cost_centre_veag_060_g100709' %}{\RCUKnineteen\transaction}
+{% else%}{\ERROR{RCUK cost centre not recognized}}{% endif %}
+``` 
+
+To add a new grant code to the block above, one would need to add a line (before the final else statement) in the format:  
+
+```
+{% elsif ticket.ticket_field_46241307 == '<NEW ZENDESK TAG>' %}{<NEW GRANT CODE>\transaction}
+```
+
+
+
 ### Troubleshooting
 
 #### Specifying the correct path
@@ -98,3 +143,14 @@ Your colleague should then update the [OASIS Zendesk macro](../pdfapps/oasis/zd-
 %% YOUR FIRST NAME
 % [copy/paste the python path here without brackets] %USERPROFILE%\OATS-master\oasis.py
 ```
+
+#### Making sure invoice-variables.txt is encoded as UTF-8
+
+If, like the author of OASIS, your name contains accented characters, please ensure that file invoice-variables.txt is encoded as UTF-8. Else, you will probably run into a nasty error when attempting to stamp the invoice using TexWorks: 
+
+```! Package inputenc Error: Invalid UTF-8 byte sequence.```
+
+Notepad++ displays the encoding of a file on the bottom right corner of its windows. If it says anything other than UTF-8 (e.g. ANSI) when invoice-variables.txt is opened, please follow these steps to change the encoding of this file to UTF-8:
+* On the top menu, click "Encoding"
+* Click "encode in UTF-8"
+* Save the file
