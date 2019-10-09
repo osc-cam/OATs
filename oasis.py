@@ -25,7 +25,7 @@ def setup_os(platform_string=sys.platform, home=os.path.expanduser("~")):
     if platform_string.startswith('linux'):
         open_cmd = 'xdg-open'
     elif platform_string.startswith('win32'):
-        open_cmd = 'notepad'
+        open_cmd = 'start'
         rm_cmd = 'del'
         username = home.split("\\")[-1]
         pdftk = os.path.join(oasisfolder, "pdftk\pdftk.exe")
