@@ -96,7 +96,10 @@ if not os.path.exists(configfile):
     f = open(configfile, 'w')
     f.write(configexample)
     f.close()
-    subprocess.call([open_cmd, configfile])
+    if sys.platform.startswith('win32'): # not sure why start not working, so this is a workaround using Notepad
+        subprocess.call(['notepad', configfile])
+    else:
+        subprocess.call([open_cmd, configfile])
     a = input("Have you finished editing the config file? (y/n) (or q to quit)")
     while a not in ["y", "Y", "yes", "YES"]:
         if a == "q":
