@@ -46,10 +46,10 @@ Congratulations! OASIS should now be ready to process your first invoice.
     * If you have already processed an invoice today (and left command prompt running):
         *  Press the up arrow key (↑) on your keyboard, followed by "Enter/Return"  
 
-* Follow the instructions on the screen, which will involve:
+* Follow the instructions on the command prompt window, which will involve:
     * Selecting and copying all the text of the internal note that was produced in Zendesk (Ctrl+A, Ctrl+C)
     * Pasting that text into invoice-variables.txt and saving that file (Ctrl+V, Ctrl+S)
-    * Using Texworks to stamp the invoice (please close the two windows of TexWorks once you have done this)
+    * Using TeXworks to stamp the invoice (click on the green and triangular "play" button near the top left corner of the TeXworks window; please close the two windows of TexWorks once you have done this)
     * Confirming that you are happy with the result (by typing "y" and pressing Enter on the command prompt window)
 
 * Either delete the text produced in Zendesk by the OASIS macro or replace it with a reference to the ticket containing the original invoice.
