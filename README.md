@@ -56,7 +56,7 @@ PDFtk is not available from the official Ubuntu 18.04 repositories. See https://
 
 ## OATs Installation
 
-Simply clone or download this Github repository (C:\Users\\<\<your CRSid>>\OATs-master is the recommended installation path).
+Simply clone or download this Github repository (C:\Users\\<\<your CRSid>>\OATs-master is the recommended installation path i.e. the extracted files should be in this directory).
   
 ## Configuration and usage
 
