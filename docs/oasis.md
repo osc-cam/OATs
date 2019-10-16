@@ -3,7 +3,7 @@
 OASIS is OATs' flagship utility. It can be used to digitally stamp and file PDFs of invoices sent to the OA helpdesk. To run OASIS on Windows, 
 
 * Open the Windows program "Command prompt"
-* Issue the following command on the Command prompt window: `C:\Applications\<WinPython folder>\<python version folder>\python.exe %USERPROFILE%\OATs-master\oasis.py`, replacing <WinPython folder>\<python version folder> for the correct path in your machine. See the [troubleshooting](#specifying-the-correct-path) section below for more details if you encounter problems here. TIP: To paste from your clipboard into the command prompt window, right-click on it and select "paste". 
+* Issue the following command on the Command prompt window: `C:\Applications\<WinPython folder>\<python version folder>\python.exe %USERPROFILE%\OATs-master\oasis.py`, replacing <WinPython folder>\<python version folder> with the correct path in your machine. See the [troubleshooting](#specifying-the-correct-path) section below for more details if you encounter problems here. TIP: To paste from your clipboard into the command prompt window, right-click on it and select "paste". 
 
 If you are a UNIX user (Linux, Mac OS), issue these commands in your terminal:
 
