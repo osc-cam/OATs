@@ -127,6 +127,7 @@
         {% elsif ticket.ticket_field_46241967 == 'coaf_cost_centre_veag_050_rg88122' %}{\COAFsixteen\transaction}%
         {% elsif ticket.ticket_field_46241967 == 'coaf_cost_centre_veag_052_rg93375' %}{\COAFseventeen\transaction}%
         {% elsif ticket.ticket_field_46241967 == 'coaf_cost_centre_veag_055_rg98861' %}{\COAFeighteen\transaction}%
+        {% elsif ticket.ticket_field_46241967 == 'coaf_cost_centre_veag_063_g104390' %}{\COAFnineteen\transaction}%
         {% else%}{\ERROR{COAF cost centre not recognized}}{% endif %}%
     }{% else %}{}%
     {% endif %}%
@@ -162,9 +163,11 @@
 {% endif %}
 
 %%%%COMMAND TO EXECUTE OASIS
-%%ANDRE
-%C:\Applications\WinPython\python-3.6.6.amd64\python.exe %USERPROFILE%\Documents\GitHub\OATs\oasis.py
-%USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\Documents\GitHub\OATs\oasis.py
+%%LORRAINE
+%  C:\Software\WPy64-3741\python-3.7.4.amd64\python.exe %USERPROFILE%\OATs-master\oasis.py
+
+%%DEBBIE
+%  C:\Applications\WinPython\WPy64-3741\python-3.7.4.amd64\python.exe %USERPROFILE%\OATs-master\oasis.py
 
 %%PHILLIPA
 %USERPROFILE%\AppData\Local\Programs\Python\Python36-32\python.exe %USERPROFILE%\OATS\oasis.py
